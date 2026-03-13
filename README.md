@@ -7,46 +7,75 @@ Plataforma unificada para la gestión de inventario de componentes electrónicos
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
-  <img src="https://img.shields.io/badge/Security-RLS-blue?style=for-the-badge&logo=postgresql&logoColor=white" alt="RLS" />
+  <img src="https://img.shields.io/badge/TimescaleDB-pg16-FDB515?style=for-the-badge&logo=postgresql&logoColor=white" alt="TimescaleDB" />
 </p>
 
 ---
 
-## 🚀 Arquitectura General
+## Arquitectura General
 
-El proyecto utiliza un enfoque **Híbrido Moderno** para maximizar el rendimiento y la flexibilidad:
+Enfoque **Híbrido Moderno** para maximizar rendimiento y flexibilidad:
 
-* **Frontend (Astro 6 + React 19):** Generación estática (SSG) para el catálogo maestro de componentes y React Islands para la gestión interactiva del stock.
-* **Backend de Datos (Supabase):** PostgreSQL como motor principal, utilizando **Row Level Security (RLS)** para garantizar que cada usuario gestione solo su stock privado.
-* **API de Inteligencia (FastAPI):** Microservicio dedicado al procesamiento de imágenes (reconocimiento de componentes) e ingesta masiva de telemetría.
-* **Infraestructura:** Despliegue en **Vercel** y **Supabase Cloud** para alta disponibilidad con latencia mínima.
-
-## 🛠️ Características Principales
-
-1.  **Catálogo Maestro Normalizado:** Base de datos compartida de especificaciones técnicas (ESP32, Sensores, Actuadores) para evitar redundancia.
-2.  **Gestión de Stock Multi-usuario:** Aislamiento total de datos mediante políticas de RLS.
-3.  **Ubicaciones mediante QR:** Sistema de gestión de cajas y estantes físicos mediante identificadores únicos.
-4.  **Telemetría en Tiempo Real:** Dashboard para visualizar datos enviados por nodos IoT (vía TimescaleDB).
-
-## 📊 Estructura de Datos (Multi-modelo)
-
-| Capa | Tecnología | Tipo de Datos |
+| Capa | Tecnología | Responsabilidad |
 | :--- | :--- | :--- |
-| **Relacional** | PostgreSQL | Usuarios, Stock, Ubicaciones |
-| **Documental** | JSONB | Especificaciones técnicas de hardware |
-| **Series Temporales** | TimescaleDB | Logs y Telemetría de sensores |
+| **Frontend** | Astro 6 + React 19 | SSG para catálogo maestro; React Islands para gestión de stock interactiva |
+| **Base de Datos** | Supabase (PostgreSQL + RLS) | Datos relacionales y JSONB con aislamiento multi-usuario via Row Level Security |
+| **Series Temporales** | TimescaleDB (pg16) | Ingesta y consulta de telemetría de sensores IoT |
+| **API de Inteligencia** | FastAPI (Python 3.12+) | Reconocimiento de componentes por imagen e ingesta de telemetría |
+| **Infraestructura Cloud** | Vercel + Supabase Cloud | Frontend y base de datos en producción |
 
-## 🛠️ Entorno de Desarrollo
+## Características Principales
+
+1. **Catálogo Maestro Normalizado** — Base compartida de specs técnicas (MCUs, Sensores, Actuadores) para evitar redundancia; specs flexibles via JSONB.
+2. **Gestión de Stock Multi-usuario** — Aislamiento total mediante políticas RLS: cada usuario ve y gestiona únicamente su propio stock.
+3. **Ubicaciones con QR** — Gestión jerárquica de cajas y estantes físicos mediante identificadores únicos escaneables.
+4. **Telemetría en Tiempo Real** — Dashboard para visualizar datos de nodos IoT almacenados en TimescaleDB.
+
+## Estructura del Repositorio
+
+```
+iot-assistant/
+├── api/                    # FastAPI microservice (Python 3.12+)
+│   ├── main.py             # App entry point
+│   ├── requirements.txt
+│   └── Dockerfile
+├── supabase/
+│   └── migrations/         # SQL migrations (validadas antes de aplicar)
+├── src/                    # Astro 6 + React 19 frontend
+│   ├── components/         # React Islands
+│   ├── layouts/
+│   └── pages/
+├── docker-compose.yaml     # Entorno local: TimescaleDB + FastAPI
+└── README.md
+```
+
+## Entorno de Desarrollo Local
 
 ```bash
 # Clonar el repositorio
-git clone [https://github.com/jigmeshelri/iot-assistant.git](https://github.com/jigmeshelri/iot-assistant.git)
+git clone https://github.com/jigmeshelri/iot-assistant.git
+cd iot-assistant
 
-# Instalar dependencias
+# Levantar base de datos (TimescaleDB) + API
+docker-compose up -d
+
+# API disponible en: http://localhost:8000
+# Docs interactivos:  http://localhost:8000/docs
+
+# Instalar dependencias del frontend
 npm install
 
-# Levantar entorno local (Docker)
-docker-compose up -d
+# Iniciar servidor de desarrollo Astro
+npm run dev
+# Frontend en: http://localhost:4321
+```
+
+### Variables de entorno
+
+Copia `.env.example` a `.env` y ajusta los valores antes de levantar Docker:
+
+```bash
+cp .env.example .env
 ```
 
 <p align="center">
