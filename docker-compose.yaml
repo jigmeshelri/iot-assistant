@@ -1,0 +1,47 @@
+services:
+
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: iot-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-iot_assistant}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./supabase/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-iot_assistant}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot-net
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: iot-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-dev_password_123}@db:5432/${POSTGRES_DB:-iot_assistant}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app          # hot-reload en desarrollo
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot-net
+
+volumes:
+  db_data:
+
+networks:
+  iot-net:
+    driver: bridge
