@@ -200,6 +200,40 @@ locations
 
 ---
 
+## 8. Roadmap Comercial y Estrategia de Plataformas
+
+### 8.1 Fases de producto
+
+| Fase | Objetivo | Plataforma | Criterio de salida |
+| :--- | :--- | :--- | :--- |
+| **v1 — MVP** | Validar que el producto resuelve un problema real | PWA (web + móvil) | 50+ usuarios activos con retención semanal > 40 % |
+| **v2 — Crecimiento** | Iterar sobre feedback real y crecer base de usuarios | PWA + mejoras de UX móvil | > 60 % del tráfico desde móvil con fricción documentada |
+| **v3 — Comercial** | Monetizar y escalar | Apps nativas (si se justifica) | Ver criterios en sección 8.2 |
+
+### 8.2 ¿Cuándo vale el esfuerzo de crear apps nativas?
+
+Las apps nativas (iOS y Android) implican mantener un codebase adicional, ciclos de review en App Store / Google Play y costos de distribución. El esfuerzo se justifica **únicamente** si se cumple al menos uno de estos criterios:
+
+| Criterio | Señal concreta que lo activa |
+| :--- | :--- |
+| **Canal de adquisición** | El descubrimiento orgánico en App Store / Google Play es una fuente relevante de nuevos usuarios y la PWA no aparece en esos resultados. |
+| **Capacidades de hardware** | Se requiere Bluetooth BLE para conectar directamente con dispositivos IoT, o procesamiento de imagen offline (inferencia local con Core ML / ML Kit) sin depender de la API. |
+| **Fricción documentada en móvil** | Las métricas o entrevistas de usuarios muestran que la experiencia PWA en móvil es un bloqueador real de adopción o retención. |
+| **Requisito de cliente enterprise** | Un cliente B2B exige distribución via MDM corporativo o presencia en tienda como condición de contrato. |
+
+Mientras ninguno de estos criterios esté activo, la PWA cubre el 90 % del caso de uso (cámara, QR, instalación en home screen) con un único codebase y sin fricción de distribución.
+
+### 8.3 Ruta técnica si se llega a apps nativas
+
+Si los criterios anteriores se activan, la ruta recomendada es **React Native con Expo**, no apps nativas puras (Swift / Kotlin). Esto permite:
+
+- Reutilizar los componentes React ya construidos en la PWA.
+- Mantener un único codebase para iOS, Android y web.
+- Acceder a APIs de hardware (BLE, cámara avanzada, notificaciones push) sin abandonar el ecosistema JavaScript/TypeScript.
+- Reducir el tiempo de go-to-market nativo en ~50 % respecto a dos codebases separados.
+
+---
+
 ## 7. Glosario
 
 | Término | Definición |
