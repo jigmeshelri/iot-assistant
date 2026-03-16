@@ -221,8 +221,10 @@ Cuando el usuario considera que su proyecto tiene valor para compartir puede pub
 **Interacciones sociales:**
 
 - **Me gusta y Fork** — dar "Me gusta" a un proyecto ajeno y guardarlo son una sola acción: al presionar el botón el proyecto queda en la lista personal del usuario (estado `Guardado`) listo para ejecutarse. Esto es equivalente a un fork: se crea una instancia propia a partir del proyecto original, sin copiar la bitácora.
-- **Contador de forks** — cada proyecto publicado muestra cuántas veces fue forkeado por otros usuarios. Es el indicador principal de relevancia del proyecto en la comunidad.
-- **Trazabilidad de origen** — cada fork registra el proyecto del que proviene. Si ese proyecto a su vez fue forkeado de otro, se preserva la cadena completa de origen, permitiendo ver la genealogía del proyecto (ej. `Usuario C → forkeado de Usuario B → forkeado de Usuario A`).
+- **Contador de forks con dos niveles** — cada proyecto publicado muestra:
+  - `Forks directos` — usuarios que forkearon específicamente este proyecto.
+  - `Forks en el árbol` — total acumulado de forks en toda la genealogía descendiente (forks de forks incluidos). Este número refleja el impacto real de la idea original sin atribuirle al autor crédito por el trabajo de quienes la evolucionaron.
+- **Trazabilidad de origen** — cada fork registra únicamente su padre directo. La cadena completa de origen es navegable proyecto a proyecto (ej. `C → B → A`), pero C aparece listado solo como fork directo de B, no de A.
 - **Comentarios** — hilo de comentarios por proyecto para preguntas y retroalimentación entre usuarios.
 
 **Consideraciones de privacidad:**
