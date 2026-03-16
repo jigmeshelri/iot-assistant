@@ -220,9 +220,10 @@ Cuando el usuario considera que su proyecto tiene valor para compartir puede pub
 
 **Interacciones sociales:**
 
-- **Guardar proyecto ajeno** — cualquier usuario puede guardar un proyecto publicado en su lista personal como punto de partida (crea una nueva instancia en su módulo 3.6, sin copiar la bitácora original).
+- **Me gusta y Fork** — dar "Me gusta" a un proyecto ajeno y guardarlo son una sola acción: al presionar el botón el proyecto queda en la lista personal del usuario (estado `Guardado`) listo para ejecutarse. Esto es equivalente a un fork: se crea una instancia propia a partir del proyecto original, sin copiar la bitácora.
+- **Contador de forks** — cada proyecto publicado muestra cuántas veces fue forkeado por otros usuarios. Es el indicador principal de relevancia del proyecto en la comunidad.
+- **Trazabilidad de origen** — cada fork registra el proyecto del que proviene. Si ese proyecto a su vez fue forkeado de otro, se preserva la cadena completa de origen, permitiendo ver la genealogía del proyecto (ej. `Usuario C → forkeado de Usuario B → forkeado de Usuario A`).
 - **Comentarios** — hilo de comentarios por proyecto para preguntas y retroalimentación entre usuarios.
-- **Reacciones** — indicador simple de utilidad (ej. "Me sirvió") sin sistema de puntuación complejo.
 
 **Consideraciones de privacidad:**
 - La publicación es siempre una acción explícita del usuario; ningún proyecto se comparte sin su consentimiento.
