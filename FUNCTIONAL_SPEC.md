@@ -160,7 +160,74 @@ locations
 **Consideraciones comunes a 3.5.1 y 3.5.2:**
 - Las sugerencias de la IA son orientativas; el usuario puede guardar, descartar o compartir los resultados.
 - El módulo no gestiona compras ni se integra con tiendas en esta versión.
-- El historial de proyectos explorados se guarda opcionalmente para referencia futura.
+- Al guardar un proyecto sugerido se crea automáticamente una entrada en el módulo 3.6.
+
+---
+
+### 3.6 Seguimiento y Comunidad de Proyectos
+
+**Objetivo:** Una vez que el usuario decide ejecutar un proyecto — ya sea descubierto por IA (3.5.1) o planificado desde una idea (3.5.2) — permitirle llevar un registro vivo del avance, documentar sus experiencias y, opcionalmente, compartirlo con otros usuarios de la plataforma.
+
+#### 3.6.1 Ciclo de Vida del Proyecto
+
+Un proyecto activo atraviesa los siguientes estados:
+
+```
+Guardado → En curso → Pausado → Completado
+                              ↘ Abandonado
+```
+
+| Estado | Descripción |
+| :--- | :--- |
+| **Guardado** | El proyecto fue seleccionado desde 3.5.1 / 3.5.2 pero aún no se comenzó. |
+| **En curso** | El usuario inició el proyecto activamente. |
+| **Pausado** | Trabajo interrumpido temporalmente; conserva todo el historial. |
+| **Completado** | El proyecto fue terminado. Candidato para publicar en la comunidad. |
+| **Abandonado** | Se descartó; el historial queda disponible para referencia. |
+
+#### 3.6.2 Bitácora de Avance
+
+El usuario puede registrar entradas de bitácora en cualquier momento del ciclo de vida. Cada entrada contiene:
+
+- **Fecha y hora** — registradas automáticamente.
+- **Texto libre** — descripción de lo realizado, problemas encontrados, decisiones tomadas.
+- **Imágenes adjuntas** — fotos del progreso físico del proyecto (protoboard, cableado, armado final).
+- **Etiquetas de estado** — el usuario puede marcar la entrada como: `avance`, `problema`, `solución`, `aprendizaje`.
+
+El conjunto de entradas forma una línea de tiempo cronológica del proyecto.
+
+#### 3.6.3 Control de Componentes Consumidos
+
+Durante la ejecución del proyecto el usuario puede marcar componentes de la BOM como utilizados. Esto descuenta automáticamente las unidades del inventario personal, manteniendo el stock sincronizado con el trabajo físico real.
+
+- Si la cantidad disponible cae a cero o a un nivel insuficiente, la aplicación muestra una alerta en la vista del proyecto.
+- El usuario puede revertir el descuento si cometió un error.
+
+#### 3.6.4 Publicación y Comunidad
+
+Cuando el usuario considera que su proyecto tiene valor para compartir puede publicarlo. Un proyecto publicado se vuelve visible para todos los usuarios de la plataforma.
+
+**Contenido del proyecto publicado:**
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Título y descripción** | Editables antes de publicar; independientes del nombre interno. |
+| **BOM pública** | Lista de componentes usados, sin exponer datos de stock privado. |
+| **Bitácora seleccionada** | El usuario elige qué entradas de la bitácora incluir en la versión pública. |
+| **Galería de imágenes** | Fotos del proceso y resultado final seleccionadas por el usuario. |
+| **Nivel de dificultad** | Autoevaluado por el autor (Principiante / Intermedio / Avanzado). |
+| **Etiquetas** | Categorías libres para facilitar el descubrimiento (ej. `WiFi`, `sensor`, `automatización`). |
+
+**Interacciones sociales:**
+
+- **Guardar proyecto ajeno** — cualquier usuario puede guardar un proyecto publicado en su lista personal como punto de partida (crea una nueva instancia en su módulo 3.6, sin copiar la bitácora original).
+- **Comentarios** — hilo de comentarios por proyecto para preguntas y retroalimentación entre usuarios.
+- **Reacciones** — indicador simple de utilidad (ej. "Me sirvió") sin sistema de puntuación complejo.
+
+**Consideraciones de privacidad:**
+- La publicación es siempre una acción explícita del usuario; ningún proyecto se comparte sin su consentimiento.
+- Los datos de inventario personal (cantidades, ubicaciones) nunca son visibles en la versión pública.
+- El usuario puede despublicar un proyecto en cualquier momento; los comentarios existentes se eliminan junto con él.
 
 ---
 
@@ -180,7 +247,7 @@ locations
 ## 5. Fuera de Alcance (v1)
 
 - Integración con tiendas o proveedores para compra directa de componentes faltantes.
-- Gestión de proyectos colaborativos (inventario compartido entre usuarios).
+- Gestión de proyectos colaborativos (inventario compartido entre usuarios en tiempo real).
 - Telemetría en tiempo real de dispositivos IoT (reservado para fase 2).
 - Control de versiones de esquemáticos o código de firmware.
 
