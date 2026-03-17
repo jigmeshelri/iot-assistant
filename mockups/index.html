@@ -116,6 +116,51 @@
       border-radius: 6px;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Desktop frame ─────────────────────────────── */
+    .desktop-frame {
+      display: none;
+      width: 1200px; height: 720px;
+      border-radius: 12px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.22), 0 0 0 1px #cbd5e1;
+      overflow: hidden;
+      flex-shrink: 0;
+      flex-direction: column;
+      background: white;
+    }
+    .desktop-chrome {
+      height: 40px; background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center;
+      padding: 0 16px; gap: 8px; flex-shrink: 0;
+    }
+    .desktop-body { flex: 1; display: flex; overflow: hidden; }
+    .ds-sidebar {
+      width: 220px; background: #0f172a;
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .ds-content { flex: 1; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; }
+    .ds-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: #94a3b8; cursor: pointer;
+    }
+    .ds-item.active { background: #0d9488; color: white; }
+    .ds-topbar {
+      height: 56px; background: white;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex; align-items: center;
+      padding: 0 24px; gap: 12px; flex-shrink: 0;
+    }
+    .ds-main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .dtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dtable th { background: #f8fafc; font-weight: 600; color: #475569; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
+    .dtable td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+    .dtable tr:last-child td { border-bottom: none; }
+    .dtable tr:hover td { background: #f8fafc; }
+    /* View mode */
+    .desktop-mode .phone { display: none; }
+    .desktop-mode .desktop-frame { display: flex; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-start py-10 gap-10">
@@ -138,14 +183,20 @@
     <button onclick="showScreen(4)" id="btn-4" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Bitácora</button>
     <button onclick="showScreen(5)" id="btn-5" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Comunidad</button>
     <div class="w-px h-6 bg-slate-300 self-center mx-1"></div>
+    <div class="flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5">
+      <button id="view-mobile" onclick="setView('mobile')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-brand-600 text-white transition-all">📱 Móvil</button>
+      <button id="view-desktop" onclick="setView('desktop')" class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-500 transition-all">🖥 Escritorio</button>
+    </div>
+    <div class="w-px h-6 bg-slate-300 self-center mx-1"></div>
     <button onclick="showDocs()" id="btn-docs" class="px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all flex items-center gap-1.5">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Especificaciones
     </button>
   </div>
 
-  <!-- Contenedor de teléfono -->
-  <div class="flex gap-16 items-start flex-wrap justify-center px-4 pb-16">
+  <!-- Contenedor de teléfono / escritorio -->
+  <div class="w-full overflow-x-auto px-4">
+  <div id="mockup-container" class="flex gap-16 items-start flex-wrap justify-center pb-16" style="min-width:fit-content;">
 
     <!-- ══════════════════════════════════════════
          PANTALLA 0: DASHBOARD
@@ -293,6 +344,61 @@
 
         </div>
       </div>
+      <!-- Desktop: Dashboard -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/dashboard</div></div><div class="text-xs text-slate-400 font-medium">IoT Assistant</div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <div class="flex-1"><p class="text-xs text-slate-400">Buenos días,</p><h2 class="text-base font-bold text-slate-900 leading-none mt-0.5">Sergio 👋</h2></div>
+              <button class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear componente</button>
+            </div>
+            <div class="ds-main">
+              <div class="grid grid-cols-4 gap-4 mb-5">
+                <div class="card p-4"><div class="text-3xl font-bold text-slate-900">142</div><div class="text-xs text-slate-400 mt-1">Componentes totales</div></div>
+                <div class="card p-4"><div class="text-3xl font-bold text-slate-900">8</div><div class="text-xs text-slate-400 mt-1">Ubicaciones activas</div></div>
+                <div class="card p-4"><div class="text-3xl font-bold text-brand-600">3</div><div class="text-xs text-slate-400 mt-1">Proyectos activos</div></div>
+                <div class="card p-4"><div class="text-3xl font-bold text-slate-900">12</div><div class="text-xs text-slate-400 mt-1">Escaneos esta semana</div></div>
+              </div>
+              <div class="grid grid-cols-3 gap-5">
+                <div class="col-span-2">
+                  <h3 class="text-sm font-semibold text-slate-800 mb-3">Proyectos activos</h3>
+                  <div class="card overflow-hidden">
+                    <table class="dtable">
+                      <thead><tr><th>Proyecto</th><th>Estado</th><th>Progreso</th><th>Iniciado</th></tr></thead>
+                      <tbody>
+                        <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><span class="font-medium text-slate-800">Estación meteorológica</span></div></td><td><span class="tag bg-brand-50 text-brand-700">En curso</span></td><td><div class="flex items-center gap-2"><div class="flex-1 bg-slate-100 rounded-full h-1.5" style="min-width:80px"><div class="bg-brand-500 h-1.5 rounded-full" style="width:65%"></div></div><span class="text-xs text-slate-400">65%</span></div></td><td class="text-xs text-slate-400 whitespace-nowrap">Hace 5 días</td></tr>
+                        <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><span class="font-medium text-slate-800">Display OLED para reloj</span></div></td><td><span class="tag bg-amber-50 text-amber-700">Pausa</span></td><td><div class="flex items-center gap-2"><div class="flex-1 bg-slate-100 rounded-full h-1.5" style="min-width:80px"><div class="bg-violet-400 h-1.5 rounded-full" style="width:20%"></div></div><span class="text-xs text-slate-400">20%</span></div></td><td class="text-xs text-slate-400 whitespace-nowrap">Hace 2 sem.</td></tr>
+                        <tr><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div><span class="font-medium text-slate-800">Sensor de puerta BLE</span></div></td><td><span class="tag bg-green-50 text-green-700">Completado</span></td><td><div class="flex items-center gap-2"><div class="flex-1 bg-slate-100 rounded-full h-1.5" style="min-width:80px"><div class="bg-green-500 h-1.5 rounded-full" style="width:100%"></div></div><span class="text-xs text-slate-400">100%</span></div></td><td class="text-xs text-slate-400 whitespace-nowrap">Hace 1 mes</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-800 mb-3">Añadidas recientemente</h3>
+                  <div class="flex flex-col gap-2">
+                    <div class="card p-3 flex items-center gap-3"><div class="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><div><p class="text-xs font-semibold text-slate-800">ESP32-C6 XIAO</p><p class="text-xs text-slate-400">×3 · Maletín Azul</p></div></div>
+                    <div class="card p-3 flex items-center gap-3"><div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div><div><p class="text-xs font-semibold text-slate-800">DHT22</p><p class="text-xs text-slate-400">×5 · Cajón Escritorio</p></div></div>
+                    <div class="card p-3 flex items-center gap-3"><div class="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><div><p class="text-xs font-semibold text-slate-800">OLED SSD1306 0.96"</p><p class="text-xs text-slate-400">×1 · Maletín Azul</p></div></div>
+                    <div class="card p-3 flex items-center gap-3"><div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><p class="text-xs font-semibold text-slate-800">TP4056 Cargador LiPo</p><p class="text-xs text-slate-400">×4 · Rack Taller</p></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <p class="text-xs text-slate-400 text-center max-w-xs">Pantalla principal con resumen de actividad, proyectos activos y acceso rápido al escaneo.</p>
     </div>
 
@@ -417,6 +523,93 @@
           </div>
         </div>
       </div>
+      <!-- Desktop: Inventario -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/inventory</div></div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <h2 class="text-base font-bold text-slate-900 flex-1">Inventario</h2>
+              <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 w-56"><svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span class="text-xs text-slate-400">Buscar componentes...</span></div>
+              <button class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-medium"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>Filtrar</button>
+              <button class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Añadir componente</button>
+            </div>
+            <div class="ds-main">
+              <div class="flex gap-2 mb-4 flex-wrap">
+                <span class="tag bg-brand-600 text-white px-3 py-1.5">Todos (142)</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">MCU (18)</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Sensores (34)</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Módulos (22)</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Pasivos (68)</span>
+                <span class="ml-auto text-xs text-slate-400 self-center">142 componentes</span>
+              </div>
+              <div class="card overflow-hidden">
+                <table class="dtable">
+                  <thead><tr><th style="width:32px"><input type="checkbox" /></th><th>Componente</th><th>Categoría</th><th>Ubicación</th><th>Stock</th><th>Especificaciones</th><th>Acciones</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><div><p class="text-sm font-semibold text-slate-800">ESP32-C6 XIAO</p><p class="text-xs text-slate-400">SNS-001</p></div></div></td>
+                      <td><span class="tag bg-brand-50 text-brand-700">Microcontrolador</span></td>
+                      <td><span class="text-xs text-slate-600">📦 Maletín Azul → Comp. A</span></td>
+                      <td><span class="text-sm font-bold text-slate-900">3</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">WiFi 6</span><span class="tag bg-slate-100 text-slate-500">BLE 5</span></div></td>
+                      <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div><div><p class="text-sm font-semibold text-slate-800">DHT22</p><p class="text-xs text-slate-400">SNS-002</p></div></div></td>
+                      <td><span class="tag bg-amber-50 text-amber-700">Sensor</span></td>
+                      <td><span class="text-xs text-slate-600">📦 Cajón Escritorio → Fila 2</span></td>
+                      <td><span class="text-sm font-bold text-slate-900">5</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">Temp.</span><span class="tag bg-slate-100 text-slate-500">Humedad</span></div></td>
+                      <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><div><p class="text-sm font-semibold text-slate-800">OLED SSD1306 0.96"</p><p class="text-xs text-slate-400">MOD-003</p></div></div></td>
+                      <td><span class="tag bg-violet-50 text-violet-700">Módulo</span></td>
+                      <td><span class="text-xs text-slate-600">📦 Maletín Azul → Comp. B</span></td>
+                      <td><span class="text-sm font-bold text-amber-500">1</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">I2C</span><span class="tag bg-slate-100 text-slate-500">128×64</span></div></td>
+                      <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5c0 3-5 13-5 13S7 10 7 7a5 5 0 015-5z"/><circle cx="12" cy="7" r="2"/></svg></div><div><p class="text-sm font-semibold text-slate-800">Resistencias 10kΩ</p><p class="text-xs text-slate-400">PAS-004</p></div></div></td>
+                      <td><span class="tag bg-slate-100 text-slate-600">Pasivo</span></td>
+                      <td><span class="text-xs text-slate-600">📦 Cajón Escritorio → Fila 1</span></td>
+                      <td><span class="text-sm font-bold text-slate-900">50</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">Through-hole</span><span class="tag bg-slate-100 text-slate-500">10kΩ</span></div></td>
+                      <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><p class="text-sm font-semibold text-slate-800">TP4056 Cargador LiPo</p><p class="text-xs text-slate-400">PWR-005</p></div></div></td>
+                      <td><span class="tag bg-green-50 text-green-700">Alimentación</span></td>
+                      <td><span class="text-xs text-slate-600">📦 Rack Taller → Bandeja 3</span></td>
+                      <td><span class="text-sm font-bold text-slate-900">4</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">5V</span><span class="tag bg-slate-100 text-slate-500">USB-C</span><span class="tag bg-slate-100 text-slate-500">1A</span></div></td>
+                      <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <p class="text-xs text-slate-400 text-center max-w-xs">Lista de inventario con búsqueda, filtros por categoría y cantidad destacada en bajo stock.</p>
     </div>
 
@@ -502,6 +695,76 @@
             </button>
           </div>
 
+        </div>
+      </div>
+      <!-- Desktop: Escanear IA -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/scan</div></div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <h2 class="text-base font-bold text-slate-900 flex-1">Escanear componente con IA</h2>
+              <span class="tag bg-brand-50 text-brand-700 text-xs">Powered by Claude Vision</span>
+            </div>
+            <div class="ds-main" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+              <!-- Camera side -->
+              <div>
+                <div class="rounded-2xl overflow-hidden mb-3" style="height:360px; background:linear-gradient(135deg,#1e293b,#0f172a); position:relative;">
+                  <div class="absolute inset-0 opacity-20" style="background-image:linear-gradient(#64748b 1px,transparent 1px),linear-gradient(90deg,#64748b 1px,transparent 1px);background-size:40px 40px;"></div>
+                  <div class="absolute" style="inset:40px;">
+                    <div class="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-brand-400 rounded-tl-lg"></div>
+                    <div class="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-brand-400 rounded-tr-lg"></div>
+                    <div class="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-brand-400 rounded-bl-lg"></div>
+                    <div class="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-brand-400 rounded-br-lg"></div>
+                  </div>
+                  <div class="absolute left-12 right-12" style="top:46%;height:2px;background:linear-gradient(90deg,transparent,#2dd4bf,transparent);opacity:0.8;"></div>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-24 h-24 bg-slate-700 rounded-xl border border-slate-600 flex items-center justify-center">
+                      <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
+                    </div>
+                  </div>
+                  <div class="absolute bottom-4 left-0 right-0 text-center"><span class="text-xs text-brand-300 font-medium">Apunta la cámara al componente</span></div>
+                </div>
+                <div class="flex items-center justify-center gap-4">
+                  <button class="flex items-center gap-2 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Subir imagen</button>
+                  <button class="w-14 h-14 rounded-full bg-white border-4 border-slate-300 flex items-center justify-center shadow-md"><div class="w-9 h-9 bg-white rounded-full border border-slate-200"></div></button>
+                  <button class="flex items-center gap-2 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-medium"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Cámara trasera</button>
+                </div>
+              </div>
+              <!-- AI Results side -->
+              <div class="card p-6">
+                <div class="flex items-center gap-2 mb-5">
+                  <div class="w-7 h-7 bg-brand-500 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+                  <span class="text-sm font-semibold text-slate-800">Resultado IA</span>
+                  <span class="ml-auto tag bg-brand-50 text-brand-700 text-xs font-semibold">91% confianza</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Nombre</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">ESP32-C6 XIAO</div></div>
+                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Fabricante</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">Seeed Studio</div></div>
+                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Categoría</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">Microcontrolador</div></div>
+                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Voltaje</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">3.3V (USB 5V)</div></div>
+                </div>
+                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Especificaciones detectadas</label><div class="mt-2 flex flex-wrap gap-1.5"><span class="tag bg-slate-100 text-slate-600">WiFi 6 (802.11ax)</span><span class="tag bg-slate-100 text-slate-600">BLE 5.0</span><span class="tag bg-slate-100 text-slate-600">USB-C</span><span class="tag bg-slate-100 text-slate-600">RISC-V 160MHz</span><span class="tag bg-slate-100 text-slate-600">4MB Flash</span></div></div>
+                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Descripción IA</label><p class="mt-1 text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3">Microcontrolador de bajo consumo basado en ESP32-C6. Ideal para proyectos IoT con conectividad WiFi 6 y Bluetooth 5.0. Incluye soporte para Zigbee y Thread.</p></div>
+                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Ubicación</label><div class="mt-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5"><svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="text-sm text-slate-400">Sin asignar — seleccionar ubicación</span></div></div>
+                <div class="flex gap-3">
+                  <button class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600">Corregir datos</button>
+                  <button class="flex-1 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold">Confirmar y guardar</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <p class="text-xs text-slate-400 text-center max-w-xs">Flujo de escaneo con IA: visor de cámara, resultado pre-rellenado y confirmación antes de guardar.</p>
@@ -602,6 +865,90 @@
             <div class="bottom-nav-item"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
             <div class="bottom-nav-item active"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
             <div class="bottom-nav-item"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+          </div>
+        </div>
+      </div>
+      <!-- Desktop: Explorar Proyectos -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/projects/explore</div></div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <h2 class="text-base font-bold text-slate-900 flex-1">Explorar Proyectos</h2>
+              <span class="text-xs text-slate-400">Basado en tus 142 componentes</span>
+            </div>
+            <div class="ds-main">
+              <div class="flex gap-2 mb-5">
+                <button class="px-5 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold">¿Qué puedo hacer?</button>
+                <button class="px-5 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-500">Tengo una idea...</button>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <!-- Card 1 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-green-50 text-green-700">85% viable</span><span class="tag bg-slate-100 text-slate-500">Intermedio</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Estación meteorológica WiFi</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Monitorea temperatura, humedad y presión con ESP32 y envía datos a la nube en tiempo real.</p>
+                  <div class="bg-slate-50 rounded-xl p-3 mb-3">
+                    <p class="text-xs font-semibold text-slate-500 mb-2">Componentes</p>
+                    <div class="flex flex-col gap-1"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">ESP32-C6</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">DHT22</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div><span class="text-xs text-slate-700 flex-1">BMP280</span><span class="text-xs text-amber-600 font-medium">Falta ✗</span></div></div>
+                  </div>
+                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
+                </div>
+                <!-- Card 2 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-brand-50 text-brand-700">100% viable</span><span class="tag bg-slate-100 text-slate-500">Principiante</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Reloj OLED con ESP32</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Reloj digital con pantalla OLED 0.96" sincronizado por NTP. Interfaz limpia y minimalista.</p>
+                  <div class="bg-brand-50 rounded-xl p-3 mb-3">
+                    <p class="text-xs font-semibold text-brand-700 mb-1">✓ Tienes todos los componentes</p>
+                    <p class="text-xs text-brand-600">ESP32-C6 · OLED SSD1306 · Cable USB-C</p>
+                  </div>
+                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
+                </div>
+                <!-- Card 3 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-green-50 text-green-700">90% viable</span><span class="tag bg-slate-100 text-slate-500">Principiante</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Monitor de temperatura BLE</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Envía lecturas de DHT22 vía Bluetooth Low Energy a tu smartphone cada 10 segundos.</p>
+                  <div class="bg-slate-50 rounded-xl p-3 mb-3">
+                    <div class="flex flex-col gap-1"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">ESP32-C6</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">DHT22</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div><span class="text-xs text-slate-700 flex-1">Batería LiPo 500mAh</span><span class="text-xs text-amber-600 font-medium">Falta ✗</span></div></div>
+                  </div>
+                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
+                </div>
+                <!-- Card 4 -->
+                <div class="card p-4 opacity-80">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-amber-50 text-amber-700">60% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Sistema de riego automático</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Controla válvula solenoide según sensor de humedad del suelo. Con dashboard web incluido.</p>
+                  <p class="text-xs text-amber-600 font-medium">Faltan 2 componentes</p>
+                </div>
+                <!-- Card 5 -->
+                <div class="card p-4 opacity-75">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-red-50 text-red-600">40% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Sensor de calidad del aire</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Mide CO₂, partículas PM2.5 y COVs. Alerta visual y notificaciones push.</p>
+                  <p class="text-xs text-red-500 font-medium">Faltan 3 componentes</p>
+                </div>
+                <!-- Card 6 -->
+                <div class="card p-4 opacity-75">
+                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-red-50 text-red-600">35% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Robot seguidor de línea</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Robot autónomo con sensores IR y motores DC. Control PID para seguimiento preciso.</p>
+                  <p class="text-xs text-red-500 font-medium">Faltan 4 componentes</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -721,6 +1068,86 @@
           </div>
         </div>
       </div>
+      <!-- Desktop: Bitácora -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/projects/estacion-meteorologica</div></div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <div class="flex items-center gap-2 text-xs text-slate-400"><span>Proyectos</span><svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg><span class="text-slate-700 font-medium">Estación meteorológica</span></div>
+              <div class="flex-1"></div>
+              <button class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-medium"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>Compartir</button>
+              <button class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nueva entrada</button>
+            </div>
+            <div class="ds-main" style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+              <!-- Timeline -->
+              <div>
+                <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-slate-800">Bitácora</h3><div class="flex gap-2"><span class="text-xs text-slate-400 self-center">3 entradas</span></div></div>
+                <!-- Entry 1 -->
+                <div class="flex gap-3 mb-4">
+                  <div class="flex flex-col items-center"><div class="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg></div><div class="w-0.5 flex-1 bg-slate-100 mt-1"></div></div>
+                  <div class="card flex-1 p-4 mb-4">
+                    <div class="flex items-center gap-2 mb-2"><span class="tag bg-brand-50 text-brand-700">avance</span><span class="text-xs text-slate-400">hoy, 14:30</span><span class="ml-auto text-xs text-slate-400">Sergio</span></div>
+                    <p class="text-sm text-slate-700 leading-relaxed mb-3">Conecté el DHT22 al ESP32 y probé la lectura de temperatura. Funciona perfectamente a 3.3V. Los valores son estables con una variación menor a ±0.1°C.</p>
+                    <div class="w-32 h-20 bg-slate-100 rounded-xl flex items-center justify-center"><svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+                  </div>
+                </div>
+                <!-- Entry 2 -->
+                <div class="flex gap-3 mb-4">
+                  <div class="flex flex-col items-center"><div class="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="w-0.5 flex-1 bg-slate-100 mt-1"></div></div>
+                  <div class="card flex-1 p-4 mb-4">
+                    <div class="flex items-center gap-2 mb-2"><span class="tag bg-red-50 text-red-600">problema</span><span class="text-xs text-slate-400">ayer, 20:15</span></div>
+                    <p class="text-sm text-slate-700 leading-relaxed">El BMP280 no responde por I2C. Revisé el direccionamiento (0x76 vs 0x77) sin éxito. El bus I2C parece estar ocupado o hay un conflicto de dirección.</p>
+                  </div>
+                </div>
+                <!-- Entry 3 -->
+                <div class="flex gap-3">
+                  <div class="flex flex-col items-center"><div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div></div>
+                  <div class="card flex-1 p-4">
+                    <div class="flex items-center gap-2 mb-2"><span class="tag bg-green-50 text-green-700">solución</span><span class="text-xs text-slate-400">ayer, 22:40</span></div>
+                    <p class="text-sm text-slate-700 leading-relaxed">El problema era el pull-up de SDA/SCL. Con resistencias de 4.7kΩ el BMP280 responde correctamente. Lección: siempre verificar los pull-ups en I2C.</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Project info panel -->
+              <div>
+                <div class="card p-4 mb-4">
+                  <div class="flex items-start justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-slate-800">Estación meteorológica</h3>
+                    <span class="tag bg-brand-50 text-brand-700">En curso</span>
+                  </div>
+                  <div class="bg-slate-100 rounded-full h-2 mb-1"><div class="bg-brand-500 h-2 rounded-full" style="width:65%"></div></div>
+                  <div class="flex justify-between text-xs text-slate-400 mb-4"><span>Progreso</span><span class="font-semibold text-brand-600">65%</span></div>
+                  <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-slate-50 rounded-xl p-2"><div class="text-lg font-bold text-slate-900">5</div><div class="text-xs text-slate-400">días activo</div></div>
+                    <div class="bg-slate-50 rounded-xl p-2"><div class="text-lg font-bold text-slate-900">3</div><div class="text-xs text-slate-400">entradas</div></div>
+                  </div>
+                </div>
+                <div class="card p-4">
+                  <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Lista de Materiales</h4>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-brand-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-xs text-slate-700 flex-1">ESP32-C6 XIAO</span><span class="tag bg-brand-50 text-brand-600">×1 ✓</span></div>
+                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div><span class="text-xs text-slate-700 flex-1">DHT22</span><span class="tag bg-brand-50 text-brand-600">×1 ✓</span></div>
+                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5c0 3-5 13-5 13S7 10 7 7a5 5 0 015-5z"/></svg></div><span class="text-xs text-slate-700 flex-1">BMP280</span><span class="tag bg-amber-50 text-amber-600">Falta</span></div>
+                    <div class="flex items-center gap-2"><div class="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5c0 3-5 13-5 13S7 10 7 7a5 5 0 015-5z"/></svg></div><span class="text-xs text-slate-700 flex-1">Resistencias 4.7kΩ</span><span class="tag bg-brand-50 text-brand-600">×2 ✓</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <p class="text-xs text-slate-400 text-center max-w-xs">Bitácora cronológica con entradas tipadas (avance, problema, solución) y soporte de imágenes.</p>
     </div>
 
@@ -820,10 +1247,71 @@
           </div>
         </div>
       </div>
+      <!-- Desktop: Comunidad -->
+      <div class="desktop-frame">
+        <div class="desktop-chrome"><div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-amber-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div><div class="flex-1 mx-4"><div class="bg-white border border-slate-200 rounded px-3 py-1 text-xs text-slate-400 max-w-xs mx-auto text-center">app.iotassistant.io/community</div></div></div>
+        <div class="desktop-body">
+          <div class="ds-sidebar">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5"><div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><span class="text-white font-bold text-sm">IoT Assistant</span></div>
+            <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Dashboard</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/></svg>Inventario</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear IA</div>
+              <div class="ds-item"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Proyectos</div>
+              <div class="ds-item active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>Comunidad</div>
+            </nav>
+            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-2.5"><div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">S</div><div class="min-w-0"><p class="text-xs font-semibold text-white">Sergio</p><p class="text-xs text-slate-400">sergio@email.com</p></div></div>
+          </div>
+          <div class="ds-content">
+            <div class="ds-topbar">
+              <h2 class="text-base font-bold text-slate-900 flex-1">Comunidad</h2>
+              <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 w-52"><svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span class="text-xs text-slate-400">Buscar proyectos...</span></div>
+              <button class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Publicar proyecto</button>
+            </div>
+            <div class="ds-main">
+              <div class="flex gap-2 mb-5 flex-wrap">
+                <span class="tag bg-brand-600 text-white px-3 py-1.5">Recientes</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Populares</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">WiFi</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Sensor</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Automatización</span>
+                <span class="tag bg-white border border-slate-200 text-slate-600 px-3 py-1.5">Principiante</span>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <!-- Project 1 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2.5 mb-3"><div class="w-8 h-8 rounded-full bg-violet-200 flex items-center justify-center text-xs font-bold text-violet-700">MR</div><div><p class="text-xs font-semibold text-slate-800">María R.</p><p class="text-xs text-slate-400">hace 2 días</p></div><span class="ml-auto tag bg-brand-50 text-brand-700">Completado</span></div>
+                  <div class="w-full h-24 bg-gradient-to-br from-green-100 to-brand-100 rounded-xl mb-3 flex items-center justify-center"><svg class="w-8 h-8 text-brand-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Sistema de riego automático</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Controla válvula solenoide con ESP32 y sensor de humedad. Dashboard web incluido.</p>
+                  <div class="flex items-center gap-3"><button class="flex items-center gap-1 text-xs text-slate-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>24 forks</button><span class="text-xs text-slate-400">🌿 42 árbol</span><button class="ml-auto flex items-center gap-1 bg-brand-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"><svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Guardar</button></div>
+                </div>
+                <!-- Project 2 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2.5 mb-3"><div class="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center text-xs font-bold text-amber-700">LP</div><div><p class="text-xs font-semibold text-slate-800">Luis P.</p><p class="text-xs text-slate-400">hace 5 días</p></div><span class="ml-auto tag bg-amber-50 text-amber-700">En curso</span></div>
+                  <div class="w-full h-24 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl mb-3 flex items-center justify-center"><svg class="w-8 h-8 text-amber-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Monitor CO₂ con alerta OLED</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">SCD40 + ESP32 + OLED. Alerta visual y sonora cuando CO₂ supera 1000 ppm.</p>
+                  <div class="flex items-center gap-3"><button class="flex items-center gap-1 text-xs text-brand-600 font-semibold"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>7 forks</button><span class="text-xs text-slate-400">🌿 7 árbol</span><button class="ml-auto border border-slate-200 text-slate-600 text-xs font-medium px-3 py-1.5 rounded-lg">Guardado ✓</button></div>
+                </div>
+                <!-- Project 3 -->
+                <div class="card p-4">
+                  <div class="flex items-center gap-2.5 mb-3"><div class="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-xs font-bold text-blue-700">AC</div><div><p class="text-xs font-semibold text-slate-800">Ana C.</p><p class="text-xs text-slate-400">hace 1 semana</p></div><span class="ml-auto tag bg-brand-50 text-brand-700">Completado</span></div>
+                  <div class="w-full h-24 bg-gradient-to-br from-blue-100 to-violet-100 rounded-xl mb-3 flex items-center justify-center"><svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+                  <h4 class="text-sm font-bold text-slate-900 mb-1">Reloj NTP con pantalla OLED</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Reloj sincronizado por Internet con display OLED 1.3". Muestra hora, fecha y temp. ambiente.</p>
+                  <div class="flex items-center gap-3"><button class="flex items-center gap-1 text-xs text-slate-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>15 forks</button><span class="text-xs text-slate-400">🌿 21 árbol</span><button class="ml-auto flex items-center gap-1 bg-brand-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"><svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Guardar</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <p class="text-xs text-slate-400 text-center max-w-xs">Feed de proyectos públicos con contadores de forks directos y árbol, y acción de guardar integrada.</p>
     </div>
 
-  </div><!-- fin contenedor -->
+  </div><!-- fin flex contenedor -->
+  </div><!-- fin overflow wrapper -->
 
   <!-- ══════════════════════════════════════════
        PANEL DE DOCUMENTACIÓN
@@ -854,6 +1342,28 @@
   </div>
 
   <script>
+    let currentView = 'mobile'
+
+    function setView(view) {
+      currentView = view
+      const container = document.getElementById('mockup-container')
+      const btnMobile = document.getElementById('view-mobile')
+      const btnDesktop = document.getElementById('view-desktop')
+      if (view === 'desktop') {
+        container.classList.add('desktop-mode')
+        btnMobile.classList.remove('bg-brand-600', 'text-white')
+        btnMobile.classList.add('text-slate-500')
+        btnDesktop.classList.add('bg-brand-600', 'text-white')
+        btnDesktop.classList.remove('text-slate-500')
+      } else {
+        container.classList.remove('desktop-mode')
+        btnMobile.classList.add('bg-brand-600', 'text-white')
+        btnMobile.classList.remove('text-slate-500')
+        btnDesktop.classList.remove('bg-brand-600', 'text-white')
+        btnDesktop.classList.add('text-slate-500')
+      }
+    }
+
     const DOCS = {
       functional: '../FUNCTIONAL_SPEC.md',
       technical:  '../TECHNICAL_SPEC.md',
@@ -889,7 +1399,7 @@
 
     function showDocs() {
       // Ocultar pantallas de mockup
-      document.querySelector('.flex.gap-16').classList.add('hidden')
+      document.getElementById('mockup-container').classList.add('hidden')
       document.getElementById('docs-panel').classList.remove('hidden')
 
       // Estilos del botón docs
@@ -909,7 +1419,7 @@
 
     function showScreen(index) {
       // Mostrar contenedor de mockups, ocultar docs
-      document.querySelector('.flex.gap-16').classList.remove('hidden')
+      document.getElementById('mockup-container').classList.remove('hidden')
       document.getElementById('docs-panel').classList.add('hidden')
 
       // Resetear botón docs
