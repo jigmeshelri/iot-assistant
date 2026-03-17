@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IoT Assistant — Mockups</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -48,6 +49,28 @@
     }
     .phone-inner { height: 100%; overflow-y: auto; scrollbar-width: none; }
     .phone-inner::-webkit-scrollbar { display: none; }
+
+    /* Markdown prose */
+    .prose h1 { font-size:1.75rem; font-weight:700; color:#0f172a; margin:0 0 1rem; }
+    .prose h2 { font-size:1.2rem; font-weight:700; color:#0f172a; margin:2rem 0 .75rem; padding-bottom:.4rem; border-bottom:2px solid #f1f5f9; }
+    .prose h3 { font-size:1rem; font-weight:600; color:#1e293b; margin:1.5rem 0 .5rem; }
+    .prose h4 { font-size:.9rem; font-weight:600; color:#334155; margin:1rem 0 .4rem; }
+    .prose p  { font-size:.875rem; color:#475569; line-height:1.75; margin:.5rem 0; }
+    .prose ul { list-style:disc; padding-left:1.25rem; margin:.5rem 0; }
+    .prose ol { list-style:decimal; padding-left:1.25rem; margin:.5rem 0; }
+    .prose li { font-size:.875rem; color:#475569; line-height:1.75; margin:.2rem 0; }
+    .prose li strong { color:#1e293b; }
+    .prose code { font-family:'JetBrains Mono',monospace; font-size:.78rem; background:#f1f5f9; color:#0d9488; padding:1px 5px; border-radius:4px; }
+    .prose pre { background:#0f172a; border-radius:12px; padding:1rem 1.25rem; margin:1rem 0; overflow-x:auto; }
+    .prose pre code { background:transparent; color:#7dd3fc; font-size:.78rem; padding:0; }
+    .prose table { width:100%; border-collapse:collapse; font-size:.825rem; margin:1rem 0; }
+    .prose th { background:#f8fafc; font-weight:600; color:#334155; padding:.5rem .75rem; border:1px solid #e2e8f0; text-align:left; }
+    .prose td { padding:.45rem .75rem; border:1px solid #e2e8f0; color:#475569; vertical-align:top; }
+    .prose tr:nth-child(even) td { background:#fafafa; }
+    .prose strong { color:#1e293b; font-weight:600; }
+    .prose a { color:#0d9488; text-decoration:underline; }
+    .prose hr { border:none; border-top:1px solid #e2e8f0; margin:2rem 0; }
+    .prose blockquote { border-left:3px solid #0d9488; padding-left:1rem; color:#64748b; margin:1rem 0; }
     .status-bar {
       height: 44px; background: inherit;
       display: flex; align-items: center;
@@ -107,13 +130,18 @@
   </div>
 
   <!-- Navegación de pantallas -->
-  <div class="flex gap-2 flex-wrap justify-center px-4">
+  <div class="flex gap-2 flex-wrap justify-center px-4" id="nav-screens">
     <button onclick="showScreen(0)" id="btn-0" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-brand-600 text-white transition-all">Dashboard</button>
     <button onclick="showScreen(1)" id="btn-1" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Inventario</button>
     <button onclick="showScreen(2)" id="btn-2" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Escanear IA</button>
     <button onclick="showScreen(3)" id="btn-3" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Explorar Proyectos</button>
     <button onclick="showScreen(4)" id="btn-4" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Bitácora</button>
     <button onclick="showScreen(5)" id="btn-5" class="screen-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all">Comunidad</button>
+    <div class="w-px h-6 bg-slate-300 self-center mx-1"></div>
+    <button onclick="showDocs()" id="btn-docs" class="px-4 py-2 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 transition-all flex items-center gap-1.5">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Especificaciones
+    </button>
   </div>
 
   <!-- Contenedor de teléfono -->
@@ -797,8 +825,98 @@
 
   </div><!-- fin contenedor -->
 
+  <!-- ══════════════════════════════════════════
+       PANEL DE DOCUMENTACIÓN
+  ══════════════════════════════════════════ -->
+  <div id="docs-panel" class="hidden w-full max-w-5xl px-4 pb-16">
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 border-b border-slate-200 pb-0">
+      <button onclick="showDoc('functional')" id="tab-functional"
+        class="doc-tab px-5 py-2.5 text-sm font-semibold border-b-2 border-brand-600 text-brand-700 -mb-px transition-all">
+        Especificación Funcional
+      </button>
+      <button onclick="showDoc('technical')" id="tab-technical"
+        class="doc-tab px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 -mb-px transition-all hover:text-slate-700">
+        Especificación Técnica
+      </button>
+    </div>
+
+    <!-- Contenido -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 md:p-12">
+      <div id="doc-content" class="prose">
+        <div class="flex items-center justify-center py-16 text-slate-400">
+          <svg class="w-6 h-6 animate-spin mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Cargando...
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const DOCS = {
+      functional: '../FUNCTIONAL_SPEC.md',
+      technical:  '../TECHNICAL_SPEC.md',
+    }
+    const cache = {}
+
+    async function loadDoc(key) {
+      if (cache[key]) return cache[key]
+      try {
+        const res = await fetch(DOCS[key])
+        if (!res.ok) throw new Error()
+        const text = await res.text()
+        cache[key] = marked.parse(text)
+        return cache[key]
+      } catch {
+        return '<p style="color:#ef4444;padding:2rem 0">No se pudo cargar el documento. Abre los mockups desde GitHub Pages o un servidor local (<code>npx serve .</code> en la raíz del repo).</p>'
+      }
+    }
+
+    async function showDoc(key) {
+      document.querySelectorAll('.doc-tab').forEach(t => {
+        t.classList.remove('border-brand-600','text-brand-700','font-semibold')
+        t.classList.add('border-transparent','text-slate-500','font-medium')
+      })
+      const active = document.getElementById('tab-' + key)
+      active.classList.add('border-brand-600','text-brand-700','font-semibold')
+      active.classList.remove('border-transparent','text-slate-500','font-medium')
+
+      const el = document.getElementById('doc-content')
+      el.innerHTML = '<div class="flex items-center justify-center py-16 text-slate-400"><svg class="w-6 h-6 animate-spin mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Cargando...</div>'
+      el.innerHTML = await loadDoc(key)
+    }
+
+    function showDocs() {
+      // Ocultar pantallas de mockup
+      document.querySelector('.flex.gap-16').classList.add('hidden')
+      document.getElementById('docs-panel').classList.remove('hidden')
+
+      // Estilos del botón docs
+      const btnDocs = document.getElementById('btn-docs')
+      btnDocs.classList.remove('bg-white','text-slate-600','border-slate-200')
+      btnDocs.classList.add('bg-slate-800','text-white','border-slate-800')
+
+      // Desactivar botones de pantalla
+      document.querySelectorAll('.screen-btn').forEach(b => {
+        b.classList.add('bg-white','text-slate-600','border','border-slate-200')
+        b.classList.remove('bg-brand-600','text-white')
+      })
+
+      // Cargar funcional por defecto
+      showDoc('functional')
+    }
+
     function showScreen(index) {
+      // Mostrar contenedor de mockups, ocultar docs
+      document.querySelector('.flex.gap-16').classList.remove('hidden')
+      document.getElementById('docs-panel').classList.add('hidden')
+
+      // Resetear botón docs
+      const btnDocs = document.getElementById('btn-docs')
+      btnDocs.classList.add('bg-white','text-slate-600','border-slate-200')
+      btnDocs.classList.remove('bg-slate-800','text-white','border-slate-800')
+
       document.querySelectorAll('.screen').forEach((s, i) => {
         s.classList.toggle('active', i === index)
       })
