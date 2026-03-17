@@ -1,7 +1,7 @@
 # Especificación Funcional — IoT Assistant
 
-**Versión:** 0.1
-**Fecha:** 2026-03-16
+**Versión:** 0.2
+**Fecha:** 2026-03-17
 **Estado:** Borrador
 
 ---
@@ -34,7 +34,7 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 - **Alta de componente por fotografía** (ver módulo 3.2) — flujo alternativo que pre-rellena los campos automáticamente.
 - **Edición y baja** — actualización de cantidad, notas, especificaciones y ubicación. Baja lógica con historial.
 - **Búsqueda y filtrado** — por nombre, categoría, especificación técnica (voltaje, protocolo, encapsulado) y ubicación.
-- **Vista de detalle** — ficha completa del componente: imagen, datasheet vinculado, especificaciones normalizadas, cantidad disponible e historial de movimientos.
+- **Vista de detalle** — ficha completa del componente: imagen, datasheet vinculado, especificaciones normalizadas, capacidades de conectividad detectadas, cantidad disponible e historial de movimientos.
 
 **Datos por componente:**
 
@@ -43,8 +43,10 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 | `sku` | `TEXT` | Identificador único interno (ej. `MCU-001`) |
 | `name` | `TEXT` | Nombre técnico (ej. "ESP32-C6 XIAO") |
 | `category` | `ENUM` | Microcontrolador, Sensor, Actuador, Alimentación, Módulo, Pasivo |
+| `platform_family` | `ENUM` | Familia de plataforma: `esp32`, `arduino`, `rpi`, `generic` |
+| `connectivity_caps` | `JSONB` | Capacidades de conectividad detectadas: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc. |
 | `quantity` | `INTEGER` | Unidades disponibles ≥ 0 |
-| `technical_specs` | `JSONB` | Specs flexibles: voltaje, corriente, protocolo, etc. |
+| `technical_specs` | `JSONB` | Specs flexibles: voltaje, corriente, protocolo, encapsulado, etc. |
 | `image_url` | `TEXT` | Foto tomada por el usuario |
 | `datasheet_url` | `TEXT` | Enlace al datasheet oficial |
 | `location_id` | `UUID` | FK a la ubicación física (módulo 3.3) |
@@ -53,7 +55,7 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 
 ### 3.2 Reconocimiento de Componentes por IA
 
-**Objetivo:** Reducir la fricción del alta de inventario permitiendo que el usuario fotografíe una pieza y el sistema la identifique automáticamente.
+**Objetivo:** Reducir la fricción del alta de inventario permitiendo que el usuario fotografíe una pieza y el sistema la identifique automáticamente, extrayendo además sus capacidades técnicas y de conectividad.
 
 **Flujo:**
 
@@ -63,13 +65,17 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 4. El modelo retorna:
    - Nombre probable del componente
    - Categoría sugerida
+   - Familia de plataforma (`platform_family`: esp32, arduino, rpi, generic)
+   - Capacidades de conectividad detectadas (`connectivity_caps`: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc.)
    - Especificaciones técnicas inferidas (voltaje de operación, interfaz, encapsulado)
    - Enlace o referencia al datasheet cuando sea identificable
-5. El sistema presenta los datos al usuario en un formulario pre-rellenado para **revisión y confirmación** antes de guardar.
-6. El usuario puede corregir cualquier campo antes de confirmar el alta.
+5. **Disambiguación:** si el sistema detecta dos o más componentes posibles con especificaciones similares y no puede determinar el correcto con suficiente confianza, presenta al usuario las opciones para que elija manualmente. Esto aplica especialmente a variantes de la misma familia (ej. ESP32-S2 vs ESP32-S3).
+6. El sistema presenta los datos al usuario en un formulario pre-rellenado para **revisión y confirmación** antes de guardar.
+7. El usuario puede corregir cualquier campo antes de confirmar el alta.
 
 **Consideraciones:**
 - El resultado de la IA es una sugerencia, nunca se guarda sin confirmación del usuario.
+- La detección de capacidades aplica a todos los tipos de componentes, no solo MCUs. Un módulo LoRa SX1276, por ejemplo, también registra su conectividad.
 - La imagen original se almacena como referencia visual del componente en inventario.
 - El sistema debe manejar identificaciones de baja confianza mostrando un aviso y solicitando confirmación explícita.
 
@@ -133,33 +139,40 @@ locations
 **Flujo:**
 
 1. El usuario abre la sección **"Explorar Proyectos"**.
-2. La aplicación envía el inventario actual (lista de componentes, categorías y specs) al modelo de IA.
-3. El modelo sugiere proyectos ordenados por viabilidad (porcentaje de piezas disponibles).
+2. La aplicación envía el inventario actual (lista de componentes, categorías, specs y capacidades de conectividad) al modelo de IA.
+3. El modelo sugiere proyectos ordenados por viabilidad (porcentaje de piezas disponibles y compatibles).
 4. Cada sugerencia incluye:
    - Título y descripción breve del proyecto.
-   - Lista de componentes requeridos, marcando cuáles están disponibles en inventario.
+   - Lista de componentes requeridos con su estado por ítem (ver tabla de estados abajo).
    - Nivel de dificultad estimado.
    - Recursos externos opcionales (tutoriales, esquemáticos).
+
+**Estados de componente en la BOM sugerida:**
+
+| Estado | Descripción |
+| :--- | :--- |
+| **Disponible** | El usuario tiene cantidad suficiente y el componente es compatible. |
+| **Parcial** | Tiene el componente pero en cantidad insuficiente. |
+| **Faltante** | No está en inventario; debe adquirirse. |
+| **Incompatible** | Está en inventario pero no cumple el requisito del proyecto (ej. falta WiFi). La app sugiere: (a) un componente alternativo del inventario que sí cumple, o (b) un módulo externo que cubra la función faltante. |
 
 #### 3.5.2 Planificación: "Quiero construir X, ¿qué necesito?"
 
 **Flujo:**
 
-1. El usuario describe el proyecto en lenguaje natural (ej. "estación meteorológica con WiFi y pantalla OLED").
-2. La IA genera la lista de materiales (BOM — Bill of Materials) requerida.
-3. El sistema cruza la BOM con el inventario del usuario y clasifica cada ítem:
-
-| Estado | Descripción |
-| :--- | :--- |
-| **Disponible** | El usuario tiene cantidad suficiente en inventario. |
-| **Parcial** | Tiene el componente pero en cantidad insuficiente. |
-| **Faltante** | No está en inventario; debe adquirirse. |
-
-4. La aplicación presenta un resumen de adquisición: lista de piezas faltantes o parciales lista para compartir o exportar.
+1. El usuario describe el proyecto en **texto libre** (ej. "estación meteorológica solar con WiFi y pantalla OLED").
+2. La IA genera una propuesta inicial: título, descripción, BOM sugerida y nivel de dificultad.
+3. El sistema presenta la propuesta y ofrece controles de **refinamiento guiado** opcionales:
+   - **Controlador preferido** — el usuario puede indicar un MCU de su inventario o uno que desea comprar. Si el controlador elegido es incompatible con los requisitos, la app avisa y sugiere: (a) un MCU alternativo del inventario, o (b) un módulo externo que cubra la función faltante.
+   - **Nivel de dificultad** — Principiante / Intermedio / Avanzado.
+   - **Restricciones** — por ejemplo: "sin soldadura", "bajo consumo", "menor a $20 USD en componentes faltantes".
+4. El usuario acepta o ajusta la propuesta.
+5. El sistema cruza la BOM final con el inventario y clasifica cada ítem según los mismos estados definidos en 3.5.1 (Disponible, Parcial, Faltante, Incompatible).
+6. El usuario puede **guardar la propuesta directamente como nuevo proyecto** con su BOM generada, pasando al módulo 3.6 en estado `Guardado`.
 
 **Consideraciones comunes a 3.5.1 y 3.5.2:**
 - Las sugerencias de la IA son orientativas; el usuario puede guardar, descartar o compartir los resultados.
-- El módulo no gestiona compras ni se integra con tiendas en esta versión.
+- El módulo no gestiona compras ni se integra con tiendas en esta versión. La estimación de costos y búsqueda de proveedores queda para una fase posterior.
 - Al guardar un proyecto sugerido se crea automáticamente una entrada en el módulo 3.6.
 
 ---
@@ -168,7 +181,15 @@ locations
 
 **Objetivo:** Una vez que el usuario decide ejecutar un proyecto — ya sea descubierto por IA (3.5.1) o planificado desde una idea (3.5.2) — permitirle llevar un registro vivo del avance, documentar sus experiencias y, opcionalmente, compartirlo con otros usuarios de la plataforma.
 
-#### 3.6.1 Ciclo de Vida del Proyecto
+#### 3.6.1 Tipo y Ciclo de Vida del Proyecto
+
+Al crear o guardar un proyecto, el usuario declara su **tipo**, que determina el nivel de detalle técnico esperado y los defaults de visibilidad:
+
+| Tipo | Descripción | Visibilidad por defecto |
+| :--- | :--- | :--- |
+| **DIY** | Proyecto personal o de hobby; código simple (Arduino, ESPHome, MicroPython). | Pública si el usuario lo publica |
+| **Prototipo** | Funcional pero no optimizado; punto intermedio entre exploración y producción. | Pública si el usuario lo publica |
+| **Profesional** | Orientado a producción: C/C++/Rust, eficiencia energética, manejo robusto de errores, código modular. | **Privada por defecto**; el usuario debe habilitarla explícitamente |
 
 Un proyecto activo atraviesa los siguientes estados:
 
@@ -192,7 +213,8 @@ El usuario puede registrar entradas de bitácora en cualquier momento del ciclo 
 - **Fecha y hora** — registradas automáticamente.
 - **Texto libre** — descripción de lo realizado, problemas encontrados, decisiones tomadas.
 - **Imágenes adjuntas** — fotos del progreso físico del proyecto (protoboard, cableado, armado final).
-- **Etiquetas de estado** — el usuario puede marcar la entrada como: `avance`, `problema`, `solución`, `aprendizaje`.
+- **Etiquetas de estado** — el usuario puede marcar la entrada como: `avance`, `problema`, `solución`, `aprendizaje`, `código`.
+- **Recurso de código** (opcional) — una entrada de tipo `código` puede incluir un bloque de código fuente con su lenguaje y entorno de destino (ver módulo 3.7). El usuario decide si adjunta código; no es obligatorio en ningún tipo de proyecto.
 
 El conjunto de entradas forma una línea de tiempo cronológica del proyecto.
 
@@ -234,6 +256,41 @@ Cuando el usuario considera que su proyecto tiene valor para compartir puede pub
 
 ---
 
+### 3.7 Generación y Análisis de Código
+
+**Objetivo:** Asistir al usuario en la producción de firmware o código de control para sus proyectos, adaptando el estilo y la complejidad al tipo de proyecto declarado (módulo 3.6.1).
+
+#### 3.7.1 Generación de código desde el proyecto
+
+A partir de la BOM y la descripción del proyecto, la IA puede generar código listo para cargar en el controlador objetivo.
+
+**Entornos soportados por tipo de proyecto:**
+
+| Tipo | Entornos sugeridos |
+| :--- | :--- |
+| **DIY** | Arduino IDE (`.ino`), ESPHome (YAML), MicroPython |
+| **Prototipo** | Arduino IDE, PlatformIO (C++) |
+| **Profesional** | PlatformIO (C/C++), ESP-IDF (C/C++), Zephyr (C), Rust (`embassy`, `esp-hal`) |
+
+- La app sugiere el entorno más adecuado según el tipo y los componentes; el usuario puede sobreescribir la selección.
+- El usuario puede solicitar un **esqueleto** (estructura base con comentarios) o **código completo** funcional.
+- El código generado se adjunta opcionalmente como entrada de tipo `código` en la bitácora del proyecto.
+
+#### 3.7.2 Análisis y mejora de código existente
+
+El usuario puede pegar o subir código propio desde la bitácora de un proyecto activo y solicitar a la IA que lo analice.
+
+La respuesta incluye:
+1. **Explicación detallada** de cada mejora o cambio sugerido, con el razonamiento técnico.
+2. **Código mejorado** con los cambios aplicados.
+3. **Opción de descarga** del código mejorado como archivo (`.ino`, `.cpp`, `.py`, `.yaml`, etc.).
+
+El análisis puede incluir: refactorización, detección de bugs potenciales, optimización de memoria/energía (especialmente relevante en tipo Profesional) y mejoras de estilo.
+
+> **Roadmap:** El análisis de código standalone (fuera del contexto de un proyecto) es una funcionalidad planificada para una fase posterior.
+
+---
+
 ## 4. Requisitos No Funcionales
 
 | Categoría | Requisito |
@@ -249,10 +306,12 @@ Cuando el usuario considera que su proyecto tiene valor para compartir puede pub
 
 ## 5. Fuera de Alcance (v1)
 
-- Integración con tiendas o proveedores para compra directa de componentes faltantes.
+- Integración con tiendas o proveedores para compra directa o estimación de costos de componentes faltantes (fase posterior).
 - Gestión de proyectos colaborativos (inventario compartido entre usuarios en tiempo real).
 - Telemetría en tiempo real de dispositivos IoT (reservado para fase 2).
 - Control de versiones de esquemáticos o código de firmware.
+- Análisis de código standalone fuera del contexto de un proyecto (fase posterior).
+- Soporte completo de Raspberry Pi como plataforma de destino — implica lógica distinta (SBC Linux, Python/Node, GPIO diferente, rol hub vs nodo IoT). La arquitectura incluye el campo `platform_family` desde v1 para no bloquear esta extensión futura.
 
 ---
 
@@ -314,3 +373,8 @@ Si los criterios anteriores se activan, la ruta recomendada es **React Native co
 | **RLS** | *Row Level Security* — política de PostgreSQL que restringe el acceso a filas por usuario. |
 | **QR** | Código de respuesta rápida imprimible que vincula una ubicación física con la aplicación. |
 | **Hypertable** | Tabla optimizada de TimescaleDB para almacenar series temporales de alta frecuencia. |
+| **platform_family** | Familia de plataforma de un componente: `esp32`, `arduino`, `rpi`, `generic`. Determina el ecosistema de herramientas y lenguajes de programación aplicables. |
+| **connectivity_caps** | Capacidades de conectividad detectadas en un componente (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet). Usadas para validar compatibilidad con los requisitos de un proyecto. |
+| **Tipo de proyecto** | Nivel de complejidad declarado al crear un proyecto: DIY (hobby/simple), Prototipo (funcional no optimizado) o Profesional (producción, C/C++/Rust). Determina defaults de código, entorno y visibilidad. |
+| **Incompatible** | Estado de un componente de la BOM que está en inventario pero no cumple un requisito del proyecto (ej. falta WiFi). Se distingue de "Faltante" porque la pieza existe físicamente. |
+| **Refinamiento guiado** | Segunda etapa del flujo de planificación (3.5.2) donde el usuario ajusta la propuesta inicial de la IA mediante controles estructurados: controlador preferido, dificultad y restricciones. |
