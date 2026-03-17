@@ -168,7 +168,7 @@
   <!-- Header del documento de mockups -->
   <div class="text-center max-w-2xl px-4">
     <div class="inline-flex items-center gap-2 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
-      Mockups v0.1 — Marzo 2026
+      Mockups v0.2 — Marzo 2026
     </div>
     <h1 class="text-3xl font-bold text-slate-900 mb-2">IoT Assistant</h1>
     <p class="text-slate-500 text-sm">Selecciona una pantalla para explorar el diseño propuesto.</p>
@@ -443,7 +443,7 @@
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-slate-800">ESP32-C6 XIAO</p>
-                <p class="text-xs text-slate-400">Microcontrolador · WiFi 6 · BLE 5.0</p>
+                <p class="text-xs text-slate-400">Microcontrolador · <span class="text-indigo-500 font-medium">esp32</span> · WiFi 6 · BLE 5.0 · Zigbee · Thread</p>
                 <p class="text-xs text-slate-400 mt-0.5">📦 Maletín Azul → Compartimento A</p>
               </div>
               <div class="text-right flex-shrink-0">
@@ -556,51 +556,56 @@
               </div>
               <div class="card overflow-hidden">
                 <table class="dtable">
-                  <thead><tr><th style="width:32px"><input type="checkbox" /></th><th>Componente</th><th>Categoría</th><th>Ubicación</th><th>Stock</th><th>Especificaciones</th><th>Acciones</th></tr></thead>
+                  <thead><tr><th style="width:32px"><input type="checkbox" /></th><th>Componente</th><th>Categoría</th><th>Plataforma</th><th>Conectividad</th><th>Ubicación</th><th>Stock</th><th>Acciones</th></tr></thead>
                   <tbody>
                     <tr>
                       <td><input type="checkbox" /></td>
-                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><div><p class="text-sm font-semibold text-slate-800">ESP32-C6 XIAO</p><p class="text-xs text-slate-400">SNS-001</p></div></div></td>
+                      <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div><div><p class="text-sm font-semibold text-slate-800">ESP32-C6 XIAO</p><p class="text-xs text-slate-400">MCU-001</p></div></div></td>
                       <td><span class="tag bg-brand-50 text-brand-700">Microcontrolador</span></td>
+                      <td><span class="tag bg-indigo-50 text-indigo-700">esp32</span></td>
+                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-green-50 text-green-700">WiFi 6</span><span class="tag bg-green-50 text-green-700">BLE 5</span><span class="tag bg-green-50 text-green-700">Zigbee</span></div></td>
                       <td><span class="text-xs text-slate-600">📦 Maletín Azul → Comp. A</span></td>
                       <td><span class="text-sm font-bold text-slate-900">3</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
-                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">WiFi 6</span><span class="tag bg-slate-100 text-slate-500">BLE 5</span></div></td>
                       <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
                     </tr>
                     <tr>
                       <td><input type="checkbox" /></td>
                       <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div><div><p class="text-sm font-semibold text-slate-800">DHT22</p><p class="text-xs text-slate-400">SNS-002</p></div></div></td>
                       <td><span class="tag bg-amber-50 text-amber-700">Sensor</span></td>
+                      <td><span class="tag bg-slate-100 text-slate-500">generic</span></td>
+                      <td><span class="text-xs text-slate-400">—</span></td>
                       <td><span class="text-xs text-slate-600">📦 Cajón Escritorio → Fila 2</span></td>
                       <td><span class="text-sm font-bold text-slate-900">5</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
-                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">Temp.</span><span class="tag bg-slate-100 text-slate-500">Humedad</span></div></td>
                       <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
                     </tr>
                     <tr>
                       <td><input type="checkbox" /></td>
                       <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><div><p class="text-sm font-semibold text-slate-800">OLED SSD1306 0.96"</p><p class="text-xs text-slate-400">MOD-003</p></div></div></td>
                       <td><span class="tag bg-violet-50 text-violet-700">Módulo</span></td>
+                      <td><span class="tag bg-slate-100 text-slate-500">generic</span></td>
+                      <td><span class="text-xs text-slate-400">—</span></td>
                       <td><span class="text-xs text-slate-600">📦 Maletín Azul → Comp. B</span></td>
                       <td><span class="text-sm font-bold text-amber-500">1</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
-                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">3.3V</span><span class="tag bg-slate-100 text-slate-500">I2C</span><span class="tag bg-slate-100 text-slate-500">128×64</span></div></td>
                       <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
                     </tr>
                     <tr>
                       <td><input type="checkbox" /></td>
                       <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5c0 3-5 13-5 13S7 10 7 7a5 5 0 015-5z"/><circle cx="12" cy="7" r="2"/></svg></div><div><p class="text-sm font-semibold text-slate-800">Resistencias 10kΩ</p><p class="text-xs text-slate-400">PAS-004</p></div></div></td>
                       <td><span class="tag bg-slate-100 text-slate-600">Pasivo</span></td>
+                      <td><span class="tag bg-slate-100 text-slate-500">generic</span></td>
+                      <td><span class="text-xs text-slate-400">—</span></td>
                       <td><span class="text-xs text-slate-600">📦 Cajón Escritorio → Fila 1</span></td>
                       <td><span class="text-sm font-bold text-slate-900">50</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
-                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">Through-hole</span><span class="tag bg-slate-100 text-slate-500">10kΩ</span></div></td>
                       <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
                     </tr>
                     <tr>
                       <td><input type="checkbox" /></td>
                       <td><div class="flex items-center gap-2.5"><div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><p class="text-sm font-semibold text-slate-800">TP4056 Cargador LiPo</p><p class="text-xs text-slate-400">PWR-005</p></div></div></td>
                       <td><span class="tag bg-green-50 text-green-700">Alimentación</span></td>
+                      <td><span class="tag bg-slate-100 text-slate-500">generic</span></td>
+                      <td><span class="text-xs text-slate-400">—</span></td>
                       <td><span class="text-xs text-slate-600">📦 Rack Taller → Bandeja 3</span></td>
                       <td><span class="text-sm font-bold text-slate-900">4</span><span class="text-xs text-slate-400 ml-1">unid.</span></td>
-                      <td><div class="flex gap-1 flex-wrap"><span class="tag bg-slate-100 text-slate-500">5V</span><span class="tag bg-slate-100 text-slate-500">USB-C</span><span class="tag bg-slate-100 text-slate-500">1A</span></div></td>
                       <td><div class="flex gap-1"><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center"><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
                     </tr>
                   </tbody>
@@ -610,7 +615,7 @@
           </div>
         </div>
       </div>
-      <p class="text-xs text-slate-400 text-center max-w-xs">Lista de inventario con búsqueda, filtros por categoría y cantidad destacada en bajo stock.</p>
+      <p class="text-xs text-slate-400 text-center max-w-xs">Inventario con platform_family, connectivity_caps y filtros. Desktop añade columnas Plataforma y Conectividad.</p>
     </div>
 
     <!-- ══════════════════════════════════════════
@@ -666,12 +671,27 @@
                 <div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">Microcontrolador</div>
               </div>
               <div>
+                <label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Familia de plataforma</label>
+                <div class="mt-1 bg-slate-50 rounded-xl px-3 py-2 flex items-center gap-2">
+                  <span class="tag bg-indigo-50 text-indigo-700">esp32</span>
+                  <span class="text-xs text-slate-500">Arduino / ESP-IDF / MicroPython</span>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Conectividad detectada</label>
+                <div class="mt-1 flex flex-wrap gap-1.5">
+                  <span class="tag bg-green-50 text-green-700">✓ WiFi 6</span>
+                  <span class="tag bg-green-50 text-green-700">✓ BLE 5.0</span>
+                  <span class="tag bg-green-50 text-green-700">✓ Zigbee</span>
+                  <span class="tag bg-green-50 text-green-700">✓ Thread</span>
+                </div>
+              </div>
+              <div>
                 <label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Especificaciones</label>
                 <div class="mt-1 flex flex-wrap gap-1.5">
                   <span class="tag bg-slate-100 text-slate-600">3.3V</span>
-                  <span class="tag bg-slate-100 text-slate-600">WiFi 6</span>
-                  <span class="tag bg-slate-100 text-slate-600">BLE 5.0</span>
                   <span class="tag bg-slate-100 text-slate-600">USB-C</span>
+                  <span class="tag bg-slate-100 text-slate-600">RISC-V 160MHz</span>
                 </div>
               </div>
             </div>
@@ -753,9 +773,10 @@
                   <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Nombre</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">ESP32-C6 XIAO</div></div>
                   <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Fabricante</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">Seeed Studio</div></div>
                   <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Categoría</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">Microcontrolador</div></div>
-                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Voltaje</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800">3.3V (USB 5V)</div></div>
+                  <div><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Familia de plataforma</label><div class="mt-1 bg-slate-50 rounded-xl px-3 py-2.5 flex items-center gap-2"><span class="tag bg-indigo-50 text-indigo-700">esp32</span><span class="text-xs text-slate-500">Arduino / ESP-IDF / MicroPython</span></div></div>
                 </div>
-                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Especificaciones detectadas</label><div class="mt-2 flex flex-wrap gap-1.5"><span class="tag bg-slate-100 text-slate-600">WiFi 6 (802.11ax)</span><span class="tag bg-slate-100 text-slate-600">BLE 5.0</span><span class="tag bg-slate-100 text-slate-600">USB-C</span><span class="tag bg-slate-100 text-slate-600">RISC-V 160MHz</span><span class="tag bg-slate-100 text-slate-600">4MB Flash</span></div></div>
+                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Conectividad detectada</label><div class="mt-2 flex flex-wrap gap-1.5"><span class="tag bg-green-50 text-green-700">✓ WiFi 6 (802.11ax)</span><span class="tag bg-green-50 text-green-700">✓ BLE 5.0</span><span class="tag bg-green-50 text-green-700">✓ Zigbee 802.15.4</span><span class="tag bg-green-50 text-green-700">✓ Thread</span></div></div>
+                <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Especificaciones</label><div class="mt-2 flex flex-wrap gap-1.5"><span class="tag bg-slate-100 text-slate-600">3.3V (USB 5V)</span><span class="tag bg-slate-100 text-slate-600">USB-C</span><span class="tag bg-slate-100 text-slate-600">RISC-V 160MHz</span><span class="tag bg-slate-100 text-slate-600">4MB Flash</span></div></div>
                 <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Descripción IA</label><p class="mt-1 text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-3">Microcontrolador de bajo consumo basado en ESP32-C6. Ideal para proyectos IoT con conectividad WiFi 6 y Bluetooth 5.0. Incluye soporte para Zigbee y Thread.</p></div>
                 <div class="mb-4"><label class="text-xs text-slate-400 font-medium uppercase tracking-wide">Ubicación</label><div class="mt-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5"><svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="text-sm text-slate-400">Sin asignar — seleccionar ubicación</span></div></div>
                 <div class="flex gap-3">
@@ -767,7 +788,7 @@
           </div>
         </div>
       </div>
-      <p class="text-xs text-slate-400 text-center max-w-xs">Flujo de escaneo con IA: visor de cámara, resultado pre-rellenado y confirmación antes de guardar.</p>
+      <p class="text-xs text-slate-400 text-center max-w-xs">Escaneo IA: detecta platform_family, connectivity_caps y muestra desambiguación. Desktop en dos columnas.</p>
     </div>
 
     <!-- ══════════════════════════════════════════
@@ -797,7 +818,7 @@
               <div class="flex items-start justify-between mb-2">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="tag bg-green-50 text-green-700">85% viable</span>
+                    <span class="tag bg-green-50 text-green-700">80% viable</span>
                     <span class="tag bg-slate-100 text-slate-500">Intermedio</span>
                   </div>
                   <h4 class="text-sm font-bold text-slate-900">Estación meteorológica WiFi</h4>
@@ -809,9 +830,12 @@
                 <p class="text-xs font-semibold text-slate-500 mb-2">Componentes necesarios</p>
                 <div class="flex flex-col gap-1.5">
                   <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-brand-400"></div>
-                    <span class="text-xs text-slate-700 flex-1">ESP32-C6</span>
-                    <span class="text-xs text-brand-600 font-medium">Tengo ✓</span>
+                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                    <span class="text-xs text-slate-700 flex-1">Arduino Uno</span>
+                    <span class="text-xs text-red-600 font-medium">Incompatible ⚠</span>
+                  </div>
+                  <div class="bg-red-50 rounded-lg px-2.5 py-1.5 -mt-0.5 ml-4">
+                    <p class="text-xs text-red-600">Sin WiFi. Sugerencia: ESP32-C6 (en inventario)</p>
                   </div>
                   <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-brand-400"></div>
@@ -890,69 +914,126 @@
             </div>
             <div class="ds-main">
               <div class="flex gap-2 mb-5">
-                <button class="px-5 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold">¿Qué puedo hacer?</button>
-                <button class="px-5 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-500">Tengo una idea...</button>
+                <button class="px-5 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-500">¿Qué puedo hacer?</button>
+                <button class="px-5 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold">Tengo una idea...</button>
               </div>
-              <div class="grid grid-cols-3 gap-4">
-                <!-- Card 1 -->
-                <div class="card p-4">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-green-50 text-green-700">85% viable</span><span class="tag bg-slate-100 text-slate-500">Intermedio</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Estación meteorológica WiFi</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Monitorea temperatura, humedad y presión con ESP32 y envía datos a la nube en tiempo real.</p>
-                  <div class="bg-slate-50 rounded-xl p-3 mb-3">
-                    <p class="text-xs font-semibold text-slate-500 mb-2">Componentes</p>
-                    <div class="flex flex-col gap-1"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">ESP32-C6</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">DHT22</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div><span class="text-xs text-slate-700 flex-1">BMP280</span><span class="text-xs text-amber-600 font-medium">Falta ✗</span></div></div>
+
+              <!-- Modo B: planificación desde idea -->
+              <div class="grid gap-5" style="grid-template-columns:380px 1fr;">
+                <!-- Left: input + refinement panel -->
+                <div class="flex flex-col gap-3">
+                  <div class="card p-4">
+                    <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Describe tu proyecto</h4>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-700 leading-relaxed mb-3" style="min-height:80px">
+                      Estación meteorológica solar con WiFi, pantalla OLED y envío de datos a la nube cada 5 minutos.
+                    </div>
+                    <button class="w-full py-2.5 bg-brand-600 text-white text-xs font-semibold rounded-xl">Generar propuesta con IA →</button>
                   </div>
-                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
-                </div>
-                <!-- Card 2 -->
-                <div class="card p-4">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-brand-50 text-brand-700">100% viable</span><span class="tag bg-slate-100 text-slate-500">Principiante</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Reloj OLED con ESP32</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Reloj digital con pantalla OLED 0.96" sincronizado por NTP. Interfaz limpia y minimalista.</p>
-                  <div class="bg-brand-50 rounded-xl p-3 mb-3">
-                    <p class="text-xs font-semibold text-brand-700 mb-1">✓ Tienes todos los componentes</p>
-                    <p class="text-xs text-brand-600">ESP32-C6 · OLED SSD1306 · Cable USB-C</p>
+
+                  <!-- Refinamiento guiado (opcional) -->
+                  <div class="card p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                      <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wide flex-1">Refinamiento guiado</h4>
+                      <span class="tag bg-slate-100 text-slate-400">Opcional</span>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                      <div>
+                        <label class="text-xs text-slate-400 font-medium">Controlador preferido</label>
+                        <div class="mt-1 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                          <span class="tag bg-indigo-50 text-indigo-700 text-xs">esp32</span>
+                          <span class="text-sm font-semibold text-slate-800 flex-1">ESP32-C6 XIAO</span>
+                          <span class="tag bg-brand-50 text-brand-600">En inventario ✓</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-xs text-slate-400 font-medium">Tipo de proyecto</label>
+                        <div class="mt-1 flex gap-2">
+                          <button class="flex-1 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold">DIY</button>
+                          <button class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">Prototipo</button>
+                          <button class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">Profesional</button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-xs text-slate-400 font-medium">Nivel de dificultad</label>
+                        <div class="mt-1 flex gap-2">
+                          <button class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">Principiante</button>
+                          <button class="flex-1 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold">Intermedio</button>
+                          <button class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">Avanzado</button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="text-xs text-slate-400 font-medium">Restricciones</label>
+                        <div class="mt-1 flex flex-wrap gap-1.5">
+                          <span class="tag bg-brand-50 text-brand-700 border border-brand-200">bajo consumo ×</span>
+                          <button class="tag bg-slate-100 text-slate-400">+ añadir...</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
                 </div>
-                <!-- Card 3 -->
-                <div class="card p-4">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-green-50 text-green-700">90% viable</span><span class="tag bg-slate-100 text-slate-500">Principiante</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Monitor de temperatura BLE</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Envía lecturas de DHT22 vía Bluetooth Low Energy a tu smartphone cada 10 segundos.</p>
-                  <div class="bg-slate-50 rounded-xl p-3 mb-3">
-                    <div class="flex flex-col gap-1"><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">ESP32-C6</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-400"></div><span class="text-xs text-slate-700 flex-1">DHT22</span><span class="text-xs text-brand-600 font-medium">Tengo ✓</span></div><div class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div><span class="text-xs text-slate-700 flex-1">Batería LiPo 500mAh</span><span class="text-xs text-amber-600 font-medium">Falta ✗</span></div></div>
+
+                <!-- Right: AI proposal results -->
+                <div>
+                  <div class="flex items-center gap-2 mb-3">
+                    <h3 class="text-sm font-semibold text-slate-800 flex-1">Propuesta IA</h3>
+                    <span class="tag bg-indigo-50 text-indigo-700">ESP32-C6 · DIY · Arduino IDE</span>
                   </div>
-                  <button class="w-full py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">Iniciar proyecto</button>
-                </div>
-                <!-- Card 4 -->
-                <div class="card p-4 opacity-80">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-amber-50 text-amber-700">60% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Sistema de riego automático</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Controla válvula solenoide según sensor de humedad del suelo. Con dashboard web incluido.</p>
-                  <p class="text-xs text-amber-600 font-medium">Faltan 2 componentes</p>
-                </div>
-                <!-- Card 5 -->
-                <div class="card p-4 opacity-75">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-red-50 text-red-600">40% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Sensor de calidad del aire</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Mide CO₂, partículas PM2.5 y COVs. Alerta visual y notificaciones push.</p>
-                  <p class="text-xs text-red-500 font-medium">Faltan 3 componentes</p>
-                </div>
-                <!-- Card 6 -->
-                <div class="card p-4 opacity-75">
-                  <div class="flex items-center gap-2 mb-2"><span class="tag bg-red-50 text-red-600">35% viable</span><span class="tag bg-slate-100 text-slate-500">Avanzado</span></div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-1">Robot seguidor de línea</h4>
-                  <p class="text-xs text-slate-400 leading-relaxed mb-3">Robot autónomo con sensores IR y motores DC. Control PID para seguimiento preciso.</p>
-                  <p class="text-xs text-red-500 font-medium">Faltan 4 componentes</p>
+                  <div class="card p-4 mb-4">
+                    <div class="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 class="text-sm font-bold text-slate-900">Estación meteorológica solar WiFi</h4>
+                        <p class="text-xs text-slate-400 mt-1 leading-relaxed">ESP32-C6 con DHT22, BMP280 y pantalla OLED. Panel solar + LiPo para operación autónoma. Envío MQTT a la nube.</p>
+                      </div>
+                      <span class="tag bg-green-50 text-green-700 flex-shrink-0 ml-3">Intermedio</span>
+                    </div>
+                    <h5 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Lista de materiales</h5>
+                    <div class="flex flex-col gap-1.5">
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-brand-50 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-700 flex-1">ESP32-C6 XIAO</span>
+                        <span class="tag bg-brand-100 text-brand-700">Disponible ✓</span>
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-brand-50 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-700 flex-1">DHT22</span>
+                        <span class="tag bg-brand-100 text-brand-700">Disponible ✓</span>
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-brand-50 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-700 flex-1">OLED SSD1306 0.96"</span>
+                        <span class="tag bg-amber-50 text-amber-600">Parcial (1/2)</span>
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-700 flex-1">BMP280</span>
+                        <span class="tag bg-amber-50 text-amber-600">Falta ✗</span>
+                      </div>
+                      <div class="flex flex-col gap-1 px-3 py-1.5 bg-red-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></div>
+                          <span class="text-xs text-slate-700 flex-1">Arduino Uno R3</span>
+                          <span class="tag bg-red-50 text-red-600">Incompatible ⚠</span>
+                        </div>
+                        <p class="text-xs text-red-500 ml-4">Sin WiFi. Alternativa: ESP32-C6 (en inventario) o módulo ESP8266</p>
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg">
+                        <div class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-700 flex-1">Panel solar 6V 1W + TP4056</span>
+                        <span class="tag bg-amber-50 text-amber-600">Falta ✗</span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                      <button class="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600">Ajustar refinamiento</button>
+                      <button class="flex-1 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold">Guardar como proyecto</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <p class="text-xs text-slate-400 text-center max-w-xs">Sugerencias ordenadas por viabilidad, con BOM resumida y estado de cada componente.</p>
+      <p class="text-xs text-slate-400 text-center max-w-xs">Modo A (inventario) y Modo B (idea). Desktop muestra Modo B con texto libre + refinamiento guiado + BOM con estado Incompatible.</p>
     </div>
 
     <!-- ══════════════════════════════════════════
@@ -976,6 +1057,7 @@
                 <h2 class="text-lg font-bold text-slate-900">Estación meteorológica</h2>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="tag bg-brand-50 text-brand-700">En curso</span>
+                  <span class="tag bg-sky-50 text-sky-700">DIY</span>
                   <span class="text-xs text-slate-400">Iniciado hace 5 días</span>
                 </div>
               </div>
@@ -1000,6 +1082,30 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Entrada
               </button>
+            </div>
+
+            <!-- Entrada código -->
+            <div class="flex gap-3 mb-4">
+              <div class="flex flex-col items-center">
+                <div class="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <div class="w-0.5 flex-1 bg-slate-100 mt-1"></div>
+              </div>
+              <div class="flex-1 pb-4">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="tag bg-violet-50 text-violet-700">código</span>
+                  <span class="text-xs text-slate-400">hoy, 15:00</span>
+                </div>
+                <p class="text-xs text-slate-700 mb-2">Código generado por IA · Arduino IDE</p>
+                <div class="bg-slate-900 rounded-xl px-3 py-2.5 font-mono text-xs text-green-400 leading-relaxed">
+                  <div>#include &lt;DHT.h&gt;</div>
+                  <div>#define DHTPIN 4</div>
+                  <div>DHT dht(DHTPIN, DHT22);</div>
+                  <div class="text-slate-500">// loop: dht.readTemperature()</div>
+                </div>
+                <button class="mt-2 w-full py-1.5 rounded-lg border border-violet-200 text-violet-700 text-xs font-medium">↓ Descargar .ino</button>
+              </div>
             </div>
 
             <!-- Entrada 1 -->
@@ -1093,7 +1199,33 @@
             <div class="ds-main" style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
               <!-- Timeline -->
               <div>
-                <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-slate-800">Bitácora</h3><div class="flex gap-2"><span class="text-xs text-slate-400 self-center">3 entradas</span></div></div>
+                <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-slate-800">Bitácora</h3><div class="flex gap-2"><span class="text-xs text-slate-400 self-center">4 entradas</span></div></div>
+                <!-- Entry código -->
+                <div class="flex gap-3 mb-4">
+                  <div class="flex flex-col items-center"><div class="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div class="w-0.5 flex-1 bg-slate-100 mt-1"></div></div>
+                  <div class="card flex-1 p-4 mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="tag bg-violet-50 text-violet-700">código</span>
+                      <span class="text-xs text-slate-400">hoy, 15:00</span>
+                      <span class="ml-auto tag bg-indigo-50 text-indigo-600">Arduino IDE · esp32</span>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3">Código generado por IA para leer DHT22 y publicar vía MQTT cada 5 minutos.</p>
+                    <div class="bg-slate-900 rounded-xl px-4 py-3 font-mono text-xs leading-relaxed mb-3 overflow-x-auto">
+                      <div class="text-green-400">#include &lt;DHT.h&gt;</div>
+                      <div class="text-green-400">#include &lt;WiFi.h&gt;</div>
+                      <div class="text-green-400">#include &lt;PubSubClient.h&gt;</div>
+                      <div class="text-slate-500 mt-1">// Pines y constantes</div>
+                      <div class="text-blue-400">#define DHTPIN 4</div>
+                      <div class="text-blue-400">#define DHTTYPE DHT22</div>
+                      <div class="text-slate-500 mt-1">// setup() y loop() a continuación...</div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="flex items-center gap-1.5 border border-violet-200 text-violet-700 px-3 py-1.5 rounded-lg text-xs font-medium"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar .ino</button>
+                      <button class="flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-1.5 rounded-lg text-xs font-medium"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Analizar y mejorar</button>
+                      <button class="flex items-center gap-1.5 border border-slate-200 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-medium ml-auto"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Generar nuevo código</button>
+                    </div>
+                  </div>
+                </div>
                 <!-- Entry 1 -->
                 <div class="flex gap-3 mb-4">
                   <div class="flex flex-col items-center"><div class="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/></svg></div><div class="w-0.5 flex-1 bg-slate-100 mt-1"></div></div>
@@ -1125,7 +1257,7 @@
                 <div class="card p-4 mb-4">
                   <div class="flex items-start justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-800">Estación meteorológica</h3>
-                    <span class="tag bg-brand-50 text-brand-700">En curso</span>
+                    <div class="flex gap-1.5"><span class="tag bg-brand-50 text-brand-700">En curso</span><span class="tag bg-sky-50 text-sky-700">DIY</span></div>
                   </div>
                   <div class="bg-slate-100 rounded-full h-2 mb-1"><div class="bg-brand-500 h-2 rounded-full" style="width:65%"></div></div>
                   <div class="flex justify-between text-xs text-slate-400 mb-4"><span>Progreso</span><span class="font-semibold text-brand-600">65%</span></div>
@@ -1148,7 +1280,7 @@
           </div>
         </div>
       </div>
-      <p class="text-xs text-slate-400 text-center max-w-xs">Bitácora cronológica con entradas tipadas (avance, problema, solución) y soporte de imágenes.</p>
+      <p class="text-xs text-slate-400 text-center max-w-xs">Bitácora con tipo de proyecto (DIY/Prototipo/Profesional), entrada tipo código con bloque, descarga y análisis IA.</p>
     </div>
 
     <!-- ══════════════════════════════════════════
