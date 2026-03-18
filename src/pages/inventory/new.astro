@@ -1,6 +1,5 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro'
-import ComponentForm from '../../components/islands/ComponentForm'
 import CameraCapture from '../../components/islands/CameraCapture'
 ---
 <AppLayout title="Nuevo componente" activeTab="inventory">
@@ -15,8 +14,5 @@ import CameraCapture from '../../components/islands/CameraCapture'
     </div>
 
     <CameraCapture client:load />
-    <div class="mt-4">
-      <ComponentForm client:load />
-    </div>
   </div>
 </AppLayout>

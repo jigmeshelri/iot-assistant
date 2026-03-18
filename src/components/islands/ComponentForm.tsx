@@ -58,7 +58,8 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       setSuccess(true)
       setTimeout(() => { window.location.href = '/inventory' }, 1200)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message
+      setError(msg ?? 'Error desconocido')
     } finally {
       setLoading(false)
     }
