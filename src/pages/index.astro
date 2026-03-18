@@ -5,58 +5,143 @@ import { createSupabaseServerClient } from '../lib/supabase'
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
 const { data: { user } } = await supabase.auth.getUser()
 
-// Fetch summary counts in parallel
-const [stockRes, projectsRes, locationsRes] = await Promise.all([
+const name = user?.email?.split('@')[0] ?? 'tú'
+const initial = name[0]?.toUpperCase() ?? '?'
+
+const [stockRes, locationsRes, projectsRes, recentRes] = await Promise.all([
   supabase.from('stock').select('id', { count: 'exact', head: true }),
-  supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'in_progress'),
   supabase.from('locations').select('id', { count: 'exact', head: true }),
+  supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'in_progress'),
+  supabase.from('stock')
+    .select('id, quantity, component:components(name, category, image_url)')
+    .order('updated_at', { ascending: false })
+    .limit(6),
 ])
 
-const stats = [
-  { label: 'Componentes en stock', value: stockRes.count ?? 0, href: '/inventory', color: 'brand' },
-  { label: 'Proyectos activos', value: projectsRes.count ?? 0, href: '/projects', color: 'amber' },
-  { label: 'Ubicaciones', value: locationsRes.count ?? 0, href: '/locations', color: 'slate' },
+const { data: activeProjects } = await supabase
+  .from('projects')
+  .select('id, title, type, progress')
+  .eq('status', 'in_progress')
+  .limit(3)
+
+const projectColors = [
+  { bg: 'bg-amber-100', text: 'text-amber-600', dot: 'bg-brand-400' },
+  { bg: 'bg-violet-100', text: 'text-violet-600', dot: 'bg-amber-400' },
+  { bg: 'bg-green-100',  text: 'text-green-600',  dot: 'bg-green-400' },
 ]
+
+const categoryColors: Record<string, { bg: string; icon: string }> = {
+  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-600'  },
+  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-500'  },
+  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
+  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
+}
 ---
-<AppLayout title="Dashboard" activeTab="inventory">
-  <div class="px-4 pt-6 pb-4">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p class="text-sm text-slate-500">Bienvenido, {user?.email?.split('@')[0]}</p>
-      </div>
-      <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
-        <span class="text-brand-700 font-semibold text-sm">
-          {user?.email?.[0]?.toUpperCase() ?? '?'}
-        </span>
+<AppLayout title="Inicio" activeTab="home">
+  <div class="bg-slate-50 min-h-full">
+
+    <!-- Header -->
+    <div class="px-5 pt-4 pb-4">
+      <div class="flex items-center justify-between mb-1">
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Buenos días,</p>
+          <h2 class="text-xl font-bold text-slate-900">{name} 👋</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          {initial}
+        </div>
       </div>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-3 gap-3 mb-6">
-      {stats.map(s => (
-        <a href={s.href} class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-          <div class="text-2xl font-bold text-slate-900">{s.value}</div>
-          <div class="text-xs text-slate-500 mt-1 leading-tight">{s.label}</div>
-        </a>
-      ))}
+    <div class="px-5 grid grid-cols-3 gap-3 mb-5">
+      <a href="/inventory" class="bg-white rounded-2xl p-3 text-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-2xl font-bold text-slate-900">{stockRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-0.5">Piezas</div>
+      </a>
+      <a href="/locations" class="bg-white rounded-2xl p-3 text-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-2xl font-bold text-slate-900">{locationsRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-0.5">Ubicaciones</div>
+      </a>
+      <a href="/projects" class="bg-white rounded-2xl p-3 text-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-2xl font-bold text-brand-600">{projectsRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-0.5">Proyectos</div>
+      </a>
     </div>
 
-    <!-- Quick actions -->
-    <h2 class="text-sm font-semibold text-slate-700 mb-3">Acciones rápidas</h2>
-    <div class="grid grid-cols-2 gap-3">
-      {[
-        { href: '/inventory/new', label: 'Añadir componente', icon: '➕', desc: 'Manual o con cámara' },
-        { href: '/ai/discover', label: '¿Qué puedo construir?', icon: '✨', desc: 'Sugerencias con IA' },
-        { href: '/locations', label: 'Mis ubicaciones', icon: '📍', desc: 'Árbol de almacenamiento' },
-        { href: '/ai/plan', label: 'Planificar proyecto', icon: '🗺️', desc: 'BOM con IA' },
-      ].map(a => (
-        <a href={a.href} class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-          <div class="text-2xl mb-2">{a.icon}</div>
-          <div class="text-sm font-medium text-slate-800">{a.label}</div>
-          <div class="text-xs text-slate-400 mt-1">{a.desc}</div>
-        </a>
-      ))}
+    <!-- CTA principal -->
+    <div class="px-5 mb-5">
+      <a
+        href="/inventory/new"
+        class="w-full bg-brand-600 text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 font-semibold text-sm shadow-lg shadow-brand-200 hover:bg-brand-700 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Escanear componente
+      </a>
     </div>
+
+    <!-- Proyectos activos -->
+    {activeProjects && activeProjects.length > 0 && (
+      <div class="px-5 mb-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-slate-800 text-sm">Proyectos activos</h3>
+          <a href="/projects" class="text-brand-600 text-xs font-medium">Ver todos</a>
+        </div>
+        <div class="flex flex-col gap-2.5">
+          {activeProjects.map((p, i) => {
+            const c = projectColors[i % projectColors.length]
+            const pct = p.progress ?? 0
+            return (
+              <a href={`/projects/${p.id}`} class="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class={`w-9 h-9 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0`}>
+                  <svg class={`w-5 h-5 ${c.text}`} fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                      <div class="bg-brand-500 h-1.5 rounded-full" style={`width:${pct}%`}></div>
+                    </div>
+                    <span class="text-xs text-slate-400 flex-shrink-0">{pct}%</span>
+                  </div>
+                </div>
+                <div class={`w-2 h-2 rounded-full ${c.dot} flex-shrink-0`}></div>
+              </a>
+            )
+          })}
+        </div>
+      </div>
+    )}
+
+    <!-- Añadidas recientemente -->
+    {recentRes.data && recentRes.data.length > 0 && (
+      <div class="px-5 mb-4">
+        <h3 class="font-semibold text-slate-800 text-sm mb-3">Añadidas recientemente</h3>
+        <div class="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+          {recentRes.data.map((item: any) => {
+            const cat = item.component?.category ?? ''
+            const colors = categoryColors[cat] ?? { bg: 'bg-slate-100', icon: 'text-slate-400' }
+            return (
+              <a href={`/inventory/${item.id}`} class="bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5 flex-shrink-0 w-24 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center`}>
+                  <svg class={`w-6 h-6 ${colors.icon}`} fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <rect x="9" y="9" width="6" height="6"/>
+                  </svg>
+                </div>
+                <p class="text-xs font-medium text-slate-700 text-center leading-tight line-clamp-2">{item.component?.name ?? '—'}</p>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700">×{item.quantity}</span>
+              </a>
+            )
+          })}
+        </div>
+      </div>
+    )}
+
   </div>
 </AppLayout>

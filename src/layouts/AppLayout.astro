@@ -4,15 +4,14 @@ import BaseLayout from './BaseLayout.astro'
 export interface Props {
   title?: string
   description?: string
-  activeTab?: 'inventory' | 'locations' | 'projects' | 'ai' | 'community'
+  activeTab?: 'home' | 'inventory' | 'projects' | 'community'
 }
 const { title, description, activeTab } = Astro.props
-const path = Astro.url.pathname
 
 function tabClass(tab: string) {
   return activeTab === tab
-    ? 'flex flex-col items-center gap-1 flex-1 py-2 text-brand-600 font-medium'
-    : 'flex flex-col items-center gap-1 flex-1 py-2 text-slate-400'
+    ? 'flex flex-col items-center gap-0.5 flex-1 py-2 text-brand-600'
+    : 'flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400'
 }
 ---
 <BaseLayout title={title} description={description}>
@@ -24,43 +23,32 @@ function tabClass(tab: string) {
 
     <!-- Bottom Navigation -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white border-t border-slate-100 z-50 pb-safe">
-      <div class="flex items-center">
-        <a href="/inventory" class={tabClass('inventory')}>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+      <div class="flex items-center px-2 pt-2 pb-6">
+        <a href="/" class={tabClass('home')}>
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
-          <span class="text-xs">Inventario</span>
+          <span style="font-size:10px; font-weight:500;">Inicio</span>
         </a>
-        <a href="/locations" class={tabClass('locations')}>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        <a href="/inventory" class={tabClass('inventory')}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+            <path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>
           </svg>
-          <span class="text-xs">Ubicaciones</span>
+          <span style="font-size:10px; font-weight:500;">Inventario</span>
         </a>
         <a href="/projects" class={tabClass('projects')}>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-          <span class="text-xs">Proyectos</span>
-        </a>
-        <a href="/ai/discover" class={tabClass('ai')}>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-          <span class="text-xs">IA</span>
+          <span style="font-size:10px; font-weight:500;">Proyectos</span>
         </a>
         <a href="/community" class={tabClass('community')}>
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
           </svg>
-          <span class="text-xs">Comunidad</span>
+          <span style="font-size:10px; font-weight:500;">Comunidad</span>
         </a>
       </div>
     </nav>
