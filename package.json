@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^4.0.0",
+    "@astrojs/vercel": "^10.0.0",
     "@astrojs/tailwind": "^5.1.3",
     "@nanostores/react": "^0.7.3",
     "@supabase/ssr": "^0.5.2",
