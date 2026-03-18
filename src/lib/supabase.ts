@@ -41,3 +41,10 @@ export async function getSession(cookies: AstroCookies, request: Request) {
   const { data: { session } } = await supabase.auth.getSession()
   return session
 }
+
+/** Shorthand to get authenticated user (server-verified, recommended for SSR) */
+export async function getUser(cookies: AstroCookies, request: Request) {
+  const supabase = createSupabaseServerClient(cookies, request)
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
