@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import re
 from typing import Any
 
 import anthropic
@@ -172,6 +173,13 @@ class CodeGenerateResponse(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _extract_json(text: str) -> str:
+    """Strip markdown code fences if Claude wraps JSON in them."""
+    text = text.strip()
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    return match.group(1).strip() if match else text
+
+
 def _anthropic_client() -> anthropic.Anthropic:
     if not settings.anthropic_api_key:
         raise HTTPException(status_code=503, detail="AI provider not configured")
@@ -239,7 +247,7 @@ async def recognize_component(
     )
 
     try:
-        data = json.loads(message.content[0].text)
+        data = json.loads(_extract_json(message.content[0].text))
         return RecognizeResponse(**data)
     except (json.JSONDecodeError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
@@ -281,7 +289,7 @@ async def discover_projects(
     )
 
     try:
-        data = json.loads(message.content[0].text)
+        data = json.loads(_extract_json(message.content[0].text))
         suggestions = [ProjectSuggestion(**s) for s in data["suggestions"]]
         suggestions.sort(key=lambda s: s.viability_pct, reverse=True)
         return DiscoverResponse(suggestions=suggestions[:5])
@@ -331,7 +339,7 @@ async def plan_project(
     )
 
     try:
-        data = json.loads(message.content[0].text)
+        data = json.loads(_extract_json(message.content[0].text))
         return PlanResponse(**data)
     except (json.JSONDecodeError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
@@ -368,7 +376,7 @@ async def generate_code(
     )
 
     try:
-        data = json.loads(message.content[0].text)
+        data = json.loads(_extract_json(message.content[0].text))
         return CodeGenerateResponse(resources=[CodeResource(**r) for r in data["resources"]])
     except (json.JSONDecodeError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
