@@ -1,15 +1,16 @@
 import react from '@astrojs/react'
-import tailwind from '@astrojs/tailwind'
-import vercel from '@astrojs/vercel/serverless'
+import vercel from '@astrojs/vercel'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  integrations: [react(), tailwind()],
+  integrations: [react()],
   output: 'server',
   adapter: vercel(),
   vite: {
     plugins: [
+      tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
