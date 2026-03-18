@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
+function normalizeApiBase(url: string): string {
+  if (!url) return 'http://localhost:8000'
+  if (url.startsWith('http://') || url.startsWith('https://')) return url.replace(/\/$/, '')
+  return `https://${url.replace(/\/$/, '')}`
+}
+const API_BASE = normalizeApiBase(import.meta.env.PUBLIC_API_URL)
 
 async function apiFetch<T>(
   path: string,
