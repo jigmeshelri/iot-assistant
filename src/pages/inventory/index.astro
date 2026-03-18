@@ -15,6 +15,10 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
   'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
   'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
 }
+
+function qtyColor(qty: number) {
+  return qty > 1 ? 'text-slate-900' : 'text-amber-500'
+}
 ---
 <AppLayout title="Inventario" activeTab="inventory">
   <div class="bg-white min-h-full">
@@ -72,7 +76,6 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
           const parentName = item.location?.parent?.name
           const locStr = locName ? (parentName ? `${parentName} → ${locName}` : locName) : null
           const qty: number = item.quantity ?? 0
-          const qtyColor = qty <= 1 ? 'text-amber-500' : 'text-slate-900'
           return (
             <a href={`/inventory/${item.id}`} class="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
               <div class={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
@@ -97,7 +100,7 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
                 )}
               </div>
               <div class="text-right flex-shrink-0">
-                <div class={`text-lg font-bold ${qtyColor}`}>{qty}</div>
+                <div class={`text-lg font-bold ${qtyColor(qty)}`}>{qty}</div>
                 <div class="text-xs text-slate-400">unid.</div>
               </div>
             </a>
