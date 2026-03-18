@@ -1,7 +1,7 @@
 import { defineMiddleware } from 'astro:middleware'
 import { createSupabaseServerClient } from './lib/supabase'
 
-const PUBLIC_PATHS = ['/login', '/community', '/l/']
+const PUBLIC_PATHS = ['/login', '/community', '/l/', '/auth/callback']
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p))
@@ -15,9 +15,9 @@ export const onRequest = defineMiddleware(async ({ request, cookies, redirect },
   }
 
   const supabase = createSupabaseServerClient(cookies, request)
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 
