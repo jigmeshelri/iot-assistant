@@ -12,7 +12,6 @@ from fastapi import Depends, FastAPI, File, HTTPException, Security, UploadFile,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://iot:iot_secret@localhost:5432/iot_assistant"
     anthropic_api_key: str = ""
     supabase_url: str = ""
-    supabase_jwt_secret: str = ""  # Supabase project JWT secret (HS256)
+    supabase_secret_key: str = ""  # Settings → API → secret key (sb_secret_...)
     frontend_url: str = "http://localhost:4321"
     ai_provider: str = "anthropic"
 
@@ -54,21 +53,23 @@ security = HTTPBearer(auto_error=False)
 # Auth
 # ---------------------------------------------------------------------------
 
-def verify_jwt(credentials: HTTPAuthorizationCredentials | None = Security(security)) -> dict[str, Any]:
-    """Validates a Bearer JWT issued by Supabase (HS256 with project JWT secret)."""
+async def verify_jwt(credentials: HTTPAuthorizationCredentials | None = Security(security)) -> dict[str, Any]:
+    """Validates a Bearer JWT by calling Supabase Auth /auth/v1/user."""
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
+    if not settings.supabase_url or not settings.supabase_secret_key:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{settings.supabase_url}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {credentials.credentials}",
+                "apikey": settings.supabase_secret_key,
+            },
         )
-        return payload
-    except JWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    if resp.status_code != 200:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return resp.json()
 
 
 # ---------------------------------------------------------------------------
