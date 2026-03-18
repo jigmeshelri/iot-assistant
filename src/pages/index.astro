@@ -13,21 +13,23 @@ const [stockRes, locationsRes, projectsRes, recentRes] = await Promise.all([
   supabase.from('locations').select('id', { count: 'exact', head: true }),
   supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'in_progress'),
   supabase.from('stock')
-    .select('id, quantity, component:components(name, category, image_url)')
+    .select('id, quantity, updated_at, component:components(name, category, image_url), location:locations(name)')
     .order('updated_at', { ascending: false })
     .limit(6),
 ])
 
 const { data: activeProjects } = await supabase
   .from('projects')
-  .select('id, title, type, progress')
+  .select('id, title, type, progress, status, updated_at')
   .eq('status', 'in_progress')
-  .limit(3)
+  .limit(5)
 
 const projectColors = [
-  { bg: 'bg-amber-100', text: 'text-amber-600', dot: 'bg-brand-400' },
+  { bg: 'bg-amber-100',  text: 'text-amber-600',  dot: 'bg-brand-400' },
   { bg: 'bg-violet-100', text: 'text-violet-600', dot: 'bg-amber-400' },
   { bg: 'bg-green-100',  text: 'text-green-600',  dot: 'bg-green-400' },
+  { bg: 'bg-brand-100',  text: 'text-brand-600',  dot: 'bg-violet-400' },
+  { bg: 'bg-rose-100',   text: 'text-rose-600',   dot: 'bg-rose-400'   },
 ]
 
 const categoryColors: Record<string, { bg: string; icon: string }> = {
@@ -36,9 +38,17 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
   'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
   'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
 }
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
 ---
-<AppLayout title="Inicio" activeTab="home">
-  <div class="bg-slate-50 min-h-full">
+
+<AppLayout title="Dashboard" activeTab="home">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="bg-slate-50 min-h-full lg:hidden">
 
     <!-- Header -->
     <div class="px-5 pt-4 pb-4">
@@ -91,9 +101,9 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
           <a href="/projects" class="text-brand-600 text-xs font-medium">Ver todos</a>
         </div>
         <div class="flex flex-col gap-2.5">
-          {activeProjects.map((p, i) => {
+          {activeProjects.map((p: any, i: number) => {
             const c = projectColors[i % projectColors.length]
-            const pct = p.progress ?? 0
+            const pct: number = p.progress ?? 0
             return (
               <a href={`/projects/${p.id}`} class="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                 <div class={`w-9 h-9 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0`}>
@@ -144,4 +154,135 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
     )}
 
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <div class="flex-1">
+      <p class="text-xs text-slate-400">Buenos días,</p>
+      <h2 class="text-base font-bold text-slate-900 leading-none mt-0.5">{name} 👋</h2>
+    </div>
+    <a
+      href="/inventory/new"
+      class="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm hover:bg-brand-700 transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Escanear componente
+    </a>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+
+    <!-- Stats 4-col -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <a href="/inventory" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-slate-900">{stockRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-1">Componentes totales</div>
+      </a>
+      <a href="/locations" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-slate-900">{locationsRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-1">Ubicaciones activas</div>
+      </a>
+      <a href="/projects" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-brand-600">{projectsRes.count ?? 0}</div>
+        <div class="text-xs text-slate-400 mt-1">Proyectos activos</div>
+      </a>
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <div class="text-3xl font-bold text-slate-900">—</div>
+        <div class="text-xs text-slate-400 mt-1">Escaneos esta semana</div>
+      </div>
+    </div>
+
+    <!-- 3-col grid -->
+    <div class="grid grid-cols-3 gap-5">
+
+      <!-- Proyectos table (col-span-2) -->
+      <div class="col-span-2">
+        <h3 class="text-sm font-semibold text-slate-800 mb-3">Proyectos activos</h3>
+        {activeProjects && activeProjects.length > 0 ? (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table class="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Proyecto</th>
+                  <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Progreso</th>
+                  <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Actualizado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeProjects.map((p: any, i: number) => {
+                  const c = projectColors[i % projectColors.length]
+                  const pct: number = p.progress ?? 0
+                  return (
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="px-4 py-3 border-b border-slate-100">
+                        <a href={`/projects/${p.id}`} class="flex items-center gap-2.5 group">
+                          <div class={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center flex-shrink-0`}>
+                            <svg class={`w-3.5 h-3.5 ${c.text}`} fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-slate-800 group-hover:text-brand-600 transition-colors">{p.title}</span>
+                        </a>
+                      </td>
+                      <td class="px-4 py-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                          <div class="w-24 bg-slate-100 rounded-full h-1.5">
+                            <div class="bg-brand-500 h-1.5 rounded-full" style={`width:${pct}%`}></div>
+                          </div>
+                          <span class="text-xs text-slate-400">{pct}%</span>
+                        </div>
+                      </td>
+                      <td class="px-4 py-3 border-b border-slate-100 text-xs text-slate-400 whitespace-nowrap">
+                        {formatDate(p.updated_at)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center text-slate-400 text-sm">
+            Sin proyectos activos
+          </div>
+        )}
+      </div>
+
+      <!-- Recientes (col-span-1) -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-800 mb-3">Añadidas recientemente</h3>
+        <div class="flex flex-col gap-2">
+          {recentRes.data && recentRes.data.length > 0 ? recentRes.data.slice(0, 5).map((item: any) => {
+            const cat = item.component?.category ?? ''
+            const colors = categoryColors[cat] ?? { bg: 'bg-slate-100', icon: 'text-slate-500' }
+            const locName: string = (item.location as any)?.name ?? ''
+            return (
+              <a href={`/inventory/${item.id}`} class="bg-white rounded-xl p-3 flex items-center gap-3 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class={`w-8 h-8 ${colors.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  <svg class={`w-4 h-4 ${colors.icon}`} fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <rect x="9" y="9" width="6" height="6"/>
+                  </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold text-slate-800 truncate">{item.component?.name ?? '—'}</p>
+                  <p class="text-xs text-slate-400 truncate">×{item.quantity}{locName ? ` · ${locName}` : ''}</p>
+                </div>
+              </a>
+            )
+          }) : (
+            <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-6 text-center text-slate-400 text-xs">
+              Sin componentes
+            </div>
+          )}
+        </div>
+      </div>
+
+    </div>
+  </Fragment>
+
 </AppLayout>

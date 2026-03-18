@@ -1,27 +1,43 @@
 ---
 import BaseLayout from './BaseLayout.astro'
+import { createSupabaseServerClient } from '../lib/supabase'
 
 export interface Props {
   title?: string
   description?: string
-  activeTab?: 'home' | 'inventory' | 'projects' | 'community'
+  activeTab?: 'home' | 'inventory' | 'projects' | 'community' | 'scan'
 }
+
 const { title, description, activeTab } = Astro.props
+
+const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
+const { data: { user } } = await supabase.auth.getUser()
+const name = user?.email?.split('@')[0] ?? 'usuario'
+const initial = name[0]?.toUpperCase() ?? '?'
+const email = user?.email ?? ''
 
 function tabClass(tab: string) {
   return activeTab === tab
     ? 'flex flex-col items-center gap-0.5 flex-1 py-2 text-brand-600'
     : 'flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400'
 }
+
+function sidebarItemClass(key: string) {
+  const base = 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors'
+  return activeTab === key
+    ? `${base} bg-brand-600 text-white`
+    : `${base} text-slate-400 hover:text-white hover:bg-slate-800`
+}
 ---
+
 <BaseLayout title={title} description={description}>
-  <div class="flex flex-col h-full max-w-lg mx-auto relative">
-    <!-- Main content -->
+
+  <!-- ─── Mobile layout (< lg) ─────────────────────────────────────────── -->
+  <div class="flex flex-col h-full max-w-lg mx-auto relative lg:hidden">
     <main class="flex-1 overflow-y-auto pb-20">
       <slot />
     </main>
 
-    <!-- Bottom Navigation -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white border-t border-slate-100 z-50 pb-safe">
       <div class="flex items-center px-2 pt-2 pb-6">
         <a href="/" class={tabClass('home')}>
@@ -53,4 +69,140 @@ function tabClass(tab: string) {
       </div>
     </nav>
   </div>
+
+  <!-- ─── Desktop layout (≥ lg) ────────────────────────────────────────── -->
+  <div class="hidden lg:flex h-full w-full overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-[220px] flex-shrink-0 bg-slate-900 flex flex-col h-full">
+
+      <!-- Logo -->
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center gap-2.5">
+        <div class="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+          </svg>
+        </div>
+        <span class="text-white font-bold text-sm">IoT Assistant</span>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+        <a href="/" class={sidebarItemClass('home')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+          Dashboard
+        </a>
+        <a href="/inventory" class={sidebarItemClass('inventory')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+            <path d="M16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z"/>
+          </svg>
+          Inventario
+        </a>
+        <a href="/inventory/new" class={sidebarItemClass('scan')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Escanear IA
+        </a>
+        <a href="/projects" class={sidebarItemClass('projects')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Proyectos
+        </a>
+        <a href="/community" class={sidebarItemClass('community')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+          </svg>
+          Comunidad
+        </a>
+      </nav>
+
+      <!-- User footer with dropdown menu -->
+      <div class="px-4 py-4 border-t border-slate-800 relative">
+        <button
+          id="user-menu-btn"
+          class="w-full flex items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-slate-800 transition-colors"
+        >
+          <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+            {initial}
+          </div>
+          <div class="min-w-0 text-left flex-1">
+            <p class="text-xs font-semibold text-white truncate">{name}</p>
+            <p class="text-xs text-slate-400 truncate">{email}</p>
+          </div>
+          <svg class="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 15l-6-6-6 6"/>
+          </svg>
+        </button>
+
+        <!-- Dropdown -->
+        <div
+          id="user-menu-dropdown"
+          class="hidden absolute bottom-full left-4 right-4 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden"
+        >
+          <button
+            id="logout-btn"
+            class="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+          >
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+      <!-- Topbar -->
+      <header class="h-14 flex-shrink-0 bg-white border-b border-slate-100 flex items-center px-6 gap-3">
+        <slot name="topbar">
+          <span class="text-base font-bold text-slate-900">{title}</span>
+        </slot>
+      </header>
+
+      <!-- Main -->
+      <main class="flex-1 overflow-y-auto bg-slate-50 p-6">
+        <slot name="desktop-main" />
+      </main>
+
+    </div>
+  </div>
+
 </BaseLayout>
+
+<script>
+  import { createSupabaseBrowserClient } from '../lib/supabase'
+
+  const btn = document.getElementById('user-menu-btn')
+  const dropdown = document.getElementById('user-menu-dropdown')
+  const logoutBtn = document.getElementById('logout-btn')
+
+  btn?.addEventListener('click', () => {
+    dropdown?.classList.toggle('hidden')
+  })
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (!btn?.contains(e.target as Node) && !dropdown?.contains(e.target as Node)) {
+      dropdown?.classList.add('hidden')
+    }
+  })
+
+  logoutBtn?.addEventListener('click', async () => {
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  })
+</script>

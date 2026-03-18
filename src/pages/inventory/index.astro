@@ -16,18 +16,29 @@ const categoryColors: Record<string, { bg: string; icon: string }> = {
   'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
 }
 
+const categoryTagColors: Record<string, string> = {
+  'Microcontrolador': 'bg-brand-50 text-brand-700',
+  'Sensor':           'bg-amber-50 text-amber-700',
+  'Actuador':         'bg-violet-50 text-violet-700',
+  'Alimentación':     'bg-green-50 text-green-700',
+  'Módulo':           'bg-violet-50 text-violet-700',
+  'Pasivo':           'bg-slate-100 text-slate-600',
+}
+
 function qtyColor(qty: number) {
   return qty > 1 ? 'text-slate-900' : 'text-amber-500'
 }
 ---
+
 <AppLayout title="Inventario" activeTab="inventory">
-  <div class="bg-white min-h-full">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="bg-white min-h-full lg:hidden">
 
     <!-- Header sticky -->
     <div class="px-5 pt-3 pb-3 bg-white sticky top-0 z-10">
       <h2 class="text-xl font-bold text-slate-900 mb-3">Inventario</h2>
 
-      <!-- Buscador + botón añadir -->
       <div class="flex gap-2 mb-3">
         <div class="flex-1 flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2.5">
           <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -46,7 +57,6 @@ function qtyColor(qty: number) {
         </a>
       </div>
 
-      <!-- Filtros -->
       <div class="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-brand-600 text-white flex-shrink-0 cursor-pointer">Todos</span>
         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 flex-shrink-0 cursor-pointer">MCU</span>
@@ -56,7 +66,6 @@ function qtyColor(qty: number) {
       </div>
     </div>
 
-    <!-- Lista -->
     {(!stockItems || stockItems.length === 0) ? (
       <div class="px-5 pt-4">
         <EmptyState
@@ -109,4 +118,150 @@ function qtyColor(qty: number) {
       </div>
     )}
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <h2 class="text-base font-bold text-slate-900 flex-1">Inventario</h2>
+    <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 w-56">
+      <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <span class="text-xs text-slate-400">Buscar componentes...</span>
+    </div>
+    <button class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 6h18M6 12h12M10 18h4"/>
+      </svg>
+      Filtrar
+    </button>
+    <a href="/inventory/new" class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Añadir componente
+    </a>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+
+    <!-- Filter chips -->
+    <div class="flex gap-2 mb-4 flex-wrap items-center">
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-brand-600 text-white cursor-pointer">Todos ({stockItems?.length ?? 0})</span>
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 cursor-pointer">MCU</span>
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 cursor-pointer">Sensores</span>
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 cursor-pointer">Módulos</span>
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 cursor-pointer">Pasivos</span>
+      <span class="ml-auto text-xs text-slate-400">{stockItems?.length ?? 0} componentes</span>
+    </div>
+
+    {(!stockItems || stockItems.length === 0) ? (
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+        <EmptyState
+          title="Sin componentes"
+          description="Añade tu primer componente al inventario"
+          actionHref="/inventory/new"
+          actionLabel="Añadir componente"
+          icon="📦"
+        />
+      </div>
+    ) : (
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr>
+              <th class="bg-slate-50 text-left px-4 py-2.5 border-b border-slate-100 w-8">
+                <input type="checkbox" class="rounded" />
+              </th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Componente</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Categoría</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Plataforma</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Conectividad</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Ubicación</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Stock</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stockItems.map((item: any) => {
+              const cat = item.component?.category ?? ''
+              const colors = categoryColors[cat] ?? { bg: 'bg-slate-100', icon: 'text-slate-500' }
+              const tagClass = categoryTagColors[cat] ?? 'bg-slate-100 text-slate-600'
+              const locName = item.location?.name
+              const parentName = item.location?.parent?.name
+              const locStr = locName ? (parentName ? `${parentName} → ${locName}` : locName) : '—'
+              const qty: number = item.quantity ?? 0
+              const platform: string = item.component?.platform_family ?? ''
+              const caps: Record<string, boolean> = item.component?.connectivity_caps ?? {}
+              const activeCaps = Object.entries(caps).filter(([, v]) => v).map(([k]) => k)
+              return (
+                <tr class="hover:bg-slate-50 transition-colors group">
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    <input type="checkbox" class="rounded" />
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                      <div class={`w-8 h-8 ${colors.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <svg class={`w-4 h-4 ${colors.icon}`} fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <rect x="4" y="4" width="16" height="16" rx="2"/>
+                          <rect x="9" y="9" width="6" height="6"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">{item.component?.name ?? 'Desconocido'}</p>
+                        <p class="text-xs text-slate-400">{item.component?.sku ?? '—'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    {cat ? (
+                      <span class={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${tagClass}`}>{cat}</span>
+                    ) : <span class="text-xs text-slate-400">—</span>}
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    {platform ? (
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">{platform}</span>
+                    ) : <span class="text-xs text-slate-400">—</span>}
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    {activeCaps.length > 0 ? (
+                      <div class="flex gap-1 flex-wrap">
+                        {activeCaps.map(cap => (
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">{cap}</span>
+                        ))}
+                      </div>
+                    ) : <span class="text-xs text-slate-400">—</span>}
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100 text-xs text-slate-600">
+                    {locStr !== '—' ? `📦 ${locStr}` : <span class="text-slate-400">—</span>}
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    <span class={`text-sm font-bold ${qtyColor(qty)}`}>{qty}</span>
+                    <span class="text-xs text-slate-400 ml-1">unid.</span>
+                  </td>
+                  <td class="px-4 py-2.5 border-b border-slate-100">
+                    <div class="flex gap-1">
+                      <a href={`/inventory/${item.id}`} class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors" title="Editar">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </a>
+                      <button class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 flex items-center justify-center transition-colors" title="Eliminar">
+                        <svg class="w-3.5 h-3.5 text-slate-500 hover:text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14H6L5 6"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </Fragment>
+
 </AppLayout>

@@ -40,9 +40,17 @@ const progressBarColor: Record<string, string> = {
   saved:       'bg-slate-300',
   abandoned:   'bg-slate-200',
 }
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
 ---
+
 <AppLayout title="Proyectos" activeTab="projects">
-  <div class="bg-white min-h-full">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="bg-white min-h-full lg:hidden">
 
     <!-- Header -->
     <div class="px-5 pt-3 pb-4 bg-white sticky top-0 z-10 border-b border-slate-50">
@@ -56,7 +64,6 @@ const progressBarColor: Record<string, string> = {
       </div>
     </div>
 
-    <!-- Lista -->
     {(!projects || projects.length === 0) ? (
       <div class="px-5 pt-4">
         <EmptyState
@@ -101,4 +108,94 @@ const progressBarColor: Record<string, string> = {
       </div>
     )}
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <h2 class="text-base font-bold text-slate-900 flex-1">Proyectos</h2>
+    <a
+      href="/ai/plan"
+      class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo proyecto
+    </a>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    {(!projects || projects.length === 0) ? (
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+        <EmptyState
+          title="Sin proyectos"
+          description="Empieza a planificar tu primer proyecto con la ayuda de la IA"
+          actionHref="/ai/discover"
+          actionLabel="Descubrir proyectos"
+          icon="🗂️"
+        />
+      </div>
+    ) : (
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Proyecto</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Estado</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Progreso</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100 whitespace-nowrap">Actualizado</th>
+              <th class="bg-slate-50 font-semibold text-slate-500 text-xs text-left px-4 py-2.5 border-b border-slate-100">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map((p: any, i: number) => {
+              const c = iconColors[i % iconColors.length]
+              const pct: number = p.progress ?? 0
+              const barColor = progressBarColor[p.status] ?? 'bg-slate-300'
+              return (
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="px-4 py-3 border-b border-slate-100">
+                    <a href={`/projects/${p.id}`} class="flex items-center gap-2.5 group">
+                      <div class={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center flex-shrink-0`}>
+                        <svg class={`w-3.5 h-3.5 ${c.text}`} fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-800 group-hover:text-brand-600 transition-colors truncate">{p.title}</p>
+                        {p.description && <p class="text-xs text-slate-400 truncate max-w-xs">{p.description}</p>}
+                      </div>
+                    </a>
+                  </td>
+                  <td class="px-4 py-3 border-b border-slate-100">
+                    <Badge variant={statusColor[p.status] ?? 'default'}>{statusLabel[p.status] ?? p.status}</Badge>
+                  </td>
+                  <td class="px-4 py-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                      <div class="w-24 bg-slate-100 rounded-full h-1.5">
+                        <div class={`${barColor} h-1.5 rounded-full`} style={`width:${pct}%`}></div>
+                      </div>
+                      <span class="text-xs text-slate-400">{pct}%</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 border-b border-slate-100 text-xs text-slate-400 whitespace-nowrap">
+                    {formatDate(p.updated_at)}
+                  </td>
+                  <td class="px-4 py-3 border-b border-slate-100">
+                    <a href={`/projects/${p.id}`} class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors" title="Ver proyecto">
+                      <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </a>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </Fragment>
+
 </AppLayout>
