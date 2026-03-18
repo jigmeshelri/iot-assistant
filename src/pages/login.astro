@@ -92,7 +92,7 @@ if (session) {
     e.preventDefault()
     const { error } = await supabase.auth.signInWithOtp({
       email: emailInput.value,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
     statusMsg.classList.remove('hidden')
     if (error) {
@@ -105,9 +105,9 @@ if (session) {
   })
 
   document.getElementById('github-btn')?.addEventListener('click', () => {
-    supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.origin } })
+    supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${window.location.origin}/auth/callback` } })
   })
   document.getElementById('google-btn')?.addEventListener('click', () => {
-    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` } })
   })
 </script>
