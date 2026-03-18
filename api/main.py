@@ -9,6 +9,7 @@ import anthropic
 import httpx
 import qrcode
 from fastapi import Depends, FastAPI, File, HTTPException, Security, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -37,6 +38,15 @@ app = FastAPI(
     description="Microservicio para reconocimiento de componentes, generación de proyectos e ingesta de telemetría.",
     version="0.2.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_url, "https://iot-assistant.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer(auto_error=False)
 
 
