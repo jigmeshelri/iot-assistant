@@ -192,7 +192,7 @@ function qtyColor(qty: number) {
               const locStr = locName ? (parentName ? `${parentName} → ${locName}` : locName) : '—'
               const qty: number = item.quantity ?? 0
               const platform: string = item.component?.platform_family ?? ''
-              const caps: Record<string, boolean> = item.component?.connectivity_caps ?? {}
+              const caps = item.component?.connectivity_caps ?? {}
               const activeCaps = Object.entries(caps).filter(([, v]) => v).map(([k]) => k)
               return (
                 <tr class="hover:bg-slate-50 transition-colors group">
