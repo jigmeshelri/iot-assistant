@@ -1,0 +1,68 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro'
+import Card from '../../components/ui/Card.astro'
+import Badge from '../../components/ui/Badge.astro'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import { createSupabaseServerClient } from '../../lib/supabase'
+
+const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
+const { data: stockItems } = await supabase
+  .from('stock')
+  .select('*, component:components(*)')
+  .order('updated_at', { ascending: false })
+---
+<AppLayout title="Inventario" activeTab="inventory">
+  <div class="px-4 pt-6">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-bold text-slate-900">Inventario</h1>
+      <a
+        href="/inventory/new"
+        class="w-9 h-9 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-sm hover:bg-brand-600 transition-colors"
+        aria-label="Añadir componente"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </a>
+    </div>
+
+    {(!stockItems || stockItems.length === 0) ? (
+      <EmptyState
+        title="Sin componentes"
+        description="Añade tu primer componente al inventario con el botón +"
+        actionHref="/inventory/new"
+        actionLabel="Añadir componente"
+        icon="📦"
+      />
+    ) : (
+      <div class="space-y-3 pb-4">
+        {stockItems.map(item => (
+          <Card href={`/inventory/${item.id}`}>
+            <div class="p-4 flex items-center gap-3">
+              <div class="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                {item.component?.image_url ? (
+                  <img src={item.component.image_url} alt={item.component?.name} class="w-10 h-10 object-contain rounded-lg" />
+                ) : (
+                  <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+                  </svg>
+                )}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-slate-900 truncate">{item.component?.name ?? 'Componente desconocido'}</div>
+                <div class="text-xs text-slate-400 mt-0.5">{item.component?.sku}</div>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <Badge variant="info">{item.component?.category}</Badge>
+                  <span class="text-xs text-slate-500">{item.quantity} unidades</span>
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Card>
+        ))}
+      </div>
+    )}
+  </div>
+</AppLayout>

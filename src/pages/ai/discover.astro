@@ -1,0 +1,13 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro'
+import PlanRefinement from '../../components/islands/PlanRefinement'
+---
+<AppLayout title="Descubrir proyectos" activeTab="ai">
+  <div class="px-4 pt-6 pb-8">
+    <div class="mb-6">
+      <h1 class="text-xl font-bold text-slate-900 mb-1">¿Qué puedo construir?</h1>
+      <p class="text-sm text-slate-500">La IA analiza tu inventario y sugiere proyectos viables.</p>
+    </div>
+    <PlanRefinement mode="discover" client:load />
+  </div>
+</AppLayout>

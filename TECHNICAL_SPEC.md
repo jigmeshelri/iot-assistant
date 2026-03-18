@@ -407,7 +407,11 @@ Todas las rutas (excepto `/health`) requieren el header:
 ```
 Authorization: Bearer <supabase_jwt>
 ```
-El JWT se valida con la clave pública de Supabase (`SUPABASE_JWT_SECRET`).
+El JWT se valida con la clave pública de Supabase obtenida del endpoint JWKS:
+```
+https://<ref>.supabase.co/auth/v1/.well-known/jwks.json
+```
+`SUPABASE_JWT_SECRET` queda obsoleto desde la migración a JWT Signing Keys (RS256 asimétrico).
 
 ### 4.2 Endpoints
 
@@ -829,14 +833,32 @@ Supabase Auth gestiona el ciclo completo. El frontend no implementa lógica de a
 
 **Guard de rutas:** el layout `Auth.astro` verifica la sesión vía `supabase.auth.getSession()`. Si no hay sesión redirige a `/login`.
 
-**FastAPI:** recibe el JWT de Supabase en el header `Authorization`. Lo verifica con `python-jose` usando `SUPABASE_JWT_SECRET` (RS256).
+**FastAPI:** recibe el JWT de Supabase en el header `Authorization`. Lo verifica descargando las claves públicas del endpoint JWKS de Supabase (RS256 asimétrico). `SUPABASE_JWT_SECRET` ya no se usa.
 
 ```python
-from jose import jwt, JWTError
+import httpx
+from jose import jwt, JWTError, jwk
+from jose.utils import base64url_decode
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+_jwks_cache: dict = {}
+
+async def get_jwks(supabase_url: str) -> dict:
+    if not _jwks_cache:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{supabase_url}/auth/v1/.well-known/jwks.json")
+            r.raise_for_status()
+            _jwks_cache.update(r.json())
+    return _jwks_cache
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    settings: Settings = Depends(get_settings),
+) -> dict:
     try:
-        payload = jwt.decode(token, settings.supabase_jwt_secret, algorithms=["RS256"])
+        jwks = await get_jwks(settings.supabase_url)
+        # python-jose resuelve la clave correcta por el campo `kid` del header JWT
+        payload = jwt.decode(token, jwks, algorithms=["RS256"],
+                             audience="authenticated")
         return payload
     except JWTError:
         raise HTTPException(status_code=401)
@@ -1014,12 +1036,15 @@ PUBLIC_FRONTEND_URL=https://<vercel-domain>
 ### API (FastAPI)
 
 ```bash
-SUPABASE_JWT_SECRET=<jwt-secret>
+SUPABASE_URL=https://<ref>.supabase.co      # para descargar JWKS y validar JWTs
 AI_PROVIDER=claude                          # claude | openai
 ANTHROPIC_API_KEY=<key>                     # si AI_PROVIDER=claude
 OPENAI_API_KEY=<key>                        # si AI_PROVIDER=openai
 FRONTEND_URL=https://<vercel-domain>        # para URL del QR
 ```
+
+> `SUPABASE_JWT_SECRET` fue eliminado. La verificación de tokens usa el endpoint JWKS
+> `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (ver sección 6).
 
 ---
 

@@ -1,0 +1,65 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import Badge from '../../components/ui/Badge.astro'
+import Card from '../../components/ui/Card.astro'
+import { createSupabaseServerClient } from '../../lib/supabase'
+
+const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
+const { data: projects } = await supabase
+  .from('projects')
+  .select('*')
+  .order('updated_at', { ascending: false })
+
+const statusColor: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
+  saved: 'default',
+  in_progress: 'info',
+  paused: 'warning',
+  completed: 'success',
+  abandoned: 'error',
+}
+const statusLabel: Record<string, string> = {
+  saved: 'Guardado',
+  in_progress: 'En progreso',
+  paused: 'Pausado',
+  completed: 'Completado',
+  abandoned: 'Abandonado',
+}
+---
+<AppLayout title="Proyectos" activeTab="projects">
+  <div class="px-4 pt-6 pb-4">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-bold text-slate-900">Proyectos</h1>
+      <a href="/ai/plan" class="text-xs text-brand-600 font-medium">+ Nuevo</a>
+    </div>
+
+    {(!projects || projects.length === 0) ? (
+      <EmptyState
+        title="Sin proyectos"
+        description="Empieza a planificar tu primer proyecto con la ayuda de la IA"
+        actionHref="/ai/discover"
+        actionLabel="Descubrir proyectos"
+        icon="🗂️"
+      />
+    ) : (
+      <div class="space-y-3">
+        {projects.map(p => (
+          <Card href={`/projects/${p.id}`}>
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h2 class="text-sm font-semibold text-slate-900 leading-tight">{p.title}</h2>
+                <Badge variant={statusColor[p.status] ?? 'default'}>{statusLabel[p.status] ?? p.status}</Badge>
+              </div>
+              {p.description && <p class="text-xs text-slate-500 line-clamp-2 mb-2">{p.description}</p>}
+              <div class="flex flex-wrap gap-1">
+                {p.tags?.slice(0, 3).map((tag: string) => (
+                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    )}
+  </div>
+</AppLayout>

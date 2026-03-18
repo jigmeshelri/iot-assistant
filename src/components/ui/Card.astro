@@ -1,0 +1,14 @@
+---
+export interface Props {
+  class?: string
+  href?: string
+}
+const { class: className = '', href } = Astro.props
+const Tag = href ? 'a' : 'div'
+---
+<Tag
+  href={href}
+  class={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden ${href ? 'block hover:shadow-md transition-shadow' : ''} ${className}`}
+>
+  <slot />
+</Tag>

@@ -29,18 +29,43 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-dev_password_123}@db:5432/${POSTGRES_DB:-iot_assistant}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4321}
     ports:
       - "8000:8000"
     volumes:
-      - ./api:/app          # hot-reload en desarrollo
+      - ./api:/app
     depends_on:
       db:
         condition: service_healthy
     networks:
       - iot-net
 
+  web:
+    image: node:22-alpine
+    container_name: iot-web
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-}
+      PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      PUBLIC_API_URL: http://api:8000
+      HOST: 0.0.0.0
+    ports:
+      - "4321:4321"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      - api
+    networks:
+      - iot-net
+
 volumes:
   db_data:
+  node_modules:
 
 networks:
   iot-net:

@@ -22,3 +22,10 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+
+# Astro build cache
+.astro/
+
+# Python cache
+api/__pycache__/
+**/*.pyc

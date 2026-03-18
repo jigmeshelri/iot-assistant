@@ -1,0 +1,16 @@
+---
+import { createSupabaseServerClient } from '../../lib/supabase'
+
+const { qr_code } = Astro.params
+const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
+const { data: location } = await supabase
+  .from('locations')
+  .select('id')
+  .eq('qr_code', qr_code!)
+  .single()
+
+if (location) {
+  return Astro.redirect(`/locations/${location.id}`)
+}
+return Astro.redirect('/locations')
+---
