@@ -6,7 +6,10 @@ export const GET: APIRoute = async ({ url, cookies, request, redirect }) => {
 
   if (code) {
     const supabase = createSupabaseServerClient(cookies, request)
-    await supabase.auth.exchangeCodeForSession(code)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      return redirect('/login?error=auth_callback_failed')
+    }
   }
 
   return redirect('/')
