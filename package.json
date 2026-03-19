@@ -6,7 +6,13 @@
     "dev": "astro dev --host 0.0.0.0",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test --ignore=visual-regression",
+    "test:visual": "playwright test visual-regression",
+    "test:visual:update": "playwright test visual-regression --update-snapshots"
   },
   "dependencies": {
     "@astrojs/react": "^4.0.0",
@@ -22,11 +28,18 @@
   "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^8.0.0",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/ui": "^4.1.0",
+    "jsdom": "^29.0.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.3",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^4.1.0"
   }
 }
