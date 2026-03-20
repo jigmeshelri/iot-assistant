@@ -30,3 +30,5 @@ lerna-debug.log*
 api/__pycache__/
 **/*.pyc
 test-results/
+.vercel
+.npmrc
