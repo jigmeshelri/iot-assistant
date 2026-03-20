@@ -14,10 +14,36 @@ const { data: item } = await supabase
   .single()
 
 if (!item) return Astro.redirect('/inventory')
+
 const specs = (item.component?.technical_specs as Record<string, unknown>) ?? {}
+const caps  = (item.component?.connectivity_caps as Record<string, unknown>) ?? {}
+const activeCaps = Object.entries(caps).filter(([, v]) => v && v !== false)
+
+const categoryColors: Record<string, { bg: string; icon: string }> = {
+  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-400'  },
+  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-400'  },
+  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-400' },
+  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-400'  },
+  'Módulo':           { bg: 'bg-violet-50', icon: 'text-violet-400' },
+  'Pasivo':           { bg: 'bg-slate-100', icon: 'text-slate-400'  },
+}
+const cat = item.component?.category ?? ''
+const colors = categoryColors[cat] ?? { bg: 'bg-slate-100', icon: 'text-slate-400' }
+
+const capBadgeColors: Record<string, string> = {
+  wifi:     'bg-sky-50 text-sky-700 border-sky-200',
+  ble:      'bg-blue-50 text-blue-700 border-blue-200',
+  lora:     'bg-purple-50 text-purple-700 border-purple-200',
+  zigbee:   'bg-teal-50 text-teal-700 border-teal-200',
+  thread:   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  ethernet: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+}
 ---
+
 <AppLayout title={item.component?.name ?? 'Componente'} activeTab="inventory">
-  <div class="px-4 pt-6 pb-8">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="flex items-center gap-3 mb-6">
       <a href="/inventory" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors">
         <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,15 +55,19 @@ const specs = (item.component?.technical_specs as Record<string, unknown>) ?? {}
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
       <div class="flex items-start gap-4">
-        <div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
-          <svg class="w-10 h-10 text-brand-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-          </svg>
+        <div class={`w-20 h-20 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+          {item.component?.image_url ? (
+            <img src={item.component.image_url} alt={item.component?.name} class="w-16 h-16 object-contain rounded-lg" />
+          ) : (
+            <svg class={`w-10 h-10 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+            </svg>
+          )}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-xs text-slate-400 font-mono">{item.component?.sku}</p>
-          <div class="flex flex-wrap gap-2 mt-2">
-            <Badge variant="info">{item.component?.category}</Badge>
+          <p class="text-xs text-slate-400 font-mono mb-1">{item.component?.sku}</p>
+          <div class="flex flex-wrap gap-1.5 mt-1">
+            {cat && <Badge variant="info">{cat}</Badge>}
             {item.component?.platform_family && <Badge>{item.component.platform_family}</Badge>}
           </div>
           {item.location && (
@@ -47,12 +77,10 @@ const specs = (item.component?.technical_specs as Record<string, unknown>) ?? {}
       </div>
     </div>
 
-    <!-- Stock adjuster -->
     <div class="mb-4">
       <StockAdjuster stockId={id!} initialQuantity={item.quantity} client:load />
     </div>
 
-    <!-- Technical specs -->
     {Object.keys(specs).length > 0 && (
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
         <h3 class="text-sm font-semibold text-slate-700 mb-3">Especificaciones</h3>
@@ -67,9 +95,203 @@ const specs = (item.component?.technical_specs as Record<string, unknown>) ?? {}
       </div>
     )}
 
-    <!-- QR Label -->
     {item.location?.qr_code && (
       <QRLabel qrCode={item.location.qr_code} locationName={item.location.name} client:load />
     )}
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <div class="flex items-center gap-2 text-sm text-slate-500">
+      <a href="/inventory" class="hover:text-slate-700 transition-colors">Inventario</a>
+      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+      <span class="font-semibold text-slate-900 truncate max-w-xs">{item.component?.name}</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <a
+        href={`/inventory/${id}/edit`}
+        class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Editar
+      </a>
+    </div>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    <div class="grid grid-cols-3 gap-5 items-start">
+
+      <!-- Left column: identity + specs + datasheet -->
+      <div class="col-span-2 flex flex-col gap-5">
+
+        <!-- Component header card -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <div class="flex items-start gap-5">
+            <!-- Image / icon -->
+            <div class={`w-24 h-24 ${colors.bg} rounded-2xl flex items-center justify-center flex-shrink-0`}>
+              {item.component?.image_url ? (
+                <img
+                  src={item.component.image_url}
+                  alt={item.component?.name}
+                  class="w-20 h-20 object-contain rounded-xl"
+                />
+              ) : (
+                <svg class={`w-12 h-12 ${colors.icon}`} fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="16" height="16" rx="2"/>
+                  <rect x="9" y="9" width="6" height="6"/>
+                  <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>
+                </svg>
+              )}
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-slate-400 font-mono mb-1">{item.component?.sku ?? '—'}</p>
+              <h1 class="text-xl font-bold text-slate-900 mb-3">{item.component?.name}</h1>
+              <div class="flex flex-wrap gap-2">
+                {cat && (
+                  <Badge variant="info">{cat}</Badge>
+                )}
+                {item.component?.platform_family && (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    {item.component.platform_family}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connectivity capabilities -->
+        {activeCaps.length > 0 && (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 6s4-2 11-2 11 2 11 2"/>
+                <path d="M5 10s3-1.5 7-1.5 7 1.5 7 1.5"/>
+                <path d="M8.5 14s1.5-1 3.5-1 3.5 1 3.5 1"/>
+                <circle cx="12" cy="18" r="1" fill="currentColor"/>
+              </svg>
+              Conectividad
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              {activeCaps.map(([cap, value]) => {
+                const cls = capBadgeColors[cap] ?? 'bg-slate-50 text-slate-700 border-slate-200'
+                return (
+                  <div class={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${cls}`}>
+                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60"></span>
+                    <span class="uppercase tracking-wide font-semibold">{cap}</span>
+                    {typeof value === 'string' && (
+                      <span class="opacity-60 font-normal">{value}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <!-- Technical specs -->
+        {Object.keys(specs).length > 0 && (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+              </svg>
+              Especificaciones técnicas
+            </h3>
+            <div class="grid grid-cols-2 gap-x-8 gap-y-3">
+              {Object.entries(specs).map(([k, v]) => (
+                <div class="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                  <span class="text-xs text-slate-500 capitalize">{k.replace(/_/g, ' ')}</span>
+                  <span class="text-xs font-semibold text-slate-800 font-mono">{
+                    Array.isArray(v) ? (v as string[]).join(', ') : String(v)
+                  }</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- Datasheet link -->
+        {item.component?.datasheet_url && (
+          <a
+            href={item.component.datasheet_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-brand-200 hover:shadow-md transition-all group"
+          >
+            <div class="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-4.5 h-4.5 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-slate-800 group-hover:text-brand-700 transition-colors">Datasheet</p>
+              <p class="text-xs text-slate-400 truncate">{item.component.datasheet_url}</p>
+            </div>
+            <svg class="w-4 h-4 text-slate-300 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        )}
+
+      </div>
+
+      <!-- Right column: stock + location + QR -->
+      <div class="flex flex-col gap-5">
+
+        <!-- Stock adjuster -->
+        <StockAdjuster stockId={id!} initialQuantity={item.quantity} client:load />
+
+        <!-- Location -->
+        {item.location ? (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Ubicación</h3>
+            <a
+              href={`/locations/${item.location.id}`}
+              class="flex items-center gap-3 group"
+            >
+              <div class="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-4.5 h-4.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-slate-800 group-hover:text-brand-600 transition-colors truncate">
+                  {item.location.name}
+                </p>
+                <p class="text-xs text-slate-400">Ver ubicación →</p>
+              </div>
+            </a>
+          </div>
+        ) : (
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Ubicación</h3>
+            <p class="text-sm text-slate-400">Sin ubicación asignada</p>
+          </div>
+        )}
+
+        <!-- QR Label -->
+        {item.location?.qr_code && (
+          <QRLabel qrCode={item.location.qr_code} locationName={item.location.name} client:load />
+        )}
+
+      </div>
+    </div>
+  </Fragment>
+
 </AppLayout>
