@@ -3,7 +3,8 @@ export const BRAND = {
   500: 'rgb(20, 184, 166)',   // bg-brand-500 / #14b8a6
   50:  'rgb(240, 253, 249)',  // bg-brand-50
 }
-export const SIDEBAR_BG = 'rgb(15, 23, 42)'   // bg-slate-900 / #0f172a
+// Tailwind v4 uses oklch for built-in palette colors
+export const SIDEBAR_BG = 'oklch(0.208 0.042 265.755)'  // bg-slate-900 (oklch in TW v4)
 export const CATEGORY = {
   mcu:      { bg: 'rgb(240, 253, 249)', icon: 'rgb(13, 148, 136)' },   // brand-50 / brand-600
   sensor:   { bg: 'rgb(255, 251, 235)', icon: 'rgb(245, 158, 11)' },   // amber-50 / amber-500

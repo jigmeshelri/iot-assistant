@@ -29,3 +29,4 @@ lerna-debug.log*
 # Python cache
 api/__pycache__/
 **/*.pyc
+test-results/

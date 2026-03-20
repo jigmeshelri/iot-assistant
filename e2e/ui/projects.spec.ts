@@ -13,24 +13,18 @@ test.describe('Proyectos desktop', () => {
     expect(bg).toBe('rgb(13, 148, 136)') // brand-600
   })
 
-  test('tabla tiene columnas: Proyecto, Estado, Progreso, Actualizado, Acciones', async ({ page }) => {
+  test('tabla tiene columnas correctas (cuando hay datos) o muestra EmptyState', async ({ page }) => {
     await page.goto('/projects')
-    await expect(page.getByRole('columnheader', { name: 'Proyecto' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Estado' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Progreso' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Actualizado' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Acciones' })).toBeVisible()
-  })
-
-  test('estado vacío muestra EmptyState con enlace a /ai/discover', async ({ page }) => {
-    // Only applies when there are no projects — test is data-dependent
-    await page.goto('/projects')
-    const emptyLink = page.getByRole('link', { name: /Descubrir proyectos/i })
     const table = page.locator('table')
-    // Either the table exists (has data) or the empty state is shown
     const hasTable = await table.count() > 0
-    if (!hasTable) {
-      await expect(emptyLink).toBeVisible()
+    if (hasTable) {
+      await expect(page.locator('th').getByText('Proyecto')).toBeVisible()
+      await expect(page.locator('th').getByText('Estado')).toBeVisible()
+      await expect(page.locator('th').getByText('Progreso')).toBeVisible()
+      await expect(page.locator('th').getByText('Actualizado')).toBeVisible()
+      await expect(page.locator('th').getByText('Acciones')).toBeVisible()
+    } else {
+      await expect(page.getByRole('link', { name: /Descubrir proyectos/i })).toBeVisible()
     }
   })
 })

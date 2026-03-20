@@ -1,21 +1,27 @@
 import { test, expect } from '../fixtures/auth'
 
+// /inventory/new content is in the default slot (lg:hidden on desktop)
+// so scan tests run at mobile viewport
 test.describe('Página escanear (/inventory/new)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
 
   test('muestra zona de cámara con texto "Fotografiar componente"', async ({ page }) => {
     await page.goto('/inventory/new')
-    await expect(page.getByText('Fotografiar componente')).toBeVisible()
+    // React island needs time to hydrate
+    await expect(page.getByText('Fotografiar componente')).toBeVisible({ timeout: 10_000 })
   })
 
   test('formulario tiene campos SKU, Nombre, Categoría, Cantidad', async ({ page }) => {
     await page.goto('/inventory/new')
-    await expect(page.getByPlaceholder('ESP32-001')).toBeVisible()
+    await expect(page.getByPlaceholder('ESP32-001')).toBeVisible({ timeout: 10_000 })
     await expect(page.getByPlaceholder('ESP32-C6 XIAO')).toBeVisible()
     await expect(page.getByRole('combobox').first()).toBeVisible()
   })
 
   test('input de archivo acepta imágenes', async ({ page }) => {
     await page.goto('/inventory/new')
+    // The file input is always hidden (triggered programmatically) — check attribute only
+    await page.waitForSelector('input[type=file]', { state: 'attached', timeout: 10_000 })
     const input = page.locator('input[type=file]')
     await expect(input).toHaveAttribute('accept', 'image/*')
   })
@@ -23,6 +29,7 @@ test.describe('Página escanear (/inventory/new)', () => {
   // 🔴 GAP: mockup tiene viewfinder con esquinas, línea animada y fondo dark
   test.fail('viewfinder tiene fondo oscuro (bg-slate-900)', async ({ page }) => {
     await page.goto('/inventory/new')
+    await page.waitForSelector('.rounded-3xl', { timeout: 5_000 })
     const viewfinder = page.locator('.rounded-3xl').first()
     const bg = await viewfinder.evaluate((el) => getComputedStyle(el).backgroundColor)
     expect(bg).toBe('rgb(15, 23, 42)') // slate-900

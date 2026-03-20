@@ -12,8 +12,12 @@ test.describe('Layout desktop', () => {
   test('sidebar tiene fondo slate-900 (#0f172a)', async ({ page }) => {
     await page.goto('/')
     const sidebar = page.locator('aside')
+    await expect(sidebar).toBeVisible()
+    // Wait for CSS to apply before evaluating computed style
+    await page.waitForLoadState('networkidle')
     const bg = await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)
-    expect(bg).toBe('rgb(15, 23, 42)')
+    // Tailwind v4 uses oklch for built-in palette colors
+    expect(bg).toBe('oklch(0.208 0.042 265.755)')
   })
 
   test('sidebar muestra texto "IoT Assistant"', async ({ page }) => {
@@ -24,6 +28,7 @@ test.describe('Layout desktop', () => {
   test('nav activo en /inventory tiene fondo brand-600', async ({ page }) => {
     await page.goto('/inventory')
     const link = page.locator('aside a[href="/inventory"]')
+    await expect(link).toBeVisible()
     const bg = await link.evaluate((el) => getComputedStyle(el).backgroundColor)
     expect(bg).toBe('rgb(13, 148, 136)')
   })
@@ -31,6 +36,7 @@ test.describe('Layout desktop', () => {
   test('nav activo en /projects tiene fondo brand-600', async ({ page }) => {
     await page.goto('/projects')
     const link = page.locator('aside a[href="/projects"]')
+    await expect(link).toBeVisible()
     const bg = await link.evaluate((el) => getComputedStyle(el).backgroundColor)
     expect(bg).toBe('rgb(13, 148, 136)')
   })
