@@ -2,12 +2,38 @@
 import AppLayout from '../../layouts/AppLayout.astro'
 import PlanRefinement from '../../components/islands/PlanRefinement'
 ---
-<AppLayout title="Descubrir proyectos" activeTab="ai">
-  <div class="px-4 pt-6 pb-8">
+
+<AppLayout title="Descubrir proyectos" activeTab="projects">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="mb-6">
       <h1 class="text-xl font-bold text-slate-900 mb-1">¿Qué puedo construir?</h1>
       <p class="text-sm text-slate-500">La IA analiza tu inventario y sugiere proyectos viables.</p>
     </div>
     <PlanRefinement mode="discover" client:load />
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <div class="flex items-center gap-2 text-sm text-slate-500">
+      <a href="/projects" class="hover:text-slate-700 transition-colors">Proyectos</a>
+      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+      <span class="font-semibold text-slate-900">Descubrir proyectos</span>
+    </div>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-6">
+        <h1 class="text-xl font-bold text-slate-900 mb-1">¿Qué puedo construir?</h1>
+        <p class="text-sm text-slate-500">La IA analiza tu inventario y sugiere proyectos viables ordenados por disponibilidad de componentes.</p>
+      </div>
+      <PlanRefinement mode="discover" client:load />
+    </div>
+  </Fragment>
+
 </AppLayout>

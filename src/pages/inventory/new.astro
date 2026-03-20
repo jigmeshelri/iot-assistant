@@ -2,8 +2,11 @@
 import AppLayout from '../../layouts/AppLayout.astro'
 import CameraCapture from '../../components/islands/CameraCapture'
 ---
-<AppLayout title="Nuevo componente" activeTab="inventory">
-  <div class="px-4 pt-6 pb-8">
+
+<AppLayout title="Escanear componente" activeTab="scan">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="flex items-center gap-3 mb-6">
       <a href="/inventory" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors">
         <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,7 +15,29 @@ import CameraCapture from '../../components/islands/CameraCapture'
       </a>
       <h1 class="text-xl font-bold text-slate-900">Añadir componente</h1>
     </div>
-
     <CameraCapture client:load />
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <div class="flex items-center gap-2 text-sm text-slate-500">
+      <a href="/inventory" class="hover:text-slate-700 transition-colors">Inventario</a>
+      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+      <span class="font-semibold text-slate-900">Escanear IA</span>
+    </div>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-6">
+        <h1 class="text-xl font-bold text-slate-900 mb-1">Escanear componente</h1>
+        <p class="text-sm text-slate-500">Fotografía una pieza y la IA la identificará automáticamente.</p>
+      </div>
+      <CameraCapture client:load />
+    </div>
+  </Fragment>
+
 </AppLayout>
