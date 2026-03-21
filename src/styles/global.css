@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — triggered by .dark on <html> */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50:  #f0fdf9;
   --color-brand-100: #ccfbef;
@@ -15,3 +18,47 @@
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
+
+/* ── Dark mode global overrides ─────────────────────────────────────────────
+   Aplica cuando .dark está en <html>. Overrides para los patrones Tailwind
+   más usados en el app sin tener que tocar cada componente.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.dark body                   { background-color: #020617; color: #f1f5f9; }
+
+/* Backgrounds */
+.dark .bg-white              { background-color: #0f172a !important; }
+.dark .bg-slate-50           { background-color: #020617 !important; }
+.dark .bg-slate-100          { background-color: #1e293b !important; }
+
+/* Borders */
+.dark .border-slate-100      { border-color: #1e293b !important; }
+.dark .border-slate-200      { border-color: #334155 !important; }
+
+/* Text */
+.dark .text-slate-900        { color: #f8fafc !important; }
+.dark .text-slate-800        { color: #f1f5f9 !important; }
+.dark .text-slate-700        { color: #e2e8f0 !important; }
+.dark .text-slate-600        { color: #cbd5e1 !important; }
+.dark .text-slate-500        { color: #94a3b8 !important; }
+.dark .text-slate-400        { color: #64748b !important; }
+
+/* Hover */
+.dark .hover\:bg-slate-50:hover  { background-color: #1e293b !important; }
+.dark .hover\:bg-slate-100:hover { background-color: #334155 !important; }
+.dark .hover\:bg-slate-200:hover { background-color: #475569 !important; }
+
+/* Form inputs */
+.dark input:not([type="checkbox"]),
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #475569; }
+
+/* Divide lines in tables / lists */
+.dark .divide-slate-50 > * + *  { border-color: #1e293b; }
+.dark .border-b.border-slate-100 { border-color: #1e293b !important; }
