@@ -63,6 +63,7 @@ export default function PlanRefinement({ mode }: Props) {
         .from('stock')
         .select('quantity, component:components(id,name,category,platform_family,connectivity_caps,technical_specs)')
       const inventory = (stock ?? []).map(s => ({
+        component_id:      (s.component as Record<string, unknown>)?.id,
         name:              (s.component as Record<string, unknown>)?.name,
         category:          (s.component as Record<string, unknown>)?.category,
         quantity:          s.quantity,
