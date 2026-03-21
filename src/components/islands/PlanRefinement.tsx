@@ -109,7 +109,7 @@ export default function PlanRefinement({ mode }: Props) {
           title:        String(result.title ?? 'Proyecto IA'),
           description:  String(result.description ?? ''),
           source:       mode === 'discover' ? 'ai_discovery' : 'ai_planning',
-          project_type: 'diy',
+          type:         'diy',
           difficulty:   result.difficulty ? String(result.difficulty) : null,
           tags:         Array.isArray(result.tags) ? result.tags.map(String) : [],
         })
