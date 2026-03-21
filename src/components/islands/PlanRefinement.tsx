@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { discoverProjects, planProject } from '../../lib/api'
 import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { funErrorMessage, logError } from '../../lib/errorLog'
 import BOMTable from './BOMTable'
 
 interface Props {
@@ -85,7 +86,9 @@ export default function PlanRefinement({ mode }: Props) {
         setResults([res as unknown as Record<string, unknown>])
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error consultando IA')
+      const raw = err instanceof Error ? err.message : String(err)
+      setError(funErrorMessage(raw))
+      logError(mode === 'discover' ? 'ai_discover' : 'ai_plan', err, { description, difficulty, preferredController })
     } finally {
       setLoading(false)
     }
@@ -119,7 +122,9 @@ export default function PlanRefinement({ mode }: Props) {
         setTimeout(() => { window.location.href = `/projects/${project.id}` }, 600)
       }
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Error guardando proyecto')
+      const raw = err instanceof Error ? err.message : String(err)
+      setSaveError(funErrorMessage(raw))
+      logError('save_project', err, { title: String(result.title ?? ''), mode })
     } finally {
       setSavingIdx(null)
     }

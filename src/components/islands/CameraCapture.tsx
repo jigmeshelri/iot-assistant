@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { recognizeComponent } from '../../lib/api'
 import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { funErrorMessage, logError } from '../../lib/errorLog'
 import ComponentForm from './ComponentForm'
 
 export default function CameraCapture() {
@@ -21,7 +22,9 @@ export default function CameraCapture() {
       const result = await recognizeComponent(file, session.access_token)
       setPrefill(result)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error reconociendo componente')
+      const raw = err instanceof Error ? err.message : String(err)
+      setError(funErrorMessage(raw))
+      logError('ai_recognize', err, { filename: file.name, size: file.size })
     } finally {
       setLoading(false)
     }
