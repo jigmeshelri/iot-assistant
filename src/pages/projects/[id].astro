@@ -3,7 +3,7 @@ import AppLayout from '../../layouts/AppLayout.astro'
 import Badge from '../../components/ui/Badge.astro'
 import BOMTable from '../../components/islands/BOMTable'
 import LogTimeline from '../../components/islands/LogTimeline'
-import CodeGenerator from '../../components/islands/CodeGenerator'
+import CodeResources from '../../components/islands/CodeResources'
 import { createSupabaseServerClient } from '../../lib/supabase'
 
 const { id } = Astro.params
@@ -13,6 +13,12 @@ if (!project) return Astro.redirect('/projects')
 
 const { data: bom } = await supabase.from('project_bom').select('*, component:components(*)').eq('project_id', id!)
 const { data: logs } = await supabase.from('project_log_entries').select('*').eq('project_id', id!).order('created_at', { ascending: false })
+const { data: codeResources } = await supabase
+  .from('project_code_resources')
+  .select('*')
+  .eq('project_id', id!)
+  .order('filename')
+  .order('version', { ascending: false })
 ---
 <AppLayout title={project.title} activeTab="projects">
 
@@ -51,11 +57,12 @@ const { data: logs } = await supabase.from('project_log_entries').select('*').eq
     )}
 
     <div class="mb-4">
-      <CodeGenerator
+      <CodeResources
         projectId={id!}
         projectTitle={project.title}
         projectType={project.project_type}
-        bom={bom ?? []}
+        bom={bom?.map(b => ({ component_name: b.component?.name ?? '', quantity_required: b.quantity_required })) ?? []}
+        initialResources={codeResources ?? []}
         client:load
       />
     </div>
@@ -82,11 +89,12 @@ const { data: logs } = await supabase.from('project_log_entries').select('*').eq
       )}
 
       <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-        <CodeGenerator
+        <CodeResources
           projectId={id!}
           projectTitle={project.title}
           projectType={project.project_type}
-          bom={bom ?? []}
+          bom={bom?.map(b => ({ component_name: b.component?.name ?? '', quantity_required: b.quantity_required })) ?? []}
+          initialResources={codeResources ?? []}
           client:load
         />
       </div>
