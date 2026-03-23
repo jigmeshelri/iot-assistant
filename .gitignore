@@ -32,3 +32,4 @@ api/__pycache__/
 test-results/
 .vercel
 .npmrc
+.worktrees/
