@@ -112,3 +112,24 @@ export async function generateCode(
 export function qrImageUrl(qrCode: string): string {
   return `${API_BASE}/qr/${encodeURIComponent(qrCode)}`
 }
+
+export interface CodeAnalyzeResponse {
+  explanation:   string
+  improved_code: string
+}
+
+export async function analyzeCode(
+  payload: {
+    code:          string
+    language:      string
+    environment?:  string
+    mode:          'review' | 'optimize' | 'refactor'
+    project_type:  string
+  },
+  token: string,
+): Promise<CodeAnalyzeResponse> {
+  return apiFetch('/ai/code/analyze', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, token)
+}
