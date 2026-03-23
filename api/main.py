@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import re
+from enum import Enum
 from typing import Any
 
 import anthropic
@@ -167,6 +168,25 @@ class CodeResource(BaseModel):
 
 class CodeGenerateResponse(BaseModel):
     resources: list[CodeResource]
+
+
+class AnalyzeMode(str, Enum):
+    review   = "review"
+    optimize = "optimize"
+    refactor = "refactor"
+
+
+class CodeAnalyzeRequest(BaseModel):
+    code:         str
+    language:     str
+    environment:  str | None = None
+    mode:         AnalyzeMode
+    project_type: str  # diy | prototype | professional
+
+
+class CodeAnalyzeResponse(BaseModel):
+    explanation:   str
+    improved_code: str
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +398,61 @@ async def generate_code(
     try:
         data = json.loads(_extract_json(message.content[0].text))
         return CodeGenerateResponse(resources=[CodeResource(**r) for r in data["resources"]])
+    except (json.JSONDecodeError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
+
+
+_ANALYZE_PROMPTS: dict[str, dict[str, str]] = {
+    "review": {
+        "diy":          "Review this code for obvious bugs and incorrect API usage. Keep feedback simple.",
+        "prototype":    "Review for bugs, race conditions, and memory leaks. Be thorough.",
+        "professional": "Perform a rigorous review: const correctness, robust error handling, thread safety, and RTOS considerations.",
+    },
+    "optimize": {
+        "diy":          "Suggest simple code simplifications that improve readability.",
+        "prototype":    "Optimize memory and CPU usage. Reduce binary size where possible.",
+        "professional": "Optimize aggressively: analyze stack depth, heap fragmentation, energy consumption in sleep modes.",
+    },
+    "refactor": {
+        "diy":          "Improve readability and variable naming. Keep it simple.",
+        "prototype":    "Separate configuration from logic. Keep functions short and focused.",
+        "professional": "Apply environment patterns (ESP-IDF components, Zephyr modules). Enforce single-responsibility.",
+    },
+}
+
+
+@app.post("/ai/code/analyze", response_model=CodeAnalyzeResponse, tags=["ai"])
+async def analyze_code(
+    req: CodeAnalyzeRequest,
+    _claims: dict = Depends(verify_jwt),
+) -> CodeAnalyzeResponse:
+    """Analiza y mejora código existente según el modo y tipo de proyecto."""
+    client = _anthropic_client()
+
+    project_type = req.project_type if req.project_type in ("diy", "prototype", "professional") else "prototype"
+    system_instruction = _ANALYZE_PROMPTS[req.mode][project_type]
+    env_hint = f" Target environment: {req.environment}." if req.environment else ""
+
+    prompt = (
+        f"{system_instruction}{env_hint}\n\n"
+        f"Language: {req.language}\n\n"
+        f"Code to analyze:\n```\n{req.code}\n```\n\n"
+        "Respond ONLY with valid JSON (no markdown fences):\n"
+        '{"explanation":"...markdown with numbered improvements...","improved_code":"...full improved code..."}'
+    )
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=8192,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    try:
+        data = json.loads(_extract_json(message.content[0].text))
+        return CodeAnalyzeResponse(
+            explanation=data["explanation"],
+            improved_code=data["improved_code"],
+        )
     except (json.JSONDecodeError, KeyError) as exc:
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
