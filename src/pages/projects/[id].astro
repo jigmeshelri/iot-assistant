@@ -15,7 +15,19 @@ const { data: bom } = await supabase.from('project_bom').select('*, component:co
 const { data: logs } = await supabase.from('project_log_entries').select('*').eq('project_id', id!).order('created_at', { ascending: false })
 ---
 <AppLayout title={project.title} activeTab="projects">
-  <div class="px-4 pt-6 pb-8">
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <a href="/projects" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 flex-shrink-0">
+      <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+    <h2 class="text-base font-bold text-slate-900 flex-1 truncate">{project.title}</h2>
+  </Fragment>
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="flex items-center gap-3 mb-4">
       <a href="/projects" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100">
         <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,4 +65,38 @@ const { data: logs } = await supabase.from('project_log_entries').select('*').eq
       <LogTimeline projectId={id!} initialEntries={logs ?? []} client:load />
     </div>
   </div>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    <div class="max-w-3xl mx-auto space-y-6">
+
+      {project.description && (
+        <p class="text-sm text-slate-600 leading-relaxed">{project.description}</p>
+      )}
+
+      {bom && bom.length > 0 && (
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h2 class="text-sm font-semibold text-slate-700 mb-3">Bill of Materials</h2>
+          <BOMTable items={bom} client:load />
+        </div>
+      )}
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <CodeGenerator
+          projectId={id!}
+          projectTitle={project.title}
+          projectType={project.project_type}
+          bom={bom ?? []}
+          client:load
+        />
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h2 class="text-sm font-semibold text-slate-700 mb-3">Bitácora</h2>
+        <LogTimeline projectId={id!} initialEntries={logs ?? []} client:load />
+      </div>
+
+    </div>
+  </Fragment>
+
 </AppLayout>

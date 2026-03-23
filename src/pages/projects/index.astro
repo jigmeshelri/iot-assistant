@@ -54,8 +54,16 @@ function formatDate(dateStr: string | null) {
 
     <!-- Header -->
     <div class="px-5 pt-3 pb-4 bg-white sticky top-0 z-10 border-b border-slate-50">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xl font-bold text-slate-900">Proyectos</h2>
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-xl font-bold text-slate-900 flex-1">Proyectos</h2>
+        {projects && projects.length > 0 && (
+          <a href="/ai/discover" class="flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" aria-label="Descubrir proyectos">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            Descubrir
+          </a>
+        )}
         <a href="/ai/plan" class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-brand-700 transition-colors" aria-label="Nuevo proyecto">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -112,6 +120,15 @@ function formatDate(dateStr: string | null) {
   <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
   <Fragment slot="topbar">
     <h2 class="text-base font-bold text-slate-900 flex-1">Proyectos</h2>
+    <a
+      href="/ai/discover"
+      class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      Descubrir proyectos
+    </a>
     <a
       href="/ai/plan"
       class="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
