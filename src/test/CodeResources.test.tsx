@@ -16,8 +16,8 @@ const mockSavedResource = {
   content: '// code', version: 1, parent_id: null, is_generated: true, created_at: new Date().toISOString(),
 }
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
+function makeDefaultSupabaseClient() {
+  return {
     auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }) },
     from: vi.fn((table: string) => {
       if (table === 'project_code_resources') {
@@ -33,7 +33,11 @@ vi.mock('../lib/supabase', () => ({
       }
       return {}
     }),
-  }),
+  }
+}
+
+vi.mock('../lib/supabase', () => ({
+  createSupabaseBrowserClient: vi.fn(),
 }))
 
 vi.mock('../lib/api', () => ({
@@ -54,22 +58,34 @@ const defaultProps = {
   initialResources: [],
 }
 
+// Reset supabase mock to default before each test
+beforeEach(async () => {
+  const { createSupabaseBrowserClient } = await import('../lib/supabase')
+  vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+})
+
 describe('CodeResources — Modo Generar', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('muestra el tab Generar activo por defecto', () => {
+  it('muestra el tab Generar activo por defecto', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
     render(<CodeResources {...defaultProps} />)
     expect(screen.getAllByRole('button', { name: /Generar/i }).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('button', { name: /Analizar/i })).toBeInTheDocument()
   })
 
-  it('muestra selector de entorno y modo', () => {
+  it('muestra selector de entorno y modo', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
     render(<CodeResources {...defaultProps} />)
     expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
     expect(screen.getByDisplayValue(/Esqueleto/i)).toBeInTheDocument()
   })
 
   it('llama a generateCode y muestra el recurso en la lista', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
     render(<CodeResources {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /✨ Generar/i }))
     await waitFor(() => {
@@ -113,5 +129,61 @@ describe('CodeResources — Lista y versiones', () => {
     render(<CodeResources {...defaultProps} initialResources={resources} />)
     fireEvent.click(screen.getByRole('button', { name: /eliminar/i }))
     expect(screen.getByRole('button', { name: /confirmar/i })).toBeInTheDocument()
+  })
+})
+
+describe('CodeResources — saveResource retry', () => {
+  it('reintenta insert en conflicto 23505 hasta 3 veces', async () => {
+    const conflictSingle = vi.fn().mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate' } })
+
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    // saveResource calls createSupabaseBrowserClient multiple times (auth, fetchMaxVersion, insert loop).
+    // Use mockImplementation so ALL calls throughout the test return the conflict client.
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(() => ({
+      auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) })) })),
+        insert: vi.fn(() => ({ select: vi.fn(() => ({ single: conflictSingle })) })),
+      })),
+    } as any))
+
+    render(<CodeResources {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /✨ Generar/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/Conflicto de versión/i)).toBeInTheDocument()
+    })
+    expect(conflictSingle).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('CodeResources — Modo Analizar', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('llama a analyzeCode al enviar en modo Analizar con recurso existente', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+
+    const resources = [{
+      id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+      language: 'cpp', environment: 'arduino', content: '// v1',
+      version: 1, parent_id: null, is_generated: true,
+      created_at: new Date().toISOString(),
+    }]
+    const { analyzeCode } = await import('../lib/api')
+
+    render(<CodeResources {...defaultProps} initialResources={resources} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Analizar/i }))
+
+    // There are two comboboxes in Analizar mode: resource selector and version selector.
+    // The resource selector (file picker) is the first one.
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'r1' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /🔍 Analizar/i }))
+
+    await waitFor(() => {
+      expect(vi.mocked(analyzeCode)).toHaveBeenCalled()
+    })
   })
 })

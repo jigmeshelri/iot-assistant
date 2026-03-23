@@ -372,6 +372,7 @@ async def generate_code(
 ) -> CodeGenerateResponse:
     """Genera código de firmware para el proyecto según el entorno y tipo."""
     client = _anthropic_client()
+    project_type = req.project_type if req.project_type in ("diy", "prototype", "professional") else "prototype"
     bom_text = "\n".join(
         f"- {item.component_name} (qty: {item.quantity_required})" for item in req.bom
     )
@@ -380,7 +381,7 @@ async def generate_code(
     prompt = (
         f"You are an embedded systems engineer. Generate {mode_desc} for:\n"
         f"Project: {req.project_title}\n"
-        f"Type: {req.project_type}\n"
+        f"Type: {project_type}\n"
         f"Environment: {req.environment}\n"
         f"Components:\n{bom_text}\n\n"
         "Respond ONLY with valid JSON (no markdown):\n"
