@@ -28,7 +28,7 @@ export default function CodeGenerator({ projectId, projectTitle, projectType, bo
       const supabase = createSupabaseBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Not authenticated')
-      const result = await generateCode({ project_type: projectType, environment: env, bom, project_title: projectTitle, mode }, session.access_token)
+      const result = await generateCode({ project_type: projectType ?? 'diy', environment: env, bom, project_title: projectTitle, mode }, session.access_token)
       setResources(result.resources)
       setActiveFile(0)
     } catch (err: unknown) {
