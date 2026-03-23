@@ -1,23 +1,27 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 
 const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
 const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
 
 interface ComponentFormProps {
   prefill?: {
-    name?: string
-    category?: string
-    platform_family?: string
-    technical_specs?: Record<string, unknown>
-    datasheet_url?: string
+    sku?:              string
+    name?:             string
+    category?:         string
+    platform_family?:  string
+    technical_specs?:  Record<string, unknown>
+    datasheet_url?:    string
     connectivity_caps?: Record<string, boolean>
   }
 }
 
 export default function ComponentForm({ prefill }: ComponentFormProps) {
   const [name, setName] = useState(prefill?.name ?? '')
-  const [sku, setSku] = useState('')
+  const [sku, setSku] = useState(prefill?.sku ?? '')
+  const [skuPlaceholder, setSkuPlaceholder] = useState('MCU-001')
+  const [skuConflict, setSkuConflict] = useState('')
   const [category, setCategory] = useState(prefill?.category ?? CATEGORIES[0])
   const [platform, setPlatform] = useState(prefill?.platform_family ?? '')
   const [quantity, setQuantity] = useState(1)
@@ -27,24 +31,34 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (prefill?.name) setName(prefill.name)
-    if (prefill?.category) setCategory(prefill.category)
+    if (prefill?.name)            setName(prefill.name)
+    if (prefill?.category)        setCategory(prefill.category)
     if (prefill?.platform_family) setPlatform(prefill.platform_family)
+    if (prefill?.sku)             setSku(prefill.sku)
   }, [prefill])
+
+  useEffect(() => {
+    const prefix = categoryPrefix(category)
+    const supabase = createSupabaseBrowserClient()
+    nextAvailableSku(prefix, supabase).then(setSkuPlaceholder).catch(() => {})
+  }, [category])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSkuConflict('')
     try {
       const supabase = createSupabaseBrowserClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      const effectiveSku = sku.trim() || skuPlaceholder
+
       // Upsert component to shared catalog
       const { data: component, error: compErr } = await supabase
         .from('components')
-        .upsert({ sku, name, category, platform_family: platform || null, technical_specs: prefill?.technical_specs ?? {}, datasheet_url: prefill?.datasheet_url ?? null, connectivity_caps: prefill?.connectivity_caps ?? {} }, { onConflict: 'sku' })
+        .upsert({ sku: effectiveSku, name, category, platform_family: platform || null, technical_specs: prefill?.technical_specs ?? {}, datasheet_url: prefill?.datasheet_url ?? null, connectivity_caps: prefill?.connectivity_caps ?? {} }, { onConflict: 'sku' })
         .select()
         .single()
       if (compErr) throw compErr
@@ -58,8 +72,13 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       setSuccess(true)
       setTimeout(() => { window.location.href = '/inventory' }, 1200)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message
-      setError(msg ?? 'Error desconocido')
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Error desconocido'
+      if (msg.includes('23505') || msg.includes('duplicate key')) {
+        nextAvailableSku(categoryPrefix(category), createSupabaseBrowserClient())
+          .then(suggestion => setSkuConflict(`Este código ya está en uso, sugerencia: ${suggestion}`))
+          .catch(() => {})
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -79,9 +98,18 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       <h2 className="text-sm font-semibold text-slate-700">Datos del componente</h2>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">SKU / Código *</label>
-        <input value={sku} onChange={e => setSku(e.target.value)} required placeholder="ESP32-001"
-          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        <label htmlFor="sku" className="block text-xs font-medium text-slate-600 mb-0.5">Código interno</label>
+        <p className="text-xs text-slate-400 mb-1">Auto-generado si se deja vacío</p>
+        <input
+          id="sku"
+          value={sku}
+          onChange={e => { setSku(e.target.value); setSkuConflict('') }}
+          placeholder={skuPlaceholder}
+          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-400"
+        />
+        {skuConflict && (
+          <p className="text-xs text-amber-600 mt-1">{skuConflict}</p>
+        )}
       </div>
 
       <div>

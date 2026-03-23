@@ -3,88 +3,119 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import ComponentForm from '../components/islands/ComponentForm'
 
-// Shared mutable mock — allows per-test overrides
 const mockSingle = vi.fn().mockResolvedValue({
   data: { id: 'comp-1', sku: 'ESP32-001', name: 'ESP32-C6 XIAO' },
   error: null,
 })
 const mockInsert = vi.fn().mockResolvedValue({ error: null })
+const mockLike   = vi.fn().mockResolvedValue({ data: [], error: null })
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
     },
-    from: vi.fn(() => ({
-      upsert: vi.fn(() => ({
-        select: vi.fn(() => ({ single: mockSingle })),
-      })),
-      insert: mockInsert,
-    })),
+    from: vi.fn((table: string) => {
+      if (table === 'components') {
+        return {
+          upsert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
+          select: vi.fn(() => ({ like: mockLike })),
+        }
+      }
+      return { insert: mockInsert }
+    }),
   }),
 }))
 
-// Mock window.location
 Object.defineProperty(window, 'location', {
   writable: true,
   value: { href: '' },
 })
 
-describe('ComponentForm', () => {
+describe('ComponentForm — renderizado básico', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.location.href = ''
-    // Restore default success mock
     mockSingle.mockResolvedValue({
       data: { id: 'comp-1', sku: 'ESP32-001', name: 'ESP32-C6 XIAO' },
       error: null,
     })
     mockInsert.mockResolvedValue({ error: null })
+    mockLike.mockResolvedValue({ data: [], error: null })
   })
 
   it('renderiza los 6 campos del formulario', () => {
     render(<ComponentForm />)
-    expect(screen.getByPlaceholderText('ESP32-001')).toBeInTheDocument()       // SKU
-    expect(screen.getByPlaceholderText('ESP32-C6 XIAO')).toBeInTheDocument()  // Nombre
+    expect(screen.getByPlaceholderText(/ESP32-C6 XIAO/i)).toBeInTheDocument() // Nombre
     expect(screen.getByText('Categoría *')).toBeInTheDocument()
     expect(screen.getByText('Plataforma')).toBeInTheDocument()
     expect(screen.getByText('Cantidad *')).toBeInTheDocument()
     expect(screen.getByText('Notas')).toBeInTheDocument()
   })
 
-  it('prefill rellena nombre, categoría y plataforma', () => {
-    render(
-      <ComponentForm
-        prefill={{ name: 'DHT22', category: 'Sensor', platform_family: 'ESP32' }}
-      />,
-    )
-    expect(screen.getByDisplayValue('DHT22')).toBeInTheDocument()
-    expect((screen.getByDisplayValue('Sensor') as HTMLSelectElement).value).toBe('Sensor')
-    expect((screen.getByDisplayValue('ESP32') as HTMLSelectElement).value).toBe('ESP32')
+  it('el campo SKU no es obligatorio (no required)', () => {
+    render(<ComponentForm />)
+    const skuInput = screen.getByRole('textbox', { name: /código interno/i })
+    expect(skuInput).not.toBeRequired()
   })
 
-  it('muestra error de Supabase como texto legible', async () => {
+  it('el label del SKU indica que es auto-generado', () => {
+    render(<ComponentForm />)
+    expect(screen.getByText(/auto-generado/i)).toBeInTheDocument()
+  })
+})
+
+describe('ComponentForm — auto-generación de SKU', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockLike.mockResolvedValue({ data: [], error: null })
+    mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
+    mockInsert.mockResolvedValue({ error: null })
+  })
+
+  it('pre-rellena MCU-001 al cargar con categoría Microcontrolador', async () => {
+    render(<ComponentForm />)
+    // Default category is Microcontrolador, triggers auto-gen on mount
+    await waitFor(() => {
+      const skuInput = screen.getByRole('textbox', { name: /código interno/i }) as HTMLInputElement
+      expect(skuInput.placeholder).toMatch(/MCU-001/i)
+    })
+  })
+
+  it('muestra aviso cuando el SKU escrito ya existe', async () => {
     mockSingle.mockResolvedValueOnce({
       data: null,
       error: { message: 'duplicate key value violates unique constraint', code: '23505' },
     })
-
     render(<ComponentForm />)
-    await userEvent.type(screen.getByPlaceholderText('ESP32-001'), 'MCU-001')
-    await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'ESP32')
+    await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'Test')
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
-
     await waitFor(() => {
-      expect(screen.getByText(/duplicate key/)).toBeInTheDocument()
+      expect(screen.getByText(/duplicate key/i)).toBeInTheDocument()
     })
+  })
+})
+
+describe('ComponentForm — prefill y submit', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockLike.mockResolvedValue({ data: [], error: null })
+    mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
+    mockInsert.mockResolvedValue({ error: null })
+  })
+
+  it('prefill rellena nombre, categoría y plataforma', () => {
+    render(
+      <ComponentForm prefill={{ name: 'DHT22', category: 'Sensor', platform_family: 'ESP32' }} />,
+    )
+    expect(screen.getByDisplayValue('DHT22')).toBeInTheDocument()
+    expect((screen.getByDisplayValue('Sensor') as HTMLSelectElement).value).toBe('Sensor')
   })
 
   it('estado success muestra panel verde', async () => {
     render(<ComponentForm />)
-    await userEvent.type(screen.getByPlaceholderText('ESP32-001'), 'MCU-001')
     await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'ESP32')
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
-
     await waitFor(() => {
       expect(screen.getByText('¡Componente añadido!')).toBeInTheDocument()
     })
