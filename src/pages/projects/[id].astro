@@ -4,6 +4,9 @@ import Badge from '../../components/ui/Badge.astro'
 import BOMTable from '../../components/islands/BOMTable'
 import LogTimeline from '../../components/islands/LogTimeline'
 import CodeResources from '../../components/islands/CodeResources'
+import StockConsumption from '../../components/islands/StockConsumption'
+import ProjectHeader from '../../components/islands/ProjectHeader'
+import PublishProject from '../../components/islands/PublishProject'
 import { createSupabaseServerClient } from '../../lib/supabase'
 
 const { id } = Astro.params
@@ -19,6 +22,27 @@ const { data: codeResources } = await supabase
   .eq('project_id', id!)
   .order('filename')
   .order('version', { ascending: false })
+
+const { data: consumed } = await supabase
+  .from('project_consumed_stock')
+  .select('*')
+  .eq('project_id', id!)
+
+const { data: userStock } = await supabase
+  .from('stock')
+  .select('id, quantity, component:components(id, name)')
+
+const headerProps = {
+  projectId: id!,
+  title: project.title,
+  description: project.description ?? '',
+  status: project.status,
+  projectType: project.project_type,
+  difficulty: project.difficulty ?? null,
+  progress: project.progress ?? 0,
+  isPublic: project.is_public ?? false,
+  tags: project.tags ?? [],
+}
 ---
 <AppLayout title={project.title} activeTab="projects">
 
@@ -29,32 +53,50 @@ const { data: codeResources } = await supabase
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
     </a>
-    <h2 class="text-base font-bold text-slate-900 flex-1 truncate">{project.title}</h2>
+    <span class="text-sm text-slate-500 truncate">Proyectos / {project.title}</span>
   </Fragment>
 
   <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
   <div class="px-4 pt-6 pb-8 lg:hidden">
-    <div class="flex items-center gap-3 mb-4">
-      <a href="/projects" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100">
+    <div class="flex items-start gap-3 mb-4">
+      <a href="/projects" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 flex-shrink-0 mt-0.5">
         <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </a>
       <div class="flex-1 min-w-0">
-        <h1 class="text-lg font-bold text-slate-900 truncate">{project.title}</h1>
+        <ProjectHeader {...headerProps} client:load />
       </div>
     </div>
 
-    {project.description && (
-      <p class="text-sm text-slate-600 mb-4 leading-relaxed">{project.description}</p>
-    )}
+    <div class="mb-4">
+      <PublishProject
+        projectId={id!}
+        isPublic={project.is_public}
+        status={project.status}
+        title={project.title}
+        description={project.description}
+        difficulty={project.difficulty}
+        tags={project.tags ?? []}
+        logEntries={logs ?? []}
+        client:load
+      />
+    </div>
 
-    {bom && bom.length > 0 && (
-      <div class="mb-4">
-        <h2 class="text-sm font-semibold text-slate-700 mb-2">Bill of Materials</h2>
-        <BOMTable items={bom} client:load />
-      </div>
-    )}
+    <div class="mb-4">
+      <h2 class="text-sm font-semibold text-slate-700 mb-2">Bill of Materials</h2>
+      <BOMTable items={bom ?? []} projectId={id!} editable={true} client:load />
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
+      <StockConsumption
+        projectId={id!}
+        bomItems={bom ?? []}
+        userStock={userStock ?? []}
+        consumed={consumed ?? []}
+        client:load
+      />
+    </div>
 
     <div class="mb-4">
       <CodeResources
@@ -77,16 +119,38 @@ const { data: codeResources } = await supabase
   <Fragment slot="desktop-main">
     <div class="max-w-3xl mx-auto space-y-6">
 
-      {project.description && (
-        <p class="text-sm text-slate-600 leading-relaxed">{project.description}</p>
-      )}
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <ProjectHeader {...headerProps} client:load />
+      </div>
 
-      {bom && bom.length > 0 && (
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h2 class="text-sm font-semibold text-slate-700 mb-3">Bill of Materials</h2>
-          <BOMTable items={bom} client:load />
-        </div>
-      )}
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <PublishProject
+          projectId={id!}
+          isPublic={project.is_public}
+          status={project.status}
+          title={project.title}
+          description={project.description}
+          difficulty={project.difficulty}
+          tags={project.tags ?? []}
+          logEntries={logs ?? []}
+          client:load
+        />
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h2 class="text-sm font-semibold text-slate-700 mb-3">Bill of Materials</h2>
+        <BOMTable items={bom ?? []} projectId={id!} editable={true} client:load />
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <StockConsumption
+          projectId={id!}
+          bomItems={bom ?? []}
+          userStock={userStock ?? []}
+          consumed={consumed ?? []}
+          client:load
+        />
+      </div>
 
       <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
         <CodeResources

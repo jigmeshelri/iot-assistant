@@ -12,35 +12,318 @@ const { data: project } = await supabase.from('projects').select('*').eq('id', i
 if (!project) return Astro.redirect('/community')
 
 const { data: bom } = await supabase.from('project_bom').select('*, component:components(*)').eq('project_id', id!)
+
+const { data: publicLogs } = await supabase
+  .from('project_log_entries')
+  .select('*')
+  .eq('project_id', id!)
+  .eq('is_public', true)
+  .order('created_at', { ascending: false })
+
+const { data: codeResources } = await supabase
+  .from('project_code_resources')
+  .select('*')
+  .eq('project_id', id!)
+  .limit(5)
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatDateLong(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function tagColor(tag: string) {
+  const colors: Record<string, string> = {
+    progress: 'bg-brand-50 text-brand-700',
+    problem: 'bg-red-50 text-red-600',
+    solution: 'bg-green-50 text-green-700',
+    learning: 'bg-violet-50 text-violet-700',
+    code: 'bg-indigo-50 text-indigo-700',
+  }
+  return colors[tag] ?? 'bg-slate-100 text-slate-600'
+}
+
+function langBadgeColor(lang: string) {
+  const colors: Record<string, string> = {
+    python: 'bg-yellow-50 text-yellow-700',
+    javascript: 'bg-amber-50 text-amber-700',
+    typescript: 'bg-blue-50 text-blue-700',
+    cpp: 'bg-purple-50 text-purple-700',
+    c: 'bg-slate-100 text-slate-700',
+    arduino: 'bg-teal-50 text-teal-700',
+  }
+  return colors[lang?.toLowerCase()] ?? 'bg-slate-100 text-slate-600'
+}
 ---
 <AppLayout title={project.title} activeTab="community">
+
+  <!-- ─── Mobile layout ─────────────────────────────────────────────────── -->
   <div class="px-4 pt-6 pb-8">
+
+    <!-- Back button -->
+    <a href="/community" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Comunidad
+    </a>
+
+    <!-- Author section -->
     <div class="flex items-center gap-3 mb-4">
-      <a href="/community" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100">
-        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </a>
-      <h1 class="text-lg font-bold text-slate-900 truncate flex-1">{project.title}</h1>
+      <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+        M
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-slate-800">Maker</p>
+        <p class="text-xs text-slate-400">Publicado el {formatDateLong(project.created_at)}</p>
+      </div>
+    </div>
+
+    <!-- Title + Fork -->
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <h1 class="text-xl font-bold text-slate-900 leading-tight">{project.title}</h1>
       <ForkButton projectId={id!} forkCount={project.direct_fork_count} client:load />
     </div>
 
-    {project.description && <p class="text-sm text-slate-600 mb-4 leading-relaxed">{project.description}</p>}
-
-    <div class="flex flex-wrap gap-2 mb-4">
-      {project.tags?.map((tag: string) => (
-        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">{tag}</span>
-      ))}
+    <!-- Badges row -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <Badge variant="success">Completado</Badge>
+      {project.project_type && (
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700">{project.project_type}</span>
+      )}
+      {project.difficulty && (
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">{project.difficulty}</span>
+      )}
+      {project.direct_fork_count > 0 && (
+        <span class="inline-flex items-center gap-1 text-xs text-slate-400">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 3v6m0 0a3 3 0 103 3V9m-3 3a3 3 0 00-3 3m12-9v6m0 0a3 3 0 103 3V9m-3 3a3 3 0 01-3 3"/></svg>
+          {project.direct_fork_count} forks
+        </span>
+      )}
     </div>
 
-    {bom && bom.length > 0 && (
-      <div class="mb-6">
-        <h2 class="text-sm font-semibold text-slate-700 mb-2">Materiales</h2>
-        <BOMTable items={bom} client:load />
+    <!-- Description -->
+    {project.description && <p class="text-sm text-slate-600 mb-4 leading-relaxed">{project.description}</p>}
+
+    <!-- Tags -->
+    {project.tags && project.tags.length > 0 && (
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        {project.tags.map((tag: string) => (
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700">{tag}</span>
+        ))}
       </div>
     )}
 
-    <h2 class="text-sm font-semibold text-slate-700 mb-2">Comentarios</h2>
+    <!-- BOM -->
+    {bom && bom.length > 0 && (
+      <div class="mb-6">
+        <h2 class="text-sm font-semibold text-slate-700 mb-3">Lista de materiales</h2>
+        <BOMTable items={bom} editable={false} client:load />
+      </div>
+    )}
+
+    <!-- Public log entries -->
+    {publicLogs && publicLogs.length > 0 && (
+      <div class="mb-6">
+        <h2 class="text-sm font-semibold text-slate-700 mb-3">Bitacora</h2>
+        <div class="space-y-3">
+          {publicLogs.map(entry => (
+            <div class="bg-white rounded-xl border border-slate-100 p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <span class={`text-xs font-medium px-2 py-0.5 rounded-full ${tagColor(entry.tag)}`}>{entry.tag}</span>
+                <span class="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+              </div>
+              <p class="text-sm text-slate-700 leading-relaxed">{entry.content}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Code resources -->
+    {codeResources && codeResources.length > 0 && (
+      <div class="mb-6">
+        <h2 class="text-sm font-semibold text-slate-700 mb-3">Recursos de codigo</h2>
+        <div class="space-y-2">
+          {codeResources.slice(0, 3).map(res => (
+            <details class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+              <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-slate-50 text-sm font-medium text-slate-700">
+                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                </svg>
+                <span class="truncate flex-1">{res.filename}</span>
+                {res.language && (
+                  <span class={`text-xs font-medium px-2 py-0.5 rounded-full ${langBadgeColor(res.language)}`}>{res.language}</span>
+                )}
+              </summary>
+              {res.content && (
+                <pre class="px-4 py-3 bg-slate-50 text-xs text-slate-700 overflow-x-auto border-t border-slate-100"><code>{res.content}</code></pre>
+              )}
+            </details>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Comments -->
+    <h2 class="text-sm font-semibold text-slate-700 mb-3">Comentarios</h2>
     <CommentThread projectId={id!} client:load />
+  </div>
+
+  <!-- ─── Desktop topbar ────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <nav class="flex items-center gap-1.5 text-sm">
+      <a href="/community" class="text-slate-400 hover:text-slate-600">Comunidad</a>
+      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+      <span class="text-slate-900 font-semibold truncate max-w-xs">{project.title}</span>
+    </nav>
+  </Fragment>
+
+  <!-- ─── Desktop main (2-column) ───────────────────────────────────────── -->
+  <div slot="desktop-main" class="grid gap-6" style="grid-template-columns: 1fr 380px;">
+
+    <!-- Left column: content -->
+    <div class="min-w-0">
+
+      <!-- Author section -->
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+          M
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-slate-800">Maker</p>
+          <p class="text-xs text-slate-400">Publicado el {formatDateLong(project.created_at)}</p>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <h1 class="text-2xl font-bold text-slate-900 leading-tight mb-3">{project.title}</h1>
+
+      <!-- Badges row -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <Badge variant="success">Completado</Badge>
+        {project.project_type && (
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700">{project.project_type}</span>
+        )}
+        {project.difficulty && (
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">{project.difficulty}</span>
+        )}
+        {project.direct_fork_count > 0 && (
+          <span class="inline-flex items-center gap-1 text-xs text-slate-400">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 3v6m0 0a3 3 0 103 3V9m-3 3a3 3 0 00-3 3m12-9v6m0 0a3 3 0 103 3V9m-3 3a3 3 0 01-3 3"/></svg>
+            {project.direct_fork_count} forks
+          </span>
+        )}
+      </div>
+
+      <!-- Description -->
+      {project.description && <p class="text-sm text-slate-600 mb-5 leading-relaxed">{project.description}</p>}
+
+      <!-- Tags -->
+      {project.tags && project.tags.length > 0 && (
+        <div class="flex flex-wrap gap-1.5 mb-5">
+          {project.tags.map((tag: string) => (
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700">{tag}</span>
+          ))}
+        </div>
+      )}
+
+      <!-- BOM -->
+      {bom && bom.length > 0 && (
+        <div class="mb-6">
+          <h2 class="text-sm font-semibold text-slate-700 mb-3">Lista de materiales</h2>
+          <BOMTable items={bom} editable={false} client:load />
+        </div>
+      )}
+
+      <!-- Public log entries -->
+      {publicLogs && publicLogs.length > 0 && (
+        <div class="mb-6">
+          <h2 class="text-sm font-semibold text-slate-700 mb-3">Bitacora</h2>
+          <div class="space-y-3">
+            {publicLogs.map(entry => (
+              <div class="bg-white rounded-xl border border-slate-100 p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class={`text-xs font-medium px-2 py-0.5 rounded-full ${tagColor(entry.tag)}`}>{entry.tag}</span>
+                  <span class="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                </div>
+                <p class="text-sm text-slate-700 leading-relaxed">{entry.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Code resources -->
+      {codeResources && codeResources.length > 0 && (
+        <div class="mb-6">
+          <h2 class="text-sm font-semibold text-slate-700 mb-3">Recursos de codigo</h2>
+          <div class="space-y-2">
+            {codeResources.slice(0, 3).map(res => (
+              <details class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-slate-50 text-sm font-medium text-slate-700">
+                  <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                  </svg>
+                  <span class="truncate flex-1">{res.filename}</span>
+                  {res.language && (
+                    <span class={`text-xs font-medium px-2 py-0.5 rounded-full ${langBadgeColor(res.language)}`}>{res.language}</span>
+                  )}
+                </summary>
+                {res.content && (
+                  <pre class="px-4 py-3 bg-slate-50 text-xs text-slate-700 overflow-x-auto border-t border-slate-100"><code>{res.content}</code></pre>
+                )}
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
+    <!-- Right column: sidebar -->
+    <div class="space-y-6">
+
+      <!-- Fork card -->
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-slate-700">Proyecto</h3>
+          <ForkButton projectId={id!} forkCount={project.direct_fork_count} client:load />
+        </div>
+        <div class="space-y-2 text-xs text-slate-500">
+          <div class="flex items-center justify-between">
+            <span>Publicado</span>
+            <span class="text-slate-700 font-medium">{formatDate(project.created_at)}</span>
+          </div>
+          {project.updated_at && project.updated_at !== project.created_at && (
+            <div class="flex items-center justify-between">
+              <span>Actualizado</span>
+              <span class="text-slate-700 font-medium">{formatDate(project.updated_at)}</span>
+            </div>
+          )}
+          {project.project_type && (
+            <div class="flex items-center justify-between">
+              <span>Tipo</span>
+              <span class="text-slate-700 font-medium">{project.project_type}</span>
+            </div>
+          )}
+          {project.difficulty && (
+            <div class="flex items-center justify-between">
+              <span>Dificultad</span>
+              <span class="text-slate-700 font-medium">{project.difficulty}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Comentarios</h3>
+        <CommentThread projectId={id!} client:load />
+      </div>
+    </div>
   </div>
 </AppLayout>
