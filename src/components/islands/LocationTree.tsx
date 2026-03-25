@@ -10,6 +10,7 @@ interface Location {
 
 interface Props {
   locations: Location[]
+  stockCounts?: Record<string, number>
 }
 
 function buildTree(locations: Location[]) {
@@ -22,9 +23,28 @@ function buildTree(locations: Location[]) {
   return map
 }
 
-function TreeNode({ loc, tree, depth = 0 }: { loc: Location; tree: Map<string | null, Location[]>; depth?: number }) {
+function TreeNode({ loc, tree, stockCounts, depth = 0 }: { loc: Location; tree: Map<string | null, Location[]>; stockCounts?: Record<string, number>; depth?: number }) {
   const [expanded, setExpanded] = useState(true)
+  const [showNewChild, setShowNewChild] = useState(false)
+  const [newChildName, setNewChildName] = useState('')
+  const [creatingChild, setCreatingChild] = useState(false)
   const children = tree.get(loc.id) ?? []
+  const count = stockCounts?.[loc.id]
+
+  async function createChild(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newChildName.trim()) return
+    setCreatingChild(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      await supabase.from('locations').insert({ user_id: user.id, name: newChildName.trim(), parent_id: loc.id })
+      window.location.reload()
+    } finally {
+      setCreatingChild(false)
+    }
+  }
 
   return (
     <div style={{ paddingLeft: depth * 16 + 'px' }}>
@@ -42,23 +62,44 @@ function TreeNode({ loc, tree, depth = 0 }: { loc: Location; tree: Map<string | 
         ) : (
           <div className="w-5 h-5 flex items-center justify-center text-slate-300">•</div>
         )}
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); setShowNewChild(true) }}
+          className="w-5 h-5 flex items-center justify-center rounded text-slate-300 hover:text-teal-500 hover:bg-teal-50 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Añadir sub-ubicación"
+        >+</button>
         <svg className="w-4 h-4 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
         </svg>
         <span className="text-sm font-medium text-slate-800 flex-1">{loc.name}</span>
+        {count !== undefined && count > 0 && (
+          <span className="text-xs text-slate-400 ml-auto mr-2">{count} pzas</span>
+        )}
         <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </a>
+      {showNewChild && (
+        <form onSubmit={createChild} className="flex gap-2 py-2" style={{ paddingLeft: (depth + 1) * 16 + 'px' }}>
+          <input autoFocus value={newChildName} onChange={e => setNewChildName(e.target.value)}
+            placeholder="Nombre sub-ubicación"
+            className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+          <button type="submit" disabled={creatingChild}
+            className="px-3 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 disabled:opacity-50">
+            {creatingChild ? '...' : 'Crear'}
+          </button>
+          <button type="button" onClick={() => setShowNewChild(false)}
+            className="px-2 py-1.5 text-slate-400 hover:text-slate-600 text-sm">✕</button>
+        </form>
+      )}
       {expanded && children.map(child => (
-        <TreeNode key={child.id} loc={child} tree={tree} depth={depth + 1} />
+        <TreeNode key={child.id} loc={child} tree={tree} stockCounts={stockCounts} depth={depth + 1} />
       ))}
     </div>
   )
 }
 
-export default function LocationTree({ locations }: Props) {
+export default function LocationTree({ locations, stockCounts }: Props) {
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -88,7 +129,7 @@ export default function LocationTree({ locations }: Props) {
           <p className="text-sm text-slate-400 p-4 text-center">Sin ubicaciones raíz</p>
         ) : (
           <div className="p-2">
-            {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} />)}
+            {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
           </div>
         )}
       </div>

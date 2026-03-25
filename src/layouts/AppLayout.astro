@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '../lib/supabase'
 export interface Props {
   title?: string
   description?: string
-  activeTab?: 'home' | 'inventory' | 'projects' | 'community' | 'scan'
+  activeTab?: 'home' | 'inventory' | 'projects' | 'community' | 'scan' | 'locations'
 }
 
 const { title, description, activeTab } = Astro.props

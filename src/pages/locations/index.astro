@@ -9,6 +9,14 @@ const { data: locations } = await supabase
   .from('locations')
   .select('*')
   .order('name')
+
+const { data: allStock } = await supabase.from('stock').select('location_id')
+const stockCounts: Record<string, number> = {}
+for (const s of allStock ?? []) {
+  if (s.location_id) {
+    stockCounts[s.location_id] = (stockCounts[s.location_id] ?? 0) + 1
+  }
+}
 ---
 <AppLayout title="Ubicaciones" activeTab="locations">
   <div class="px-4 pt-6 pb-4">
@@ -23,7 +31,7 @@ const { data: locations } = await supabase
         icon="📍"
       />
     ) : (
-      <LocationTree locations={locations} client:load />
+      <LocationTree locations={locations} stockCounts={stockCounts} client:load />
     )}
   </div>
 </AppLayout>

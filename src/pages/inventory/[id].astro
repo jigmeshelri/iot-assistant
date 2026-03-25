@@ -3,6 +3,7 @@ import AppLayout from '../../layouts/AppLayout.astro'
 import Badge from '../../components/ui/Badge.astro'
 import StockAdjuster from '../../components/islands/StockAdjuster'
 import QRLabel from '../../components/islands/QRLabel'
+import InventoryDetail from '../../components/islands/InventoryDetail'
 import { createSupabaseServerClient } from '../../lib/supabase'
 
 const { id } = Astro.params
@@ -45,59 +46,34 @@ const capBadgeColors: Record<string, string> = {
   <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
   <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="flex items-center gap-3 mb-6">
-      <a href="/inventory" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors">
+      <a href="/inventory" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100">
         <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </a>
       <h1 class="text-xl font-bold text-slate-900 truncate">{item.component?.name}</h1>
     </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
-      <div class="flex items-start gap-4">
-        <div class={`w-20 h-20 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-          {item.component?.image_url ? (
-            <img src={item.component.image_url} alt={item.component?.name} class="w-16 h-16 object-contain rounded-lg" />
-          ) : (
-            <svg class={`w-10 h-10 ${colors.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-            </svg>
-          )}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs text-slate-400 font-mono mb-1">{item.component?.sku}</p>
-          <div class="flex flex-wrap gap-1.5 mt-1">
-            {cat && <Badge variant="info">{cat}</Badge>}
-            {item.component?.platform_family && <Badge>{item.component.platform_family}</Badge>}
-          </div>
-          {item.location && (
-            <p class="text-xs text-slate-500 mt-2">📍 {item.location.name}</p>
-          )}
-        </div>
-      </div>
-    </div>
-
-    <div class="mb-4">
+    <InventoryDetail
+      stockId={id!}
+      componentId={item.component?.id}
+      name={item.component?.name ?? ''}
+      sku={item.component?.sku ?? ''}
+      category={cat}
+      platformFamily={item.component?.platform_family ?? null}
+      imageUrl={item.component?.image_url ?? null}
+      connectivityCaps={caps as Record<string, boolean>}
+      technicalSpecs={specs}
+      datasheetUrl={item.component?.datasheet_url ?? null}
+      quantity={item.quantity}
+      notes={item.notes ?? null}
+      locationId={item.location?.id ?? null}
+      locationName={item.location?.name ?? null}
+      locationQrCode={item.location?.qr_code ?? null}
+      client:load
+    />
+    <div class="mt-4">
       <StockAdjuster stockId={id!} initialQuantity={item.quantity} client:load />
     </div>
-
-    {Object.keys(specs).length > 0 && (
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
-        <h3 class="text-sm font-semibold text-slate-700 mb-3">Especificaciones</h3>
-        <div class="space-y-2">
-          {Object.entries(specs).map(([k, v]) => (
-            <div class="flex justify-between items-center">
-              <span class="text-xs text-slate-500 capitalize">{k.replace(/_/g, ' ')}</span>
-              <span class="text-xs font-medium text-slate-800 font-mono">{String(v)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {item.location?.qr_code && (
-      <QRLabel qrCode={item.location.qr_code} locationName={item.location.name} client:load />
-    )}
   </div>
 
   <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->

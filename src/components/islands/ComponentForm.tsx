@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
+import ConnectivityEditor from './ConnectivityEditor'
+import SpecsEditor from './SpecsEditor'
+import LocationPicker from './LocationPicker'
 
 const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
 const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
@@ -14,6 +17,7 @@ interface ComponentFormProps {
     technical_specs?:  Record<string, unknown>
     datasheet_url?:    string
     connectivity_caps?: Record<string, boolean>
+    location_id?: string
   }
 }
 
@@ -25,6 +29,14 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
   const [category, setCategory] = useState(prefill?.category ?? CATEGORIES[0])
   const [platform, setPlatform] = useState(prefill?.platform_family ?? '')
   const [quantity, setQuantity] = useState(1)
+  const [caps, setCaps] = useState<Record<string, boolean>>(prefill?.connectivity_caps ?? {})
+  const [specs, setSpecs] = useState<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries(prefill?.technical_specs ?? {}).map(([k, v]) => [k, String(v)])
+    )
+  )
+  const [locationId, setLocationId] = useState<string | null>(prefill?.location_id ?? null)
+  const [datasheetUrl, setDatasheetUrl] = useState(prefill?.datasheet_url ?? '')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -35,6 +47,12 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
     if (prefill?.category)        setCategory(prefill.category)
     if (prefill?.platform_family) setPlatform(prefill.platform_family)
     if (prefill?.sku)             setSku(prefill.sku)
+    if (prefill?.connectivity_caps) setCaps(prefill.connectivity_caps)
+    if (prefill?.technical_specs) setSpecs(
+      Object.fromEntries(Object.entries(prefill.technical_specs).map(([k, v]) => [k, String(v)]))
+    )
+    if (prefill?.datasheet_url)   setDatasheetUrl(prefill.datasheet_url)
+    if (prefill?.location_id)     setLocationId(prefill.location_id)
   }, [prefill])
 
   useEffect(() => {
@@ -58,7 +76,15 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       // Upsert component to shared catalog
       const { data: component, error: compErr } = await supabase
         .from('components')
-        .upsert({ sku: effectiveSku, name, category, platform_family: platform || null, technical_specs: prefill?.technical_specs ?? {}, datasheet_url: prefill?.datasheet_url ?? null, connectivity_caps: prefill?.connectivity_caps ?? {} }, { onConflict: 'sku' })
+        .upsert({
+          sku: effectiveSku,
+          name,
+          category,
+          platform_family: platform || null,
+          technical_specs: specs,
+          datasheet_url: datasheetUrl || null,
+          connectivity_caps: caps,
+        }, { onConflict: 'sku' })
         .select()
         .single()
       if (compErr) throw compErr
@@ -66,7 +92,13 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       // Add to user stock
       const { error: stockErr } = await supabase
         .from('stock')
-        .insert({ user_id: user.id, component_id: component.id, quantity, notes: notes || null })
+        .insert({
+          user_id: user.id,
+          component_id: component.id,
+          quantity,
+          notes: notes || null,
+          location_id: locationId,
+        })
       if (stockErr) throw stockErr
 
       setSuccess(true)
@@ -135,10 +167,30 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
         </select>
       </div>
 
+      <ConnectivityEditor value={caps} onChange={setCaps} />
+
+      <SpecsEditor value={specs} onChange={setSpecs} />
+
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1">Datasheet URL</label>
+        <input
+          value={datasheetUrl}
+          onChange={e => setDatasheetUrl(e.target.value)}
+          placeholder="https://..."
+          type="url"
+          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+        />
+      </div>
+
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Cantidad *</label>
         <input type="number" min={1} value={quantity} onChange={e => setQuantity(+e.target.value)} required
           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400" />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-slate-600 mb-1">Ubicación</label>
+        <LocationPicker value={locationId} onChange={setLocationId} />
       </div>
 
       <div>
