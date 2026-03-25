@@ -1,8 +1,8 @@
 # Especificación Funcional — IoT Assistant
 
-**Versión:** 0.2
-**Fecha:** 2026-03-17
-**Estado:** Borrador
+**Versión:** 0.3
+**Fecha:** 2026-03-25
+**Estado:** Borrador — con criterios de aceptación
 
 ---
 
@@ -51,6 +51,17 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 | `datasheet_url` | `TEXT` | Enlace al datasheet oficial |
 | `location_id` | `UUID` | FK a la ubicación física (módulo 3.3) |
 
+**Criterios de aceptación:**
+
+- **AC-3.1.1**: El usuario crea un componente manual ingresando nombre, categoría y cantidad → el componente aparece en la lista de inventario con los datos correctos.
+- **AC-3.1.2**: El usuario escribe texto en el buscador → la lista filtra en tiempo real por nombre, SKU y ubicación (case-insensitive).
+- **AC-3.1.3**: El usuario abre el detalle de un componente → ve imagen (o placeholder), SKU, categoría, plataforma, conectividad, especificaciones técnicas, ubicación, cantidad y enlace a datasheet.
+- **AC-3.1.4**: El usuario edita campos de un componente existente (nombre, categoría, plataforma, conectividad, specs, ubicación) → los cambios persisten al recargar la página.
+- **AC-3.1.5**: El usuario elimina un componente de su inventario → desaparece de la lista; el componente sigue existiendo en el catálogo compartido.
+- **AC-3.1.6**: El usuario selecciona un chip de categoría (MCU, Sensor, etc.) → la lista muestra solo componentes de esa categoría.
+- **AC-3.1.7**: El usuario asigna una ubicación a un componente → el componente aparece en la vista de esa ubicación y muestra la ruta de ubicación en su tarjeta de inventario.
+- **AC-3.1.8**: El usuario ajusta la cantidad con botones +/− → el stock se actualiza inmediatamente en la base de datos.
+
 ---
 
 ### 3.2 Reconocimiento de Componentes por IA
@@ -79,6 +90,13 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 - La imagen original se almacena como referencia visual del componente en inventario.
 - El sistema debe manejar identificaciones de baja confianza mostrando un aviso y solicitando confirmación explícita.
 
+**Criterios de aceptación:**
+
+- **AC-3.2.1**: El usuario sube una foto de un componente → la IA retorna nombre, categoría, plataforma, conectividad y specs → los datos aparecen en un formulario pre-rellenado para revisión.
+- **AC-3.2.2**: Si la IA identifica el componente con baja confianza → el sistema muestra un aviso explícito pidiendo confirmación antes de guardar.
+- **AC-3.2.3**: El usuario puede corregir cualquier campo sugerido por la IA antes de confirmar el alta.
+- **AC-3.2.4**: La imagen original se almacena como referencia visual del componente en el inventario.
+
 ---
 
 ### 3.3 Gestión de Ubicaciones Físicas
@@ -104,6 +122,15 @@ locations
 └── qr_code     TEXT (único, generado automáticamente)
 ```
 
+**Criterios de aceptación:**
+
+- **AC-3.3.1**: El usuario crea una ubicación raíz con nombre descriptivo → aparece en el árbol de ubicaciones.
+- **AC-3.3.2**: El usuario crea una sub-ubicación bajo una ubicación existente → aparece anidada bajo su padre en el árbol.
+- **AC-3.3.3**: El usuario abre el detalle de una ubicación → ve el nombre, jerarquía (breadcrumb), sub-ubicaciones y lista de componentes almacenados con nombre, cantidad y categoría.
+- **AC-3.3.4**: El usuario edita el nombre de una ubicación → el cambio persiste al recargar.
+- **AC-3.3.5**: El usuario elimina una ubicación → los componentes asignados a ella quedan sin ubicación (no se eliminan). Si la ubicación tiene componentes, el sistema advierte antes de eliminar.
+- **AC-3.3.6**: Cada nodo del árbol muestra el conteo de componentes almacenados en esa ubicación.
+
 ---
 
 ### 3.4 Códigos QR para Ubicaciones
@@ -127,6 +154,11 @@ locations
 **Consideraciones:**
 - El `qr_code` es inmutable una vez generado para garantizar que las etiquetas físicas impresas siempre sean válidas.
 - El acceso a la vista de ubicación por QR requiere autenticación del usuario propietario.
+
+**Criterios de aceptación:**
+
+- **AC-3.4.1**: El usuario genera un QR para una ubicación → ve la imagen del QR con nombre y botones para descargar PNG e imprimir.
+- **AC-3.4.2**: Un usuario escanea (o navega) la URL del QR → el sistema redirige a la vista de detalle de esa ubicación con la lista de componentes.
 
 ---
 
@@ -175,6 +207,18 @@ locations
 - El módulo no gestiona compras ni se integra con tiendas en esta versión. La estimación de costos y búsqueda de proveedores queda para una fase posterior.
 - Al guardar un proyecto sugerido se crea automáticamente una entrada en el módulo 3.6.
 
+**Criterios de aceptación (3.5.1 Descubrimiento):**
+
+- **AC-3.5.1**: El usuario abre "Explorar Proyectos" → el sistema envía su inventario a la IA y muestra sugerencias ordenadas por viabilidad (%) con título, descripción, dificultad y BOM.
+- **AC-3.5.2**: Cada item de la BOM sugerida muestra su estado: Disponible (verde), Parcial (ámbar), Faltante (rojo) o Incompatible (naranja con sugerencia de alternativa).
+- **AC-3.5.3**: El usuario guarda una sugerencia → se crea un proyecto en estado "Guardado" con la BOM asociada.
+
+**Criterios de aceptación (3.5.2 Planificación):**
+
+- **AC-3.5.4**: El usuario describe un proyecto en texto libre → la IA genera una propuesta con título, descripción, BOM y dificultad.
+- **AC-3.5.5**: El usuario aplica refinamiento guiado (controlador preferido, dificultad, restricciones) → la propuesta se actualiza con los nuevos parámetros.
+- **AC-3.5.6**: El usuario guarda la propuesta → se crea un proyecto en estado "Guardado" con source "ai_plan".
+
 ---
 
 ### 3.6 Seguimiento y Comunidad de Proyectos
@@ -218,12 +262,35 @@ El usuario puede registrar entradas de bitácora en cualquier momento del ciclo 
 
 El conjunto de entradas forma una línea de tiempo cronológica del proyecto.
 
+**Criterios de aceptación (3.6.1 Ciclo de vida):**
+
+- **AC-3.6.1**: El usuario crea un proyecto manual con título, tipo (DIY/Prototipo/Profesional) y dificultad → aparece en la lista en estado "Guardado".
+- **AC-3.6.2**: El usuario cambia el estado del proyecto siguiendo las transiciones válidas: Guardado → En curso → Pausado/Completado/Abandonado. Las transiciones inválidas no están disponibles.
+- **AC-3.6.3**: El usuario edita título y descripción del proyecto inline → los cambios persisten al recargar.
+
+**Criterios de aceptación (3.6.2 Bitácora):**
+
+- **AC-3.6.4**: El usuario añade una entrada de bitácora con contenido de texto y etiqueta (avance/problema/solución/aprendizaje/código) → aparece en la línea de tiempo del proyecto ordenada cronológicamente.
+- **AC-3.6.5**: El usuario marca una entrada como pública → queda disponible si el proyecto se publica.
+
+**Criterios de aceptación (3.6 BOM):**
+
+- **AC-3.6.6**: El usuario agrega un componente a la BOM del proyecto con nombre y cantidad → aparece en la tabla de materiales.
+- **AC-3.6.7**: El usuario edita la cantidad de un item de BOM → el cambio persiste.
+- **AC-3.6.8**: El usuario elimina un item de BOM → desaparece de la tabla.
+
 #### 3.6.3 Control de Componentes Consumidos
 
 Durante la ejecución del proyecto el usuario puede marcar componentes de la BOM como utilizados. Esto descuenta automáticamente las unidades del inventario personal, manteniendo el stock sincronizado con el trabajo físico real.
 
 - Si la cantidad disponible cae a cero o a un nivel insuficiente, la aplicación muestra una alerta en la vista del proyecto.
 - El usuario puede revertir el descuento si cometió un error.
+
+**Criterios de aceptación (3.6.3 Consumo):**
+
+- **AC-3.6.9**: El usuario marca un componente de la BOM como utilizado → la cantidad se descuenta del stock del inventario personal.
+- **AC-3.6.10**: Si el componente no está en inventario → se muestra badge "Falta" y el botón de consumo está deshabilitado.
+- **AC-3.6.11**: El usuario revierte un consumo → la cantidad se restaura en el stock.
 
 #### 3.6.4 Publicación y Comunidad
 
@@ -253,6 +320,15 @@ Cuando el usuario considera que su proyecto tiene valor para compartir puede pub
 - La publicación es siempre una acción explícita del usuario; ningún proyecto se comparte sin su consentimiento.
 - Los datos de inventario personal (cantidades, ubicaciones) nunca son visibles en la versión pública.
 - El usuario puede despublicar un proyecto en cualquier momento; los comentarios existentes se eliminan junto con él.
+
+**Criterios de aceptación (3.6.4 Publicación y Comunidad):**
+
+- **AC-3.6.12**: El usuario publica un proyecto completado → el proyecto aparece en el feed de la comunidad con título, descripción, BOM pública, dificultad y tags.
+- **AC-3.6.13**: El usuario selecciona qué entradas de bitácora incluir en la versión pública antes de publicar.
+- **AC-3.6.14**: Un usuario hace fork de un proyecto público → se crea una copia en su lista personal en estado "Guardado" con la BOM pero sin la bitácora. El contador de forks directos del proyecto original se incrementa.
+- **AC-3.6.15**: Un usuario comenta en un proyecto público → el comentario aparece en el hilo del proyecto.
+- **AC-3.6.16**: El autor despublica su proyecto → desaparece del feed de la comunidad.
+- **AC-3.6.17**: Los datos de inventario personal (cantidades, ubicaciones) nunca son visibles en la versión pública del proyecto.
 
 ---
 
@@ -289,6 +365,17 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 
 > **Roadmap:** El análisis de código standalone (fuera del contexto de un proyecto) es una funcionalidad planificada para una fase posterior.
 
+**Criterios de aceptación (3.7.1 Generación):**
+
+- **AC-3.7.1**: El usuario solicita generar código desde un proyecto → selecciona entorno de destino → la IA genera código funcional o esqueleto según la selección.
+- **AC-3.7.2**: El código generado puede descargarse como archivo con la extensión correcta según el entorno (.ino, .cpp, .py, .yaml).
+- **AC-3.7.3**: El entorno sugerido por defecto corresponde al tipo de proyecto (DIY → Arduino IDE, Profesional → PlatformIO/ESP-IDF).
+
+**Criterios de aceptación (3.7.2 Análisis):**
+
+- **AC-3.7.4**: El usuario envía código existente para análisis → la IA retorna mejoras sugeridas con explicación y código mejorado.
+- **AC-3.7.5**: Cada mejora indica su tipo (rendimiento, bug potencial, estilo) para que el usuario pueda priorizar.
+
 ---
 
 ## 4. Requisitos No Funcionales
@@ -301,6 +388,13 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 | **Seguridad** | Autenticación vía Supabase Auth (OAuth + magic link). Todas las rutas de API requieren token válido. |
 | **Privacidad** | Las imágenes de componentes se almacenan en el bucket privado del usuario en Supabase Storage. |
 | **Offline parcial** | El inventario en modo lectura debe funcionar sin conexión mediante caché de Service Worker. |
+
+**Criterios de aceptación:**
+
+- **AC-4.1**: Las rutas protegidas (/inventory, /projects, /locations) redirigen a /login si el usuario no está autenticado.
+- **AC-4.2**: Un usuario autenticado no puede ver ni modificar datos de otro usuario (RLS enforced).
+- **AC-4.3**: La página de login ofrece OAuth (Google, GitHub) y magic link por email.
+- **AC-4.4**: El reconocimiento por IA responde en menos de 10 segundos en condiciones normales.
 
 ---
 
