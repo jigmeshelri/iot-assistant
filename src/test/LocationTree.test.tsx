@@ -1,0 +1,62 @@
+import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { vi, describe, it, expect } from 'vitest'
+import LocationTree from '../components/islands/LocationTree'
+
+const mockInsert = vi.fn().mockResolvedValue({ error: null })
+
+vi.mock('../lib/supabase', () => ({
+  createSupabaseBrowserClient: () => ({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+    from: vi.fn(() => ({
+      insert: mockInsert,
+    })),
+  }),
+}))
+
+Object.defineProperty(window, 'location', {
+  value: { reload: vi.fn() },
+  writable: true,
+})
+
+const locations = [
+  { id: 'l1', name: 'Taller', parent_id: null, qr_code: 'qr1' },
+  { id: 'l2', name: 'Rack', parent_id: 'l1', qr_code: 'qr2' },
+  { id: 'l3', name: 'Maletín', parent_id: null, qr_code: 'qr3' },
+]
+const stockCounts = { l1: 5, l2: 12, l3: 3 }
+
+describe('LocationTree', () => {
+  it('renders root locations', () => {
+    render(<LocationTree locations={locations} />)
+    expect(screen.getByText('Taller')).toBeInTheDocument()
+    expect(screen.getByText('Maletín')).toBeInTheDocument()
+  })
+
+  it('renders children nested under parent', () => {
+    render(<LocationTree locations={locations} />)
+    expect(screen.getByText('Rack')).toBeInTheDocument()
+  })
+
+  it('shows stock counts when provided', () => {
+    render(<LocationTree locations={locations} stockCounts={stockCounts} />)
+    expect(screen.getByText('5 pzas')).toBeInTheDocument()
+    expect(screen.getByText('12 pzas')).toBeInTheDocument()
+  })
+
+  it('new root location form', async () => {
+    const user = userEvent.setup()
+    render(<LocationTree locations={locations} />)
+
+    await user.click(screen.getByText('+ Nueva ubicación raíz'))
+    const input = screen.getByPlaceholderText('Nombre de ubicación')
+    expect(input).toBeInTheDocument()
+
+    await user.type(input, 'Bodega')
+    await user.click(screen.getByRole('button', { name: 'Crear' }))
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: 'u1', name: 'Bodega' }),
+    )
+  })
+})
