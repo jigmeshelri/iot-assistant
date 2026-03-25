@@ -26,6 +26,17 @@ vi.mock('../lib/supabase', () => ({
   }),
 }))
 
+// Mock sub-components that make their own supabase calls
+vi.mock('../components/islands/LocationPicker', () => ({
+  default: () => <div data-testid="location-picker">mock-picker</div>,
+}))
+vi.mock('../components/islands/ConnectivityEditor', () => ({
+  default: () => <div data-testid="connectivity-editor">mock-connectivity</div>,
+}))
+vi.mock('../components/islands/SpecsEditor', () => ({
+  default: () => <div data-testid="specs-editor">mock-specs</div>,
+}))
+
 // Mock recognizeComponent API
 vi.mock('../lib/api', () => ({
   recognizeComponent: vi.fn().mockResolvedValue({

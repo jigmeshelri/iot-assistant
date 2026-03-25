@@ -22,9 +22,29 @@ vi.mock('../lib/supabase', () => ({
           select: vi.fn(() => ({ like: mockLike })),
         }
       }
+      if (table === 'locations') {
+        return {
+          select: vi.fn(() => ({ order: vi.fn().mockResolvedValue({ data: [], error: null }) })),
+        }
+      }
       return { insert: mockInsert }
     }),
   }),
+}))
+
+// Mock sub-components that make their own supabase calls
+vi.mock('../components/islands/LocationPicker', () => ({
+  default: ({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) => (
+    <button data-testid="location-picker" onClick={() => onChange('loc-1')}>
+      {value ?? 'Sin ubicación'}
+    </button>
+  ),
+}))
+vi.mock('../components/islands/ConnectivityEditor', () => ({
+  default: () => <div data-testid="connectivity-editor">mock-connectivity</div>,
+}))
+vi.mock('../components/islands/SpecsEditor', () => ({
+  default: () => <div data-testid="specs-editor">mock-specs</div>,
 }))
 
 Object.defineProperty(window, 'location', {

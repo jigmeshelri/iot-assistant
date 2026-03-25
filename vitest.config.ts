@@ -9,5 +9,13 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/test/**/*.test.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/components/islands/**', 'src/lib/**'],
+      exclude: ['src/test/**', 'src/env.d.ts'],
+      thresholds: {
+        lines: 80,
+      },
+    },
   },
 })

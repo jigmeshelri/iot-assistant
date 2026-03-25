@@ -12,7 +12,8 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test --ignore-snapshots --grep-invert visual-regression",
     "test:visual": "playwright test visual-regression",
-    "test:visual:update": "playwright test visual-regression --update-snapshots"
+    "test:visual:update": "playwright test visual-regression --update-snapshots",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@astrojs/react": "^4.0.0",
@@ -36,6 +37,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "@vitest/ui": "^4.1.0",
     "jsdom": "^29.0.0",
     "tailwindcss": "^4.0.0",
