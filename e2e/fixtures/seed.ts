@@ -61,20 +61,51 @@ export async function seedTestData(supabase: SupabaseClient, userId: string) {
 
   await supabase.from('stock').upsert(stockRows, { onConflict: 'user_id,component_id' })
 
-  // Add a project
-  await supabase.from('projects').upsert(
-    [
-      {
-        user_id: userId,
-        title: 'Estación meteorológica',
-        description: 'Monitor temp/humedad con ESP32 y DHT22',
-        type: 'iot',
-        status: 'in_progress',
-        progress: 40,
-      },
-    ],
-    { onConflict: 'user_id,title' },
-  )
+  // Test locations
+  const { data: rootLoc } = await supabase.from('locations').insert({
+    user_id: userId,
+    name: 'Test-Taller',
+  }).select().single()
+
+  if (rootLoc) {
+    await supabase.from('locations').insert({
+      user_id: userId,
+      name: 'Test-Cajón',
+      parent_id: rootLoc.id,
+    })
+
+    // Assign location to first stock item
+    const { data: stocks } = await supabase.from('stock').select('id').eq('user_id', userId).limit(1)
+    if (stocks?.[0]) {
+      await supabase.from('stock').update({ location_id: rootLoc.id }).eq('id', stocks[0].id)
+    }
+  }
+
+  // Test project with BOM and log entries
+  const { data: project } = await supabase.from('projects').upsert({
+    user_id: userId,
+    title: 'Test-Proyecto-E2E',
+    description: 'Proyecto para tests E2E',
+    status: 'in_progress',
+    project_type: 'diy',
+    difficulty: 'intermediate',
+    source: 'manual',
+    progress: 50,
+  }, { onConflict: 'id' }).select().single()
+
+  if (project) {
+    await supabase.from('project_bom').insert([
+      { project_id: project.id, component_name: 'ESP32-C6', quantity_required: 1 },
+      { project_id: project.id, component_name: 'DHT22', quantity_required: 2 },
+    ])
+
+    await supabase.from('project_log_entries').insert({
+      project_id: project.id,
+      user_id: userId,
+      content: 'Entrada de test E2E',
+      tag: 'progress',
+    })
+  }
 }
 
 export async function clearTestData(supabase: SupabaseClient, userId: string) {
@@ -90,4 +121,9 @@ export async function clearTestData(supabase: SupabaseClient, userId: string) {
   }
 
   await supabase.from('projects').delete().eq('user_id', userId).like('title', '%meteorológica%')
+
+  // Clean locations
+  await supabase.from('locations').delete().eq('user_id', userId)
+  // Clean projects (cascade deletes BOM, logs, etc.)
+  await supabase.from('projects').delete().eq('user_id', userId)
 }
