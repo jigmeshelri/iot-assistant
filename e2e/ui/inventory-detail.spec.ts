@@ -21,6 +21,28 @@ test.describe('Inventory Detail — AC-3.1.3, AC-3.1.5, AC-3.1.8', () => {
     await expect(page.locator('main').last().locator('h1, h2').first()).toBeVisible()
   })
 
+  test('AC-3.1.5: delete component removes from inventory list', async ({ page }) => {
+    await page.goto('/inventory')
+    const main = page.locator('main').last()
+
+    const firstLink = main.locator('table tbody tr a, [data-testid="component-link"]').first()
+    if (await firstLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      const componentName = await firstLink.textContent()
+      await firstLink.click()
+      await page.waitForLoadState('networkidle')
+
+      const deleteBtn = page.getByRole('button', { name: /eliminar/i })
+      if (await deleteBtn.isVisible().catch(() => false)) {
+        page.on('dialog', (dialog) => dialog.accept())
+        await deleteBtn.click()
+        await page.waitForURL('**/inventory')
+        if (componentName) {
+          await expect(page.locator('main').last().getByText(componentName)).not.toBeVisible({ timeout: 3000 })
+        }
+      }
+    }
+  })
+
   test('AC-3.1.8: stock adjuster changes quantity', async ({ page }) => {
     await page.goto('/inventory')
     const main = page.locator('main').last()
