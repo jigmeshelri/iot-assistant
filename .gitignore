@@ -30,6 +30,7 @@ lerna-debug.log*
 api/__pycache__/
 **/*.pyc
 test-results/
+coverage/
 .vercel
 .npmrc
 .worktrees/
