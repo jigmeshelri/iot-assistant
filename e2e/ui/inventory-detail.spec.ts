@@ -43,20 +43,28 @@ test.describe('Inventory Detail — AC-3.1.3, AC-3.1.5, AC-3.1.8', () => {
     }
   })
 
-  test('AC-3.1.8: stock adjuster changes quantity', async ({ page }) => {
+  test('AC-3.1.8: stock adjuster increments and displays new value', async ({ page }) => {
     await page.goto('/inventory')
     const main = page.locator('main').last()
-    const link = main.locator('a[href^="/inventory/"]').first()
-    const hasLink = await link.isVisible({ timeout: 5000 }).catch(() => false)
-    if (hasLink) {
-      await link.click()
-      await page.waitForURL(/\/inventory\//)
-      // Find + button and click (scoped to desktop main)
-      const desktopMain = page.locator('main').last()
-      const plusBtn = desktopMain.locator('button:has-text("+")').first()
-      if (await plusBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+
+    const firstLink = main.locator('table tbody tr a, [data-testid="component-link"]').first()
+    if (await firstLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await firstLink.click()
+      await page.waitForLoadState('networkidle')
+
+      const plusBtn = page.getByRole('button', { name: '+' })
+      if (await plusBtn.isVisible().catch(() => false)) {
+        // Read current value
+        const quantityEl = page.locator('[data-testid="stock-quantity"], .text-2xl, .text-3xl').first()
+        const before = await quantityEl.textContent()
+        const beforeNum = parseInt(before ?? '0', 10)
+
         await plusBtn.click()
-        // Quantity should update (just verify no error)
+        await page.waitForTimeout(1000)
+
+        const after = await quantityEl.textContent()
+        const afterNum = parseInt(after ?? '0', 10)
+        expect(afterNum).toBe(beforeNum + 1)
       }
     }
   })
