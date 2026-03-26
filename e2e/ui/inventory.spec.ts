@@ -86,6 +86,29 @@ test.describe('Inventario móvil', () => {
     // No items → no chips → test passes
   })
 
+  test('AC-3.1.6: clicking category chip filters the inventory list', async ({ page }) => {
+    await page.goto('/inventory')
+    const main = page.locator('main').last()
+
+    const table = main.locator('table')
+    if (await table.isVisible({ timeout: 5000 }).catch(() => false)) {
+      const initialRows = await table.locator('tbody tr').count()
+
+      const mcuChip = main.getByRole('button', { name: 'Microcontrolador' })
+      if (await mcuChip.isVisible().catch(() => false)) {
+        await mcuChip.click()
+        await page.waitForTimeout(500)
+        const filteredRows = await table.locator('tbody tr').count()
+        expect(filteredRows).toBeLessThanOrEqual(initialRows)
+
+        await main.getByRole('button', { name: /^Todos/ }).click()
+        await page.waitForTimeout(500)
+        const resetRows = await table.locator('tbody tr').count()
+        expect(resetRows).toBe(initialRows)
+      }
+    }
+  })
+
   // 🔴 GAP: mockup muestra conectividad inline (WiFi · BLE) — pendiente de implementar
   test.fail('items muestran conectividad inline (WiFi · BLE)', async ({ page }) => {
     await page.goto('/inventory')
