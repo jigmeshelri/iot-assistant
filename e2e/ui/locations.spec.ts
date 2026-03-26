@@ -40,13 +40,22 @@ test.describe('Locations — AC-3.3.1 to AC-3.3.6', () => {
     // If no locations exist, test passes gracefully
   })
 
-  test('AC-3.3.3: location detail shows components', async ({ page }) => {
+  test('AC-3.3.3: location detail shows heading and components section', async ({ page }) => {
     await page.goto('/locations')
-    // Click first location link
-    const locLink = page.locator('a[href^="/locations/"]').first()
-    if (await locLink.isVisible()) {
-      await locLink.click()
-      await expect(page.getByText(/Componentes/i)).toBeVisible()
+    const main = page.locator('main').last()
+
+    const firstLink = main.getByRole('link').first()
+    if (await firstLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await firstLink.click()
+      await page.waitForLoadState('networkidle')
+
+      const detail = page.locator('main').last()
+      const heading = detail.locator('h1, h2').first()
+      await expect(heading).toBeVisible()
+
+      const hasComponents = await detail.getByText(/componentes/i).isVisible().catch(() => false)
+      const hasEmpty = await detail.getByText(/sin componentes/i).isVisible().catch(() => false)
+      expect(hasComponents || hasEmpty).toBe(true)
     }
   })
 
