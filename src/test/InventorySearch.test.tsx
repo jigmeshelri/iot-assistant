@@ -73,6 +73,28 @@ describe('InventorySearch', () => {
     })
   })
 
+  it('filters by location name (AC-3.1.2)', async () => {
+    const user = userEvent.setup()
+    render(<InventorySearch items={testItems} />)
+    await user.type(screen.getByPlaceholderText('Buscar componentes...'), 'Cajón')
+    await waitFor(() => {
+      expect(screen.getByText('DHT22')).toBeInTheDocument()
+      expect(screen.queryByText('ESP32-C6 XIAO')).not.toBeInTheDocument()
+      expect(screen.queryByText('TP4056')).not.toBeInTheDocument()
+    })
+  })
+
+  it('filters by parent location name (AC-3.1.2)', async () => {
+    const user = userEvent.setup()
+    render(<InventorySearch items={testItems} />)
+    await user.type(screen.getByPlaceholderText('Buscar componentes...'), 'Maletín')
+    await waitFor(() => {
+      expect(screen.getByText('ESP32-C6 XIAO')).toBeInTheDocument()
+      expect(screen.queryByText('DHT22')).not.toBeInTheDocument()
+      expect(screen.queryByText('TP4056')).not.toBeInTheDocument()
+    })
+  })
+
   it('shows empty state for no results', async () => {
     const user = userEvent.setup()
     render(<InventorySearch items={testItems} />)

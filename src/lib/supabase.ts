@@ -35,6 +35,13 @@ export function createSupabaseServerClient(cookies: AstroCookies, request: Reque
   })
 }
 
+/** Update stock quantity — returns error message string or null on success */
+export async function updateStockQuantity(stockId: string, quantity: number): Promise<string | null> {
+  const supabase = createSupabaseBrowserClient()
+  const { error } = await supabase.from('stock').update({ quantity }).eq('id', stockId)
+  return error ? error.message : null
+}
+
 /** Shorthand to get session from Astro page context */
 export async function getSession(cookies: AstroCookies, request: Request) {
   const supabase = createSupabaseServerClient(cookies, request)

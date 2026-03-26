@@ -74,4 +74,25 @@ describe('LocationManager', () => {
       expect(mockDelete).toHaveBeenCalled()
     })
   })
+
+  it('delete with 0 components shows simple confirmation', async () => {
+    const user = userEvent.setup()
+    render(<LocationManager locationId="loc1" name="Vacía" stockCount={0} />)
+    await user.click(screen.getByText('Eliminar ubicación'))
+    expect(window.confirm).toHaveBeenCalled()
+    const confirmMsg = (window.confirm as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    // Should NOT mention "0 componentes que quedarán sin ubicación"
+    expect(confirmMsg).not.toContain('0 componentes')
+  })
+
+  it('cancel edit returns to view mode without saving', async () => {
+    const user = userEvent.setup()
+    render(<LocationManager {...defaultProps} />)
+    await user.click(screen.getByTitle('Editar nombre'))
+    const input = screen.getByDisplayValue('Cajón principal')
+    await user.type(input, ' editado')
+    await user.keyboard('{Escape}')
+    expect(screen.getByText('Cajón principal')).toBeInTheDocument()
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
 })
