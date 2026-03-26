@@ -7,7 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   integrations: [react()],
   output: 'server',
-  adapter: vercel(),
+  adapter: vercel({
+    webAnalytics: { enabled: true },
+  }),
   vite: {
     plugins: [
       tailwindcss(),
