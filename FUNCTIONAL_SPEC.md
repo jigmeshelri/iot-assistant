@@ -1,14 +1,52 @@
 # Especificación Funcional — IoT Assistant
 
-**Versión:** 0.3
+**Versión:** 0.4
 **Fecha:** 2026-03-25
-**Estado:** Borrador — con criterios de aceptación
+**Estado:** Borrador — PRD con criterios de aceptación
 
 ---
 
 ## 1. Visión del Producto
 
+### 1.1 Problema
+
+Los makers, estudiantes y profesionales de electrónica acumulan componentes de múltiples fuentes — compras, kits, proyectos anteriores, donaciones — sin un sistema de registro que escale más allá de una planilla o la memoria. Las consecuencias son concretas:
+
+- **Componentes duplicados:** se compran piezas que ya se tienen porque no se sabe qué hay en stock ni dónde está.
+- **Proyectos bloqueados:** se abandona o posterga un proyecto porque no se sabe si se tienen las piezas necesarias, o se descubre a mitad de camino que falta un componente crítico.
+- **Conocimiento perdido:** la experiencia de un proyecto terminado queda en la cabeza del maker, sin registro que permita replicarlo o compartirlo.
+- **Inventario inerte:** una colección grande de componentes es un activo potencial, pero sin catálogo consultable es solo una caja de piezas sin contexto.
+
+### 1.2 Oportunidad
+
+No existe una herramienta que integre inventario de componentes electrónicos con inteligencia de proyectos. Las soluciones actuales son planillas manuales, apps genéricas de inventario (sin entender qué es un ESP32) o plataformas de proyectos IoT que no gestionan stock físico. IoT Assistant conecta ambos mundos.
+
+### 1.3 Visión
+
 IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudiantes y profesionales de electrónica que necesitan gestionar su inventario de componentes de manera eficiente. A través de reconocimiento visual por IA, organización física con códigos QR e inteligencia de proyectos, la aplicación transforma una colección desordenada de piezas en un activo consultable y accionable.
+
+### 1.4 Métricas de Éxito (KPIs)
+
+**Métricas de producto (MVP):**
+
+| Métrica | Objetivo v1 | Cómo se mide |
+| :--- | :--- | :--- |
+| Usuarios activos semanales (WAU) | 50+ | Supabase Auth sessions activas en 7 días |
+| Retención semanal | > 40 % | WAU semana N / WAU semana N-1 |
+| Componentes registrados por usuario | > 15 promedio | `COUNT(user_stock)` / `COUNT(DISTINCT user_id)` |
+| % componentes con ubicación asignada | > 60 % | Señal de que el módulo de ubicaciones aporta valor real |
+| Tasa de adopción de scan IA | > 30 % de altas | Altas via scan / total altas — valida si la IA reduce fricción |
+| Proyectos creados por usuario activo | > 0.5 / mes | Señal de engagement más allá del inventario |
+
+**Métricas de calidad:**
+
+| Métrica | Objetivo | Notas |
+| :--- | :--- | :--- |
+| Precisión del scan IA | > 70 % sin corrección | % de scans donde el usuario acepta la sugerencia sin editar nombre ni categoría |
+| Latencia scan IA (p95) | < 10 s | Desde envío de imagen hasta respuesta completa |
+| Errores de RLS | 0 | Un usuario nunca debe ver datos de otro — monitoreado en logs |
+
+> **Nota:** Los mockups visuales están en `mockups/index.html`. A medida que se definan flujos adicionales, cada módulo debería vincular a su mockup correspondiente.
 
 ---
 
@@ -22,11 +60,38 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 
 ---
 
+## 2b. Priorización (MoSCoW)
+
+| Prioridad | Módulo | Justificación |
+| :--- | :--- | :--- |
+| **Must Have** | 3.1 Inventario (CRUD, búsqueda, detalle) | Sin inventario no hay producto. Es el core loop. |
+| **Must Have** | 3.3 Ubicaciones (CRUD, jerarquía) | Diferenciador vs planillas. Responde a "¿dónde está?" |
+| **Must Have** | 4.0 Auth + RLS + PWA | Requisito técnico base para multi-usuario y móvil |
+| **Should Have** | 3.2 Scan IA | Reduce fricción de alta — pero el alta manual ya funciona. Validar adopción post-launch. |
+| **Should Have** | 3.4 QR | Completa la propuesta de ubicaciones. Sin QR, ubicaciones igual funcionan. |
+| **Should Have** | 3.6 Proyectos (ciclo de vida, BOM, bitácora) | Engagement a largo plazo, pero el MVP puede validar sin esto. |
+| **Should Have** | Alta masiva (CSV import) | Reduce barrera de entrada para usuarios con inventarios grandes. No bloquea MVP pero mitiga riesgo de abandono en onboarding (ver S4). |
+| **Could Have** | 3.5 Inteligencia de Proyectos (descubrimiento + planificación IA) | Alto impacto potencial pero depende de 3.1 + 3.6 completos. Costoso en tokens IA. |
+| **Could Have** | 3.6.4 Comunidad (publicación, forks, comentarios) | Requiere masa crítica de usuarios. Prematuro para MVP. |
+| **Should Have** | 3.7.1 Generación de código (DIY/Prototipo) | Parte del flujo natural: Arduino IDE, ESPHome, MicroPython, PlatformIO. Completa el ciclo proyecto → código. |
+| **Won't Have (v1)** | 3.7.1 Generación de código profesional (C++/Rust/ESP-IDF/Zephyr) | Entornos de alto nivel requieren contexto avanzado (memory management, energy optimization). Postergar hasta validar demanda. |
+| **Won't Have (v1)** | 3.7.2 Análisis y mejora de código existente | Requiere pipeline de análisis más sofisticado. Postergar. |
+
+> **MVP mínimo (v0.1):** Módulos 3.1 + 3.3 + Auth. Un usuario puede registrar componentes, organizarlos por ubicación y buscar su inventario. Esto ya resuelve el dolor principal.
+
+---
+
 ## 3. Módulos Funcionales
 
 ### 3.1 Gestión de Inventario
 
 **Objetivo:** Mantener un registro preciso y actualizado de todos los componentes electrónicos que el usuario posee.
+
+**User Stories:**
+
+- US-3.1.1: Como maker, quiero registrar un componente con sus specs técnicas para saber exactamente qué tengo disponible sin revisar cajas físicamente.
+- US-3.1.2: Como estudiante, quiero buscar en mi inventario por nombre o categoría para encontrar rápido la pieza que necesito para un ejercicio de laboratorio.
+- US-3.1.3: Como freelancer, quiero ver el detalle completo de un componente (specs, datasheet, cantidad, ubicación) para cotizar un proyecto sin abrir cajones.
 
 **Funcionalidades:**
 
@@ -68,6 +133,11 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 
 **Objetivo:** Reducir la fricción del alta de inventario permitiendo que el usuario fotografíe una pieza y el sistema la identifique automáticamente, extrayendo además sus capacidades técnicas y de conectividad.
 
+**User Stories:**
+
+- US-3.2.1: Como maker, quiero fotografiar un componente desconocido para que el sistema lo identifique sin tener que buscar el datasheet manualmente.
+- US-3.2.2: Como usuario, quiero revisar y corregir la sugerencia de la IA antes de guardar, para asegurarme de que los datos son correctos.
+
 **Flujo:**
 
 1. El usuario abre el flujo de alta y selecciona la opción **"Escanear con cámara"**.
@@ -102,6 +172,11 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 ### 3.3 Gestión de Ubicaciones Físicas
 
 **Objetivo:** Permitir al usuario organizar sus componentes en una jerarquía de ubicaciones físicas (habitación → mueble / maleta → cajón / compartimento) y localizar piezas rápidamente.
+
+**User Stories:**
+
+- US-3.3.1: Como maker, quiero organizar mis componentes en una jerarquía de ubicaciones (rack → bandeja → caja) para encontrar físicamente cualquier pieza en segundos.
+- US-3.3.2: Como usuario, quiero ver qué componentes hay en una ubicación específica para saber qué tengo en cada caja sin abrirla.
 
 **Funcionalidades:**
 
@@ -163,6 +238,11 @@ locations
 ---
 
 ### 3.5 Inteligencia de Proyectos
+
+**User Stories:**
+
+- US-3.5.1: Como maker con muchos componentes, quiero que el sistema me sugiera qué puedo construir con lo que ya tengo, para darle uso a piezas que están juntando polvo.
+- US-3.5.2: Como estudiante, quiero describir un proyecto que me interesa y saber qué me falta comprar, para planificar antes de empezar.
 
 **Objetivo:** Convertir el inventario en un punto de partida para la creación, conectando las piezas disponibles con proyectos realizables y, a la inversa, identificando qué falta para ejecutar un proyecto deseado.
 
@@ -389,12 +469,68 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 | **Privacidad** | Las imágenes de componentes se almacenan en el bucket privado del usuario en Supabase Storage. |
 | **Offline parcial** | El inventario en modo lectura debe funcionar sin conexión mediante caché de Service Worker. |
 
+### 4.1 Flujo de Autenticación
+
+1. El usuario accede a cualquier ruta protegida (`/inventory`, `/projects`, `/locations`, `/community`, `/ai/*`).
+2. El middleware de Astro verifica la sesión via `supabase.auth.getUser()`. Si no hay sesión válida, redirige a `/auth/login`.
+3. La página de login ofrece tres opciones:
+   - **OAuth con Google** — redirect flow via Supabase Auth.
+   - **OAuth con GitHub** — redirect flow via Supabase Auth.
+   - **Magic link por email** — el usuario ingresa su email, Supabase envía un link de un solo uso.
+4. Post-login, Supabase Auth emite un JWT que se almacena como cookie HTTP-only.
+5. El middleware de Astro inyecta el `user_id` del JWT en cada request server-side; las políticas RLS de PostgreSQL filtran los datos automáticamente.
+6. **Onboarding post-registro:** en el primer login, la app redirige a `/inventory` con un empty state que guía al usuario a registrar su primer componente.
+7. **Logout:** el usuario puede cerrar sesión desde cualquier página; se invalida la cookie y se redirige a `/auth/login`.
+
+### 4.2 Estrategia del Catálogo Maestro
+
+El catálogo maestro (`components`) es la base compartida de specs técnicas. Se puebla mediante dos mecanismos:
+
+- **Seed inicial:** un dataset curado de ~200 componentes populares (ESP32 variants, Arduino boards, sensores comunes) cargado via migración SQL.
+- **Enriquecimiento por uso:** cada vez que un usuario confirma un alta via scan IA, si el componente no existe en el catálogo maestro, se crea una entrada nueva. Esto convierte a cada usuario en contribuidor implícito del catálogo.
+- **Deduplicación:** antes de crear una entrada nueva, el sistema busca coincidencias por nombre normalizado. Si hay match parcial (>80% similitud), sugiere vincular al componente existente en vez de crear uno nuevo.
+
 **Criterios de aceptación:**
 
 - **AC-4.1**: Las rutas protegidas (/inventory, /projects, /locations) redirigen a /login si el usuario no está autenticado.
 - **AC-4.2**: Un usuario autenticado no puede ver ni modificar datos de otro usuario (RLS enforced).
 - **AC-4.3**: La página de login ofrece OAuth (Google, GitHub) y magic link por email.
 - **AC-4.4**: El reconocimiento por IA responde en menos de 10 segundos en condiciones normales.
+- **AC-4.5**: En el primer login, el usuario ve un empty state con call-to-action para registrar su primer componente.
+- **AC-4.6**: Al confirmar un scan IA de un componente no catalogado, se crea una entrada en el catálogo maestro compartido.
+
+### 4.3 Estándares de Desarrollo
+
+El proyecto sigue tres principios de ingeniería que aplican a toda contribución (humana o asistida por IA):
+
+#### TDD Estricto (Test-Driven Development)
+
+Todo código nuevo sigue el ciclo Red → Green → Refactor sin excepciones:
+
+1. **Red** — Escribir un test que falle y que describa el comportamiento esperado.
+2. **Green** — Escribir el código MÍNIMO necesario para que el test pase.
+3. **Refactor** — Limpiar sin cambiar comportamiento; los tests deben seguir pasando.
+
+Aplica a: features nuevas, bug fixes, refactors. No se mergea código sin tests que lo respalden. Los tests son la especificación ejecutable del sistema.
+
+- **Unit tests**: Vitest — lógica de negocio, utilidades, stores.
+- **Component tests**: Testing Library — islands React (interacción, renderizado).
+- **E2E tests**: Playwright — flujos completos de usuario.
+
+#### SOLID (enfoque selectivo)
+
+Se priorizan dos principios por su impacto directo en la arquitectura de islands:
+
+- **Single Responsibility (SRP)** — Cada componente, función o módulo tiene UNA razón para cambiar. Un island no mezcla fetching, lógica de negocio y presentación. Si un archivo hace dos cosas, se separa.
+- **Dependency Inversion (DIP)** — Los módulos de alto nivel (islands, pages) no dependen de implementaciones concretas (Supabase client, fetch directo). Dependen de abstracciones (funciones en `src/lib/`). Esto permite testear islands sin necesitar Supabase real y cambiar proveedores sin reescribir componentes.
+
+Los demás principios SOLID (Open/Closed, Liskov, Interface Segregation) se aplican cuando el contexto lo justifica, no como regla universal.
+
+#### KISS (Keep It Simple)
+
+- La solución más simple que funciona es la correcta. No se agregan abstracciones, helpers o capas de indirección hasta que haya una necesidad concreta y demostrada.
+- Tres líneas de código similares son preferibles a una abstracción prematura.
+- No se diseña para requisitos hipotéticos futuros.
 
 ---
 
@@ -406,6 +542,32 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 - Control de versiones de esquemáticos o código de firmware.
 - Análisis de código standalone fuera del contexto de un proyecto (fase posterior).
 - Soporte completo de Raspberry Pi como plataforma de destino — implica lógica distinta (SBC Linux, Python/Node, GPIO diferente, rol hub vs nodo IoT). La arquitectura incluye el campo `platform_family` desde v1 para no bloquear esta extensión futura.
+
+---
+
+## 5b. Supuestos
+
+| # | Supuesto | Impacto si es falso |
+| :--- | :--- | :--- |
+| S1 | El usuario tiene conectividad a internet al escanear componentes con la cámara | El flujo de scan IA no funciona offline; el alta manual sí |
+| S2 | Los componentes electrónicos comunes son visualmente distinguibles por un modelo de visión | Si la precisión es < 50%, el módulo de scan pierde valor y se convierte en fricción |
+| S3 | El catálogo maestro compartido no requiere moderación en v1 | Entradas duplicadas o incorrectas pueden degradar la calidad; monitorear post-launch |
+| S4 | Los makers están dispuestos a registrar componentes uno a uno | Si la barrera de entrada es muy alta, considerar alta masiva (CSV import) |
+| S5 | Supabase Storage es suficiente para imágenes de componentes en v1 | Latencia y límites de almacenamiento gratuito pueden ser un cuello de botella |
+| S6 | Los usuarios interactúan principalmente desde móvil (cámara, QR) | Si el uso es mayoritariamente desktop, repensar la prioridad de PWA y flujos de cámara |
+
+---
+
+## 5c. Riesgos y Mitigaciones
+
+| # | Riesgo | Probabilidad | Impacto | Mitigación |
+| :--- | :--- | :--- | :--- | :--- |
+| R1 | La IA identifica mal >40% de los componentes | Media | Alto — destruye confianza en la feature principal de diferenciación | Lanzar con scan como "beta". Medir precisión real. Si < 60%, priorizar mejora de prompts/modelo antes de push de adopción. Alta manual siempre disponible como fallback. |
+| R2 | Latencia de Supabase Storage inaceptable en móvil para subir fotos | Baja | Medio — degrada UX del flujo de scan | Comprimir imágenes client-side antes de upload. Medir p95 en beta. Evaluar CDN si es necesario. |
+| R3 | Barrera de entrada alta: registrar 50+ componentes uno a uno es tedioso | Alta | Alto — abandono en onboarding | Planificar import CSV como feature Should Have. Priorizar scan IA como acelerador de alta. |
+| R4 | RLS mal configurado expone datos entre usuarios | Baja | Crítico — breach de privacidad | Tests automatizados de RLS en CI. Auditoría manual pre-launch. Zero tolerance: cualquier leak es P0. |
+| R5 | Costos de API de IA escalan con adopción | Media | Medio — márgenes negativos si el scan es muy popular | Implementar rate limiting por usuario (N scans/día en plan free). Monitorear costo por scan. Cachear resultados para componentes ya identificados. |
+| R6 | Comunidad vacía al lanzamiento: nadie publica ni forkea | Alta | Bajo (v1) — la comunidad es Could Have | No lanzar comunidad hasta tener base de proyectos. Considerar seed con proyectos de ejemplo del equipo. |
 
 ---
 
@@ -423,9 +585,9 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 
 ---
 
-## 8. Roadmap Comercial y Estrategia de Plataformas
+## 7. Roadmap Comercial y Estrategia de Plataformas
 
-### 8.1 Fases de producto
+### 7.1 Fases de producto
 
 | Fase | Objetivo | Plataforma | Criterio de salida |
 | :--- | :--- | :--- | :--- |
@@ -433,7 +595,7 @@ El análisis puede incluir: refactorización, detección de bugs potenciales, op
 | **v2 — Crecimiento** | Iterar sobre feedback real y crecer base de usuarios | PWA + mejoras de UX móvil | > 60 % del tráfico desde móvil con fricción documentada |
 | **v3 — Comercial** | Monetizar y escalar | Apps nativas (si se justifica) | Ver criterios en sección 8.2 |
 
-### 8.2 ¿Cuándo vale el esfuerzo de crear apps nativas?
+### 7.2 ¿Cuándo vale el esfuerzo de crear apps nativas?
 
 Las apps nativas (iOS y Android) implican mantener un codebase adicional, ciclos de review en App Store / Google Play y costos de distribución. El esfuerzo se justifica **únicamente** si se cumple al menos uno de estos criterios:
 
@@ -446,7 +608,7 @@ Las apps nativas (iOS y Android) implican mantener un codebase adicional, ciclos
 
 Mientras ninguno de estos criterios esté activo, la PWA cubre el 90 % del caso de uso (cámara, QR, instalación en home screen) con un único codebase y sin fricción de distribución.
 
-### 8.3 Ruta técnica si se llega a apps nativas
+### 7.3 Ruta técnica si se llega a apps nativas
 
 Si los criterios anteriores se activan, la ruta recomendada es **React Native con Expo**, no apps nativas puras (Swift / Kotlin). Esto permite:
 
@@ -457,7 +619,7 @@ Si los criterios anteriores se activan, la ruta recomendada es **React Native co
 
 ---
 
-## 7. Glosario
+## 8. Glosario
 
 | Término | Definición |
 | :--- | :--- |
