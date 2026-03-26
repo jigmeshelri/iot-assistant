@@ -2,20 +2,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import StockAdjuster from '../components/islands/StockAdjuster'
 
-const mockEq = vi.fn().mockResolvedValue({ error: null })
-const mockUpdate = vi.fn(() => ({ eq: mockEq }))
+const mockUpdateStockQuantity = vi.fn().mockResolvedValue(null)
 
 vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    from: vi.fn(() => ({
-      update: mockUpdate,
-    })),
-  }),
+  updateStockQuantity: (...args: unknown[]) => mockUpdateStockQuantity(...args),
 }))
 
 describe('StockAdjuster', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUpdateStockQuantity.mockResolvedValue(null)
   })
 
   it('renders current quantity', () => {
@@ -30,8 +26,7 @@ describe('StockAdjuster', () => {
 
     expect(screen.getByText('4')).toBeInTheDocument()
     await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalledWith({ quantity: 4 })
-      expect(mockEq).toHaveBeenCalledWith('id', 's1')
+      expect(mockUpdateStockQuantity).toHaveBeenCalledWith('s1', 4)
     })
   })
 
@@ -41,7 +36,7 @@ describe('StockAdjuster', () => {
 
     expect(screen.getByText('2')).toBeInTheDocument()
     await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalledWith({ quantity: 2 })
+      expect(mockUpdateStockQuantity).toHaveBeenCalledWith('s1', 2)
     })
   })
 
@@ -55,6 +50,18 @@ describe('StockAdjuster', () => {
     render(<StockAdjuster stockId="s1" initialQuantity={0} />)
     fireEvent.click(screen.getByText('−'))
     expect(screen.getByText('0')).toBeInTheDocument()
-    expect(mockUpdate).not.toHaveBeenCalled()
+    expect(mockUpdateStockQuantity).not.toHaveBeenCalled()
+  })
+
+  it('shows error feedback when supabase update fails', async () => {
+    mockUpdateStockQuantity.mockResolvedValueOnce('Network error')
+    render(<StockAdjuster stockId="s1" initialQuantity={3} />)
+    fireEvent.click(screen.getByText('+'))
+
+    await waitFor(() => {
+      const hasError = screen.queryByText(/error/i)
+      const reverted = screen.queryByText('3')
+      expect(hasError || reverted).toBeTruthy()
+    })
   })
 })

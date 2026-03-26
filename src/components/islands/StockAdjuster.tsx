@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { updateStockQuantity } from '../../lib/supabase'
 
 interface Props {
   stockId: string
@@ -10,17 +10,25 @@ export default function StockAdjuster({ stockId, initialQuantity }: Props) {
   const [quantity, setQuantity] = useState(initialQuantity)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function update(newQty: number) {
     if (newQty < 0) return
+    const previousQty = quantity
     setQuantity(newQty)
     setSaving(true)
     setSaved(false)
+    setError(null)
     try {
-      const supabase = createSupabaseBrowserClient()
-      await supabase.from('stock').update({ quantity: newQty }).eq('id', stockId)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 1500)
+      const errorMessage = await updateStockQuantity(stockId, newQty)
+      if (errorMessage) {
+        setQuantity(previousQty)
+        setError(errorMessage)
+        setTimeout(() => setError(null), 3000)
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 1500)
+      }
     } finally {
       setSaving(false)
     }
@@ -32,6 +40,7 @@ export default function StockAdjuster({ stockId, initialQuantity }: Props) {
         <span className="text-sm font-semibold text-slate-700">Cantidad en stock</span>
         {saving && <span className="text-xs text-slate-400">Guardando...</span>}
         {saved && <span className="text-xs text-teal-600">✓ Guardado</span>}
+        {error && <span className="text-xs text-red-600">Error: {error}</span>}
       </div>
       <div className="flex items-center gap-4">
         <button
