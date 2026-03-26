@@ -23,4 +23,22 @@ test.describe('Auth — AC-4.1, AC-4.3', () => {
     await expect(page).toHaveURL(/\/login/)
     await context.close()
   })
+
+  test('AC-4.1: /projects redirects to login when unauthenticated', async ({ browser }) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto('/projects')
+    await page.waitForURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/)
+    await context.close()
+  })
+
+  test('AC-4.1: /locations redirects to login when unauthenticated', async ({ browser }) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto('/locations')
+    await page.waitForURL(/\/login/)
+    await expect(page).toHaveURL(/\/login/)
+    await context.close()
+  })
 })
