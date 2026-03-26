@@ -43,9 +43,11 @@ test.describe('Layout desktop', () => {
 
   test('menú usuario abre dropdown con "Cerrar sesión"', async ({ page }) => {
     await page.goto('/')
-    await page.locator('#user-menu-btn').click()
+    const menuBtn = page.locator('#user-menu-btn')
+    await expect(menuBtn).toBeVisible()
+    await menuBtn.click()
     await expect(page.locator('#user-menu-dropdown')).toBeVisible()
-    await expect(page.getByText('Cerrar sesión')).toBeVisible()
+    await expect(page.locator('#user-menu-dropdown').getByText('Cerrar sesión')).toBeVisible()
   })
 
   test('topbar tiene 56px de altura', async ({ page }) => {

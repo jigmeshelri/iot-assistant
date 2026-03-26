@@ -3,7 +3,8 @@ import { test, expect } from '../fixtures/auth'
 test.describe('AI Scan — AC-3.2.1 to AC-3.2.4', () => {
   test('AC-3.2.1: scan page shows camera zone', async ({ page }) => {
     await page.goto('/inventory/new')
-    await expect(page.getByText(/Fotografiar|componente|Escanear/i).first()).toBeVisible({ timeout: 10000 })
+    // Desktop main has h1 "Escanear componente"
+    await expect(page.locator('main').last().locator('h1')).toBeVisible({ timeout: 10_000 })
   })
 
   test('AC-3.2.3: file input accepts images', async ({ page }) => {

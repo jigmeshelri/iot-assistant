@@ -1,9 +1,13 @@
 import { test, expect } from '../fixtures/auth'
 
 test.describe('Community — AC-3.6.12 to AC-3.6.17', () => {
+  // Community page only renders content in the default (mobile) slot,
+  // so force a mobile viewport for all tests in this block.
+  test.use({ viewport: { width: 390, height: 844 } })
+
   test('community page loads', async ({ page }) => {
     await page.goto('/community')
-    await expect(page.getByText(/Comunidad/i)).toBeVisible()
+    await expect(page.locator('h1').getByText(/Comunidad/i)).toBeVisible()
   })
 
   test('AC-3.6.17: public projects visible without private data', async ({ page }) => {

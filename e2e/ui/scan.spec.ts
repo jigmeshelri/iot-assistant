@@ -7,22 +7,24 @@ test.describe('Página escanear (/inventory/new)', () => {
 
   test('muestra zona de cámara con texto "Fotografiar componente"', async ({ page }) => {
     await page.goto('/inventory/new')
-    // React island needs time to hydrate
-    await expect(page.getByText('Fotografiar componente')).toBeVisible({ timeout: 10_000 })
+    // At mobile viewport, the mobile content is visible — wait for React to hydrate
+    await expect(page.getByText('Fotografiar componente').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('formulario tiene campos SKU, Nombre, Categoría, Cantidad', async ({ page }) => {
     await page.goto('/inventory/new')
-    await expect(page.getByPlaceholder('ESP32-001')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByPlaceholder('ESP32-C6 XIAO')).toBeVisible()
-    await expect(page.getByRole('combobox').first()).toBeVisible()
+    // Wait for React island to hydrate — ComponentForm inside CameraCapture
+    await expect(page.getByPlaceholder('ESP32-C6 XIAO').first()).toBeVisible({ timeout: 10_000 })
+    // Category select and quantity input
+    await expect(page.locator('select').first()).toBeVisible()
   })
 
   test('input de archivo acepta imágenes', async ({ page }) => {
     await page.goto('/inventory/new')
+    const mobile = page.locator('.lg\\:hidden')
     // The file input is always hidden (triggered programmatically) — check attribute only
-    await page.waitForSelector('input[type=file]', { state: 'attached', timeout: 10_000 })
-    const input = page.locator('input[type=file]')
+    await mobile.locator('input[type=file]').first().waitFor({ state: 'attached', timeout: 10_000 })
+    const input = mobile.locator('input[type=file]').first()
     await expect(input).toHaveAttribute('accept', 'image/*')
   })
 

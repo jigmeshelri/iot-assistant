@@ -1,4 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+
+// Load .env.test so auth fixture and seed helpers have env vars
+for (const line of readFileSync('.env.test', 'utf-8').split('\n')) {
+  const match = line.match(/^([^#=]+)=(.*)$/)
+  if (match) process.env[match[1].trim()] ??= match[2].trim()
+}
 
 export default defineConfig({
   testDir: './e2e',

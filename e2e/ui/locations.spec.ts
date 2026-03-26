@@ -1,9 +1,13 @@
 import { test, expect } from '../fixtures/auth'
 
 test.describe('Locations — AC-3.3.1 to AC-3.3.6', () => {
+  // Locations page only renders content in the default (mobile) slot,
+  // so force a mobile viewport for all tests in this block.
+  test.use({ viewport: { width: 390, height: 844 } })
+
   test('AC-3.3.1: locations page shows tree', async ({ page }) => {
     await page.goto('/locations')
-    await expect(page.getByText(/Ubicaciones|ubicación/i)).toBeVisible()
+    await expect(page.locator('h1').getByText(/Ubicaciones/i)).toBeVisible()
   })
 
   test('AC-3.3.1: create root location', async ({ page }) => {
