@@ -280,3 +280,44 @@ describe('CodeResources — Default env from project type (AC-3.7.3)', () => {
     expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
   })
 })
+
+describe('CodeResources — Descarga de archivo (AC-3.7.2)', () => {
+  const resourceWithCode = {
+    id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+    language: 'cpp', environment: 'arduino', content: '#include <Arduino.h>\nvoid setup() {}',
+    version: 1, parent_id: null, is_generated: true,
+    created_at: new Date().toISOString(),
+  }
+
+  it('crea un Blob con el contenido del archivo y dispara la descarga', async () => {
+    const mockObjectUrl = 'blob:http://localhost/fake-url'
+    const mockCreateObjectURL = vi.fn().mockReturnValue(mockObjectUrl)
+    const mockRevokeObjectURL = vi.fn()
+    const mockClick = vi.fn()
+
+    globalThis.URL.createObjectURL = mockCreateObjectURL
+    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
+
+    const mockAnchor = { href: '', download: '', click: mockClick }
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'a') return mockAnchor as unknown as HTMLElement
+      return originalCreateElement(tag)
+    })
+
+    render(<CodeResources {...defaultProps} initialResources={[resourceWithCode]} />)
+
+    fireEvent.click(screen.getByTitle('Descargar'))
+
+    expect(mockCreateObjectURL).toHaveBeenCalledOnce()
+    const blob = mockCreateObjectURL.mock.calls[0][0] as Blob
+    expect(blob).toBeInstanceOf(Blob)
+
+    expect(mockAnchor.download).toBe('main.ino')
+    expect(mockAnchor.href).toBe(mockObjectUrl)
+    expect(mockClick).toHaveBeenCalledOnce()
+    expect(mockRevokeObjectURL).toHaveBeenCalledWith(mockObjectUrl)
+
+    createElementSpy.mockRestore()
+  })
+})
