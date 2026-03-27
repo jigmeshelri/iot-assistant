@@ -248,3 +248,35 @@ describe('CodeResources — Modo Analizar', () => {
     expect(screen.getByText(/legibilidad/i)).toBeInTheDocument()
   })
 })
+
+describe('CodeResources — Default env from project type (AC-3.7.3)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('defaults to arduino env when projectType is arduino', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="arduino" />)
+    expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
+  })
+
+  it('defaults to esphome env when projectType is esphome', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="esphome" />)
+    expect(screen.getByDisplayValue('esphome')).toBeInTheDocument()
+  })
+
+  it('defaults to micropython env when projectType is micropython', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="micropython" />)
+    expect(screen.getByDisplayValue('micropython')).toBeInTheDocument()
+  })
+
+  it('falls back to arduino for unknown project type', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="unknown-type" />)
+    expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
+  })
+})

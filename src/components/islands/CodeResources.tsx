@@ -27,6 +27,12 @@ function ImprovementBadges({ explanation }: { explanation: string }) {
 }
 
 const ENVIRONMENTS = ['arduino','platformio','esp-idf','zephyr','rust','esphome','micropython'] as const
+const PROJECT_TYPE_ENV: Record<string, string> = {
+  arduino: 'arduino',
+  esphome: 'esphome',
+  micropython: 'micropython',
+  platformio: 'platformio',
+}
 const ANALYZE_MODES = [
   { value: 'review',   label: 'Revisar bugs' },
   { value: 'optimize', label: 'Optimizar' },
@@ -52,7 +58,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
   const [explanation, setExplanation] = useState('')
 
   // Generate mode state
-  const [env, setEnv]   = useState('arduino')
+  const [env, setEnv]   = useState(PROJECT_TYPE_ENV[projectType] ?? 'arduino')
   const [mode, setMode] = useState('skeleton')
 
   // Analyze mode state
