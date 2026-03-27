@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { updateProjectField, deleteProject } from '../../lib/projects'
 
 interface Props {
   projectId: string
@@ -108,8 +108,7 @@ export default function ProjectHeader({
       return
     }
     setTitleError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ title: trimmed }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { title: trimmed })
     if (error) {
       setTitleError('Error al guardar título')
       return
@@ -133,8 +132,7 @@ export default function ProjectHeader({
       return
     }
     setDescError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ description: trimmed }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { description: trimmed })
     if (error) {
       setDescError('Error al guardar descripción')
       return
@@ -143,10 +141,16 @@ export default function ProjectHeader({
     flashSaved(setDescSaved)
   }
 
+  function handleDescriptionKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setDescription(initialDescription)
+      setEditingDescription(false)
+    }
+  }
+
   async function changeStatus(newStatus: string) {
     setStatusError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ status: newStatus }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { status: newStatus })
     if (error) {
       setStatusError('Error al cambiar estado')
       return
@@ -157,8 +161,7 @@ export default function ProjectHeader({
   async function saveProgress(value: number) {
     setProgress(value)
     setProgressError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ progress: value }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { progress: value })
     if (error) {
       setProgressError('Error al guardar progreso')
       return
@@ -169,8 +172,7 @@ export default function ProjectHeader({
   async function handleDelete() {
     if (!window.confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
     setDeleteError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').delete().eq('id', projectId)
+    const { error } = await deleteProject(projectId)
     if (error) {
       setDeleteError('Error al eliminar proyecto')
       return
@@ -245,6 +247,7 @@ export default function ProjectHeader({
             value={description}
             onChange={e => setDescription(e.target.value)}
             onBlur={saveDescription}
+            onKeyDown={handleDescriptionKeyDown}
             rows={3}
             className="w-full text-sm text-slate-600 bg-transparent border border-brand-300 rounded-lg p-2 outline-none focus:border-brand-500 resize-none leading-relaxed"
           />
