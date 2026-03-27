@@ -74,6 +74,12 @@ export default function CameraCapture() {
         </div>
       )}
 
+      {prefill && !loading && Number(prefill.confidence) < 0.7 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-700">
+          ⚠️ La IA no está segura de esta identificación. Revisá los datos antes de guardar.
+        </div>
+      )}
+
       <ComponentForm prefill={prefill ?? undefined} />
     </div>
   )
