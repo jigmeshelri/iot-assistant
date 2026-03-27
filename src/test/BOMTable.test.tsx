@@ -21,6 +21,7 @@ const bomItems = [
   { id: 'b1', component_name: 'ESP32-C6', quantity_required: 1, state: 'available' as const, notes: null, component: { name: 'ESP32-C6' } },
   { id: 'b2', component_name: 'DHT22', quantity_required: 2, state: 'missing' as const, notes: 'Necesario', component: null },
   { id: 'b3', component_name: 'BMP280', quantity_required: 1, state: 'partial' as const, notes: null, component: null },
+  { id: 'b4', component_name: 'NRF24L01', quantity_required: 1, state: 'incompatible' as const, notes: null, component: null },
 ]
 
 beforeEach(() => {
@@ -98,6 +99,9 @@ describe('BOMTable', () => {
 
     const partialBadge = screen.getByText('Parcial')
     expect(partialBadge.className).toContain('text-amber-700')
+
+    const incompatibleBadge = screen.getByText('Incompatible')
+    expect(incompatibleBadge.className).toContain('text-orange-700')
   })
 
   it('empty BOM shows add button in editable mode', () => {
