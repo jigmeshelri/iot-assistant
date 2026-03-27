@@ -3,15 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LocationTree from '../components/islands/LocationTree'
 
-const mockInsert = vi.fn().mockResolvedValue({ error: null })
+const mockInsertLocation = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
-    from: vi.fn(() => ({
-      insert: mockInsert,
-    })),
-  }),
+vi.mock('../lib/locations', () => ({
+  insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
 }))
 
 Object.defineProperty(window, 'location', {
@@ -59,9 +54,7 @@ describe('LocationTree', () => {
     await user.type(input, 'Bodega')
     await user.click(screen.getByRole('button', { name: 'Crear' }))
 
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 'u1', name: 'Bodega' }),
-    )
+    expect(mockInsertLocation).toHaveBeenCalledWith('Bodega')
   })
 
   describe('sub-location creation (AC-3.3.2)', () => {

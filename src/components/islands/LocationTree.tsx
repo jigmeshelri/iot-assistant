@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { insertLocation } from '../../lib/locations'
 
 interface Location {
   id: string
@@ -36,10 +36,7 @@ function TreeNode({ loc, tree, stockCounts, depth = 0 }: { loc: Location; tree: 
     if (!newChildName.trim()) return
     setCreatingChild(true)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      await supabase.from('locations').insert({ user_id: user.id, name: newChildName.trim(), parent_id: loc.id })
+      await insertLocation(newChildName, loc.id)
       window.location.reload()
     } finally {
       setCreatingChild(false)
@@ -112,10 +109,7 @@ export default function LocationTree({ locations, stockCounts }: Props) {
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      await supabase.from('locations').insert({ user_id: user.id, name: newName.trim() })
+      await insertLocation(newName)
       window.location.reload()
     } finally {
       setCreating(false)
@@ -126,7 +120,15 @@ export default function LocationTree({ locations, stockCounts }: Props) {
     <div className="space-y-2">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {roots.length === 0 ? (
-          <p className="text-sm text-slate-400 p-4 text-center">Sin ubicaciones raíz</p>
+          <div className="p-6 text-center">
+            <p className="text-sm text-slate-400 mb-4">No tenés ubicaciones creadas todavía.</p>
+            <button
+              onClick={() => setShowNew(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 transition-colors"
+            >
+              Crear primera ubicación
+            </button>
+          </div>
         ) : (
           <div className="p-2">
             {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
