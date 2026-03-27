@@ -72,9 +72,7 @@ describe('LocationTree', () => {
       await user.type(input, 'Estante A')
       await user.click(screen.getByRole('button', { name: 'Crear' }))
 
-      expect(mockInsert).toHaveBeenCalledWith(
-        expect.objectContaining({ user_id: 'u1', name: 'Estante A', parent_id: 'l1' }),
-      )
+      expect(mockInsertLocation).toHaveBeenCalledWith('Estante A', 'l1')
     })
 
     it('does not submit when sub-location name is empty', async () => {
@@ -87,7 +85,7 @@ describe('LocationTree', () => {
       // Submit with empty input
       await user.click(screen.getByRole('button', { name: 'Crear' }))
 
-      expect(mockInsert).not.toHaveBeenCalled()
+      expect(mockInsertLocation).not.toHaveBeenCalled()
     })
   })
 })
