@@ -1,8 +1,30 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { generateCode, analyzeCode } from '../../lib/api'
 import type { SavedCodeResource } from '../../lib/codeResources'
-import { localMaxVersion } from '../../lib/codeResources'
+import { localMaxVersion, getAuthToken, saveCodeResource, deleteCodeResource } from '../../lib/codeResources'
+
+const IMPROVEMENT_KEYWORDS: { pattern: RegExp; label: string; color: string }[] = [
+  { pattern: /performance|rendimiento/i,  label: 'rendimiento', color: 'bg-blue-100 text-blue-700' },
+  { pattern: /security|seguridad/i,       label: 'seguridad',   color: 'bg-red-100 text-red-700' },
+  { pattern: /readability|legibilidad/i,  label: 'legibilidad', color: 'bg-green-100 text-green-700' },
+  { pattern: /bug|error/i,                label: 'bug potencial', color: 'bg-orange-100 text-orange-700' },
+  { pattern: /style|estilo/i,             label: 'estilo',      color: 'bg-purple-100 text-purple-700' },
+  { pattern: /optimization|optimización/i, label: 'optimización', color: 'bg-teal-100 text-teal-700' },
+]
+
+function ImprovementBadges({ explanation }: { explanation: string }) {
+  const found = IMPROVEMENT_KEYWORDS.filter(k => k.pattern.test(explanation))
+  if (found.length === 0) return null
+  return (
+    <div className="flex flex-wrap gap-1 mb-2">
+      {found.map(k => (
+        <span key={k.label} className={`text-xs font-medium px-2 py-0.5 rounded-full ${k.color}`}>
+          {k.label}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 const ENVIRONMENTS = ['arduino','platformio','esp-idf','zephyr','rust','esphome','micropython'] as const
 const ANALYZE_MODES = [
@@ -54,57 +76,11 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
     return msg
   }
 
-  async function getSupabaseToken(): Promise<string> {
-    const supabase = createSupabaseBrowserClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('Not authenticated')
-    return session.access_token
-  }
-
-  async function fetchMaxVersion(filename: string): Promise<number> {
-    const supabase = createSupabaseBrowserClient()
-    const { data } = await supabase
-      .from('project_code_resources')
-      .select('version')
-      .eq('project_id', projectId)
-      .eq('filename', filename)
-    if (!data || data.length === 0) return 0
-    return Math.max(...data.map((r: { version: number }) => r.version))
-  }
-
-  async function saveResource(
-    opts: { filename: string; language: string; environment: string | null; content: string; isGenerated: boolean; parentId: string | null }
-  ): Promise<SavedCodeResource> {
-    const supabase = createSupabaseBrowserClient()
-    let version = (await fetchMaxVersion(opts.filename)) + 1
-    let attempt = 0
-    while (attempt < 3) {
-      const { data, error: err } = await supabase
-        .from('project_code_resources')
-        .insert({
-          project_id: projectId,
-          filename: opts.filename,
-          language: opts.language,
-          environment: opts.environment,
-          content: opts.content,
-          version,
-          parent_id: opts.parentId,
-          is_generated: opts.isGenerated,
-        })
-        .select()
-        .single()
-      if (!err && data) return data as SavedCodeResource
-      if (err?.code === '23505') { version++; attempt++; continue }
-      throw new Error(err?.message ?? 'Error guardando recurso')
-    }
-    throw new Error('Conflicto de versión — demasiados reintentos')
-  }
-
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError(''); setExplanation('')
     try {
-      const token = await getSupabaseToken()
+      const token = await getAuthToken()
       const result = await generateCode({ project_type: projectType ?? 'diy', environment: env, bom, project_title: projectTitle, mode }, token)
       const newResources: SavedCodeResource[] = []
       for (const r of result.resources) {
@@ -116,7 +92,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
         const parentId = currentMax > 0
           ? (resources.find(x => x.filename === r.filename && x.version === currentMax)?.id ?? null)
           : null
-        const saved = await saveResource({ filename: r.filename, language: r.language, environment: env, content: r.content, isGenerated: true, parentId })
+        const saved = await saveCodeResource(projectId, { filename: r.filename, language: r.language, environment: env, content: r.content, isGenerated: true, parentId })
         newResources.push(saved)
       }
       setResources(prev => {
@@ -138,7 +114,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
     e.preventDefault()
     setLoading(true); setError(''); setExplanation('')
     try {
-      const token = await getSupabaseToken()
+      const token = await getAuthToken()
       let code = '', language = 'cpp', environment: string | null = null, filename = '', sourceId: string | null = null
       if (analyzeSource === 'existing' && selectedResourceId) {
         const src = resources.find(r => r.id === selectedResourceId)
@@ -150,7 +126,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
       }
       const result = await analyzeCode({ code, language, environment: environment ?? undefined, mode: analyzeMode, project_type: projectType ?? 'diy' }, token)
       setExplanation(result.explanation)
-      const saved = await saveResource({ filename, language, environment, content: result.improved_code, isGenerated: false, parentId: sourceId })
+      const saved = await saveCodeResource(projectId, { filename, language, environment, content: result.improved_code, isGenerated: false, parentId: sourceId })
       setResources(prev => [...prev, saved])
     } catch (err: unknown) {
       setError(friendlyError(err instanceof Error ? err.message : 'Error desconocido'))
@@ -160,16 +136,12 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
   }
 
   async function handleDelete(resource: SavedCodeResource) {
-    const supabase = createSupabaseBrowserClient()
     // Optimistic update
     setResources(prev => prev.filter(r => r.id !== resource.id))
     setDeleteConfirm(null)
-    const { error: err } = await supabase
-      .from('project_code_resources')
-      .delete()
-      .eq('id', resource.id)
-      .eq('project_id', projectId)
-    if (err) {
+    try {
+      await deleteCodeResource(projectId, resource.id)
+    } catch {
       // Revert
       setResources(prev => [...prev, resource].sort((a, b) => a.version - b.version))
       setError(`No se pudo eliminar ${resource.filename} v${resource.version}`)
@@ -306,6 +278,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
             <span className="text-xs font-semibold text-amber-800">Resultado del análisis</span>
             <button onClick={() => setExplanation('')} className="text-xs text-amber-600 hover:text-amber-800">✕</button>
           </div>
+          <ImprovementBadges explanation={explanation} />
           <div className="text-xs text-amber-900 whitespace-pre-wrap">{explanation}</div>
         </div>
       )}

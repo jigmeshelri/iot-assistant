@@ -186,4 +186,65 @@ describe('CodeResources — Modo Analizar', () => {
       expect(vi.mocked(analyzeCode)).toHaveBeenCalled()
     })
   })
+
+  // AC-3.7.4: analysis result displays explanation
+  it('muestra el resultado del análisis tras enviar', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+
+    const resources = [{
+      id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+      language: 'cpp', environment: 'arduino', content: '// v1',
+      version: 1, parent_id: null, is_generated: true,
+      created_at: new Date().toISOString(),
+    }]
+
+    render(<CodeResources {...defaultProps} initialResources={resources} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Analizar/i }))
+
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'r1' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /🔍 Analizar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Resultado del análisis/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Fix the bug/i)).toBeInTheDocument()
+  })
+
+  // AC-3.7.5: improvement type badges parsed from explanation text
+  it('muestra badges de tipo de mejora extraídos del texto del análisis', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    const { analyzeCode } = await import('../lib/api')
+    vi.mocked(analyzeCode).mockResolvedValueOnce({
+      explanation: 'Performance: use faster algorithm\nSecurity: sanitize inputs\nReadability: rename variables',
+      improved_code: '// improved',
+    })
+
+    const resources = [{
+      id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+      language: 'cpp', environment: 'arduino', content: '// v1',
+      version: 1, parent_id: null, is_generated: true,
+      created_at: new Date().toISOString(),
+    }]
+
+    render(<CodeResources {...defaultProps} initialResources={resources} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Analizar/i }))
+
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'r1' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /🔍 Analizar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Resultado del análisis/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/rendimiento/i)).toBeInTheDocument()
+    expect(screen.getByText(/seguridad/i)).toBeInTheDocument()
+    expect(screen.getByText(/legibilidad/i)).toBeInTheDocument()
+  })
 })
