@@ -9,6 +9,7 @@ const mockSingle = vi.fn().mockResolvedValue({
 })
 const mockInsert = vi.fn().mockResolvedValue({ error: null })
 const mockLike   = vi.fn().mockResolvedValue({ data: [], error: null })
+const mockUpsert = vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
@@ -18,7 +19,7 @@ vi.mock('../lib/supabase', () => ({
     from: vi.fn((table: string) => {
       if (table === 'components') {
         return {
-          upsert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
+          upsert: mockUpsert,
           select: vi.fn(() => ({ like: mockLike })),
         }
       }
@@ -62,6 +63,7 @@ describe('ComponentForm — renderizado básico', () => {
     })
     mockInsert.mockResolvedValue({ error: null })
     mockLike.mockResolvedValue({ data: [], error: null })
+    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
   })
 
   it('renderiza los 6 campos del formulario', () => {
@@ -91,6 +93,7 @@ describe('ComponentForm — auto-generación de SKU', () => {
     mockLike.mockResolvedValue({ data: [], error: null })
     mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
     mockInsert.mockResolvedValue({ error: null })
+    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
   })
 
   it('pre-rellena MCU-001 al cargar con categoría Microcontrolador', async () => {
@@ -122,6 +125,7 @@ describe('ComponentForm — prefill y submit', () => {
     mockLike.mockResolvedValue({ data: [], error: null })
     mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
     mockInsert.mockResolvedValue({ error: null })
+    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
   })
 
   it('prefill rellena nombre, categoría y plataforma', () => {
@@ -138,6 +142,72 @@ describe('ComponentForm — prefill y submit', () => {
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
     await waitFor(() => {
       expect(screen.getByText('¡Componente añadido!')).toBeInTheDocument()
+    })
+  })
+})
+
+// AC-4.6: Catalog master enrichment via AI scan confirm
+describe('ComponentForm — AC-4.6: enriquecimiento del catálogo maestro', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockLike.mockResolvedValue({ data: [], error: null })
+    mockSingle.mockResolvedValue({
+      data: { id: 'catalog-id-123', sku: 'MOD-001', name: 'SX1276 LoRa Module' },
+      error: null,
+    })
+    mockInsert.mockResolvedValue({ error: null })
+    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
+  })
+
+  it('upserta en la tabla components al confirmar el formulario (enrichment)', async () => {
+    render(
+      <ComponentForm
+        prefill={{
+          name: 'SX1276 LoRa Module',
+          category: 'Módulo',
+          platform_family: 'ESP32',
+        }}
+      />,
+    )
+
+    fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => {
+      expect(mockUpsert).toHaveBeenCalledOnce()
+      const [payload, options] = mockUpsert.mock.calls[0]
+      expect(payload).toMatchObject({ name: 'SX1276 LoRa Module', category: 'Módulo' })
+      expect(options).toEqual({ onConflict: 'sku' })
+    })
+  })
+
+  it('el stock insert referencia el id del componente del catálogo', async () => {
+    render(
+      <ComponentForm
+        prefill={{
+          name: 'SX1276 LoRa Module',
+          category: 'Módulo',
+        }}
+      />,
+    )
+
+    fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => {
+      expect(mockInsert).toHaveBeenCalledOnce()
+      const [stockPayload] = mockInsert.mock.calls[0]
+      expect(stockPayload).toMatchObject({ component_id: 'catalog-id-123', user_id: 'test-user-id' })
+    })
+  })
+
+  it('el upsert usa onConflict sku para evitar duplicados', async () => {
+    render(<ComponentForm prefill={{ name: 'ESP32-C6', category: 'Microcontrolador' }} />)
+
+    fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => {
+      expect(mockUpsert).toHaveBeenCalledOnce()
+      const [, options] = mockUpsert.mock.calls[0]
+      expect(options).toEqual({ onConflict: 'sku' })
     })
   })
 })
