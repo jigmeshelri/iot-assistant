@@ -77,4 +77,51 @@ describe('LogTimeline', () => {
       expect(screen.getByText('Nueva entrada')).toBeInTheDocument()
     })
   })
+
+  it('shows public indicator on entries marked as public', () => {
+    render(<LogTimeline projectId="p1" initialEntries={sampleEntries} />)
+    expect(screen.getByText('🌍 Público')).toBeInTheDocument()
+  })
+
+  it('does not show public indicator on private entries', () => {
+    const privateEntries = [
+      { id: 'e3', content: 'Entrada privada', tag: 'progress' as const, is_public: false, created_at: '2026-03-22T10:00:00Z' },
+    ]
+    render(<LogTimeline projectId="p1" initialEntries={privateEntries} />)
+    expect(screen.queryByText('🌍 Público')).not.toBeInTheDocument()
+  })
+
+  it('form has public toggle checkbox unchecked by default', () => {
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it('can toggle public checkbox in the form', () => {
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    const checkbox = screen.getByRole('checkbox')
+    fireEvent.click(checkbox)
+    expect(checkbox).toBeChecked()
+    fireEvent.click(checkbox)
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it('submits entry with is_public true when checkbox is checked', async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: { id: 'log-public', content: 'Entrada pública', tag: 'progress', is_public: true, created_at: '2026-03-25T12:00:00Z' },
+      error: null,
+    })
+
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    fireEvent.change(screen.getByPlaceholderText(/Qué hiciste/), { target: { value: 'Entrada pública' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByText('Guardar'))
+
+    await waitFor(() => {
+      expect(screen.getByText('🌍 Público')).toBeInTheDocument()
+    })
+  })
 })

@@ -122,4 +122,40 @@ describe('CameraCapture', () => {
       expect(nameInput).toBeInTheDocument()
     })
   })
+
+  it('muestra warning cuando la confianza de la IA es baja (AC-3.2.2)', async () => {
+    const { recognizeComponent } = await import('../lib/api')
+    vi.mocked(recognizeComponent).mockResolvedValueOnce({
+      name: 'Componente desconocido',
+      category: 'Otro',
+      confidence: 0.45,
+      platform_family: null,
+      connectivity_caps: {},
+      technical_specs: {},
+      datasheet_url: null,
+      notes: null,
+    })
+
+    render(<CameraCapture />)
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['fake'], 'unknown.jpg', { type: 'image/jpeg' })
+    await userEvent.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByText(/La IA no está segura de esta identificación/)).toBeInTheDocument()
+    })
+  })
+
+  it('no muestra warning cuando la confianza de la IA es alta (AC-3.2.2)', async () => {
+    render(<CameraCapture />)
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['fake'], 'esp32.jpg', { type: 'image/jpeg' })
+    await userEvent.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Componente identificado/)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/La IA no está segura de esta identificación/)).not.toBeInTheDocument()
+  })
 })

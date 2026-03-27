@@ -37,3 +37,4 @@ coverage/
 .vercel
 .npmrc
 .worktrees/
+.remember/

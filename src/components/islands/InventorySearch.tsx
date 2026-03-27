@@ -130,7 +130,21 @@ function CategoryChips({ activeCategory, setActiveCategory, className }: { activ
   )
 }
 
-function MobileView({ filtered, query, setQuery, activeCategory, setActiveCategory }: ViewProps) {
+function MobileView({ items, filtered, query, setQuery, activeCategory, setActiveCategory }: ViewProps) {
+  if (items.length === 0) {
+    return (
+      <div className="bg-white min-h-full flex flex-col items-center justify-center px-8 py-16 text-center">
+        <p className="text-slate-500 text-sm mb-4">No tenés componentes en tu inventario todavía.</p>
+        <a
+          href="/inventory/new"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors"
+        >
+          Añadir primer componente
+        </a>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white min-h-full">
       <div className="px-5 pt-3 pb-3 bg-white sticky top-0 z-10">
