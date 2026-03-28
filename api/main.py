@@ -107,7 +107,7 @@ class StockItem(BaseModel):
 class BOMItem(BaseModel):
     component_name: str
     quantity_required: int
-    state: str  # available | partial | missing | incompatible
+    state: str = "available"  # available | partial | missing | incompatible
     available_quantity: int = 0
     alternatives: list[str] = []
     notes: str | None = None
