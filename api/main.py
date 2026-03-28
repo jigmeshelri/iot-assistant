@@ -203,6 +203,21 @@ def _extract_json(text: str) -> str:
     return match.group(1).strip() if match else text
 
 
+def _parse_ai_json(text: str) -> dict:
+    """Parse AI response as JSON, with json-repair as fallback for malformed output."""
+    from json_repair import repair_json
+
+    cleaned = _extract_json(text)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        logger.warning("json.loads failed, attempting json-repair")
+        repaired = repair_json(cleaned, return_objects=True)
+        if isinstance(repaired, dict):
+            return repaired
+        raise
+
+
 def _anthropic_client() -> anthropic.Anthropic:
     if not settings.anthropic_api_key:
         raise HTTPException(status_code=503, detail="AI provider not configured")
@@ -271,7 +286,7 @@ async def recognize_component(
 
     raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(raw))
+        data = _parse_ai_json(raw)
         return RecognizeResponse(**data)
     except (json.JSONDecodeError, KeyError, Exception) as exc:
         logger.error("recognize parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
@@ -315,7 +330,7 @@ async def discover_projects(
 
     raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(raw))
+        data = _parse_ai_json(raw)
         suggestions = [ProjectSuggestion(**s) for s in data["suggestions"]]
         suggestions.sort(key=lambda s: s.viability_pct, reverse=True)
         return DiscoverResponse(suggestions=suggestions[:5])
@@ -367,7 +382,7 @@ async def plan_project(
 
     raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(raw))
+        data = _parse_ai_json(raw)
         return PlanResponse(**data)
     except (json.JSONDecodeError, KeyError, Exception) as exc:
         logger.error("plan parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
@@ -407,7 +422,7 @@ async def generate_code(
 
     raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(raw))
+        data = _parse_ai_json(raw)
         return CodeGenerateResponse(resources=[CodeResource(**r) for r in data["resources"]])
     except (json.JSONDecodeError, KeyError, Exception) as exc:
         logger.error("code/generate parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
@@ -461,7 +476,7 @@ async def analyze_code(
 
     raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(raw))
+        data = _parse_ai_json(raw)
         return CodeAnalyzeResponse(
             explanation=data["explanation"],
             improved_code=data["improved_code"],
