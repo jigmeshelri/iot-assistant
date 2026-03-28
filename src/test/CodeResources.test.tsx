@@ -104,6 +104,16 @@ describe('CodeResources — Errores', () => {
       expect(screen.getByText(/oficina sin teléfono/i)).toBeInTheDocument()
     })
   })
+
+  it('muestra mensaje divertido en error 422', async () => {
+    const { generateCode } = await import('../lib/api')
+    vi.mocked(generateCode).mockRejectedValueOnce(new Error('API 422: validation error'))
+    render(<CodeResources {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /✨ Generar/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/no nos estamos entendiendo/i)).toBeInTheDocument()
+    })
+  })
 })
 
 describe('CodeResources — Lista y versiones', () => {
