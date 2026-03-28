@@ -3,9 +3,12 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
 import re
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger("iot-assistant")
 
 import anthropic
 import httpx
@@ -266,10 +269,12 @@ async def recognize_component(
         }],
     )
 
+    raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(message.content[0].text))
+        data = json.loads(_extract_json(raw))
         return RecognizeResponse(**data)
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (json.JSONDecodeError, KeyError, Exception) as exc:
+        logger.error("recognize parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
 
@@ -308,12 +313,14 @@ async def discover_projects(
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(message.content[0].text))
+        data = json.loads(_extract_json(raw))
         suggestions = [ProjectSuggestion(**s) for s in data["suggestions"]]
         suggestions.sort(key=lambda s: s.viability_pct, reverse=True)
         return DiscoverResponse(suggestions=suggestions[:5])
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (json.JSONDecodeError, KeyError, Exception) as exc:
+        logger.error("discover parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
 
@@ -358,10 +365,12 @@ async def plan_project(
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(message.content[0].text))
+        data = json.loads(_extract_json(raw))
         return PlanResponse(**data)
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (json.JSONDecodeError, KeyError, Exception) as exc:
+        logger.error("plan parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
 
@@ -396,10 +405,12 @@ async def generate_code(
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(message.content[0].text))
+        data = json.loads(_extract_json(raw))
         return CodeGenerateResponse(resources=[CodeResource(**r) for r in data["resources"]])
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (json.JSONDecodeError, KeyError, Exception) as exc:
+        logger.error("code/generate parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
 
@@ -448,13 +459,15 @@ async def analyze_code(
         messages=[{"role": "user", "content": prompt}],
     )
 
+    raw = message.content[0].text
     try:
-        data = json.loads(_extract_json(message.content[0].text))
+        data = json.loads(_extract_json(raw))
         return CodeAnalyzeResponse(
             explanation=data["explanation"],
             improved_code=data["improved_code"],
         )
-    except (json.JSONDecodeError, KeyError) as exc:
+    except (json.JSONDecodeError, KeyError, Exception) as exc:
+        logger.error("analyze parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
 
