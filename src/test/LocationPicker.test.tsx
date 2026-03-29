@@ -3,36 +3,22 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LocationPicker from '../components/islands/LocationPicker'
 
-const mockInsert = vi.fn()
-const mockFrom = vi.fn()
+const mockFetchLocations = vi.fn()
+const mockCreateLocation = vi.fn()
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
-    from: mockFrom,
-  }),
+vi.mock('../lib/locations', () => ({
+  fetchLocations: (...args: unknown[]) => mockFetchLocations(...args),
+  createLocation: (...args: unknown[]) => mockCreateLocation(...args),
 }))
 
-function makeFromWithLocations(locations: { id: string; name: string; parent_id: string | null }[]) {
-  return (table: string) => {
-    if (table === 'locations') {
-      return {
-        select: vi.fn(() => ({
-          order: vi.fn().mockResolvedValue({ data: locations, error: null }),
-        })),
-        insert: mockInsert,
-      }
-    }
-    return {}
-  }
-}
+const defaultLocations = [
+  { id: 'l1', name: 'Taller', parent_id: null },
+  { id: 'l2', name: 'Rack', parent_id: 'l1' },
+]
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockFrom.mockImplementation(makeFromWithLocations([
-    { id: 'l1', name: 'Taller', parent_id: null },
-    { id: 'l2', name: 'Rack', parent_id: 'l1' },
-  ]))
+  mockFetchLocations.mockResolvedValue(defaultLocations)
 })
 
 describe('LocationPicker', () => {
@@ -113,7 +99,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
   })
 
   it('AC-7.1.1: shows "+ Nueva ubicación" button when no locations exist', async () => {
-    mockFrom.mockImplementation(makeFromWithLocations([]))
+    mockFetchLocations.mockResolvedValue([])
     const user = userEvent.setup()
     render(<LocationPicker value={null} onChange={vi.fn()} />)
 
@@ -141,7 +127,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
 
   it('AC-7.1.3: confirming name creates location and calls onChange with new ID', async () => {
     const newId = 'l-new'
-    mockInsert.mockResolvedValue({ data: [{ id: newId, name: 'Nuevo lugar', parent_id: null }], error: null })
+    mockCreateLocation.mockResolvedValue(newId)
 
     const onChange = vi.fn()
     const user = userEvent.setup()
@@ -157,9 +143,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Nuevo lugar' })
-      )
+      expect(mockCreateLocation).toHaveBeenCalledWith('Nuevo lugar')
     })
     expect(onChange).toHaveBeenCalledWith(newId)
   })
@@ -178,7 +162,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Escape}')
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockCreateLocation).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -196,6 +180,6 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.click(screen.getByRole('button', { name: /cancelar/i }))
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockCreateLocation).not.toHaveBeenCalled()
   })
 })
