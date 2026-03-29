@@ -61,11 +61,11 @@ test.describe('Layout desktop', () => {
 test.describe('Layout móvil', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('bottom nav visible con 4 tabs', async ({ page }) => {
+  test('bottom nav visible con 5 tabs', async ({ page }) => {
     await page.goto('/')
     const nav = page.locator('nav.fixed')
     await expect(nav).toBeVisible()
-    await expect(nav.locator('a')).toHaveCount(4)
+    await expect(nav.locator('a')).toHaveCount(5)
   })
 
   test('sidebar oculto', async ({ page }) => {
