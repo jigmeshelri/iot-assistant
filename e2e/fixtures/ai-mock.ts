@@ -193,7 +193,7 @@ export type LowConfidenceAiMockFixture = {
 // Helper: wire all AI routes on the given page
 // ---------------------------------------------------------------------------
 
-async function wireAiRoutes(
+export async function wireAiRoutesForPage(
   page: import('@playwright/test').Page,
   confidence: number,
 ) {
@@ -250,7 +250,7 @@ async function wireAiRoutes(
  */
 export const aiMock = base.extend<AiMockFixture>({
   aiMock: async ({ page }, use) => {
-    await wireAiRoutes(page, 0.95)
+    await wireAiRoutesForPage(page, 0.95)
     await use()
   },
 })
@@ -261,7 +261,7 @@ export const aiMock = base.extend<AiMockFixture>({
  */
 export const lowConfidenceAiMock = base.extend<LowConfidenceAiMockFixture>({
   lowConfidenceAiMock: async ({ page }, use) => {
-    await wireAiRoutes(page, 0.45)
+    await wireAiRoutesForPage(page, 0.45)
     await use()
   },
 })
