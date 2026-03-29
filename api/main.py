@@ -163,9 +163,9 @@ class CodeGenerateRequest(BaseModel):
 
 class CodeResource(BaseModel):
     filename: str
-    language: str
+    language: str = "cpp"
     content: str
-    explanation: str
+    explanation: str = ""
     dependencies: list[str] = []
 
 
@@ -288,7 +288,7 @@ async def recognize_component(
     try:
         data = _parse_ai_json(raw)
         return RecognizeResponse(**data)
-    except (json.JSONDecodeError, KeyError, Exception) as exc:
+    except Exception as exc:
         logger.error("recognize parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
@@ -334,7 +334,7 @@ async def discover_projects(
         suggestions = [ProjectSuggestion(**s) for s in data["suggestions"]]
         suggestions.sort(key=lambda s: s.viability_pct, reverse=True)
         return DiscoverResponse(suggestions=suggestions[:5])
-    except (json.JSONDecodeError, KeyError, Exception) as exc:
+    except Exception as exc:
         logger.error("discover parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
@@ -384,7 +384,7 @@ async def plan_project(
     try:
         data = _parse_ai_json(raw)
         return PlanResponse(**data)
-    except (json.JSONDecodeError, KeyError, Exception) as exc:
+    except Exception as exc:
         logger.error("plan parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
@@ -424,7 +424,7 @@ async def generate_code(
     try:
         data = _parse_ai_json(raw)
         return CodeGenerateResponse(resources=[CodeResource(**r) for r in data["resources"]])
-    except (json.JSONDecodeError, KeyError, Exception) as exc:
+    except Exception as exc:
         logger.error("code/generate parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 
@@ -481,7 +481,7 @@ async def analyze_code(
             explanation=data["explanation"],
             improved_code=data["improved_code"],
         )
-    except (json.JSONDecodeError, KeyError, Exception) as exc:
+    except Exception as exc:
         logger.error("analyze parse error: %s | raw (first 500 chars): %s", exc, raw[:500])
         raise HTTPException(status_code=422, detail=f"AI response parse error: {exc}") from exc
 

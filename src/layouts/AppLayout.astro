@@ -66,6 +66,13 @@ function sidebarItemClass(key: string) {
           </svg>
           <span style="font-size:10px; font-weight:500;">Comunidad</span>
         </a>
+        <a href="/locations" class={tabClass('locations')}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <circle cx="12" cy="11" r="3"/>
+          </svg>
+          <span style="font-size:10px; font-weight:500;">Ubicaciones</span>
+        </a>
         <button id="theme-toggle-mobile" class="flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400">
           <svg id="theme-icon-sun-mobile" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="5"/>
@@ -131,6 +138,13 @@ function sidebarItemClass(key: string) {
             <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
           </svg>
           Comunidad
+        </a>
+        <a href="/locations" class={sidebarItemClass('locations')}>
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <circle cx="12" cy="11" r="3"/>
+          </svg>
+          Ubicaciones
         </a>
       </nav>
 

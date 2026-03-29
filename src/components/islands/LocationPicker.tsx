@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
-
-interface Location {
-  id: string
-  name: string
-  parent_id: string | null
-}
+import { fetchLocations, createLocation, type Location } from '../../lib/locations'
 
 interface Props {
   value: string | null
@@ -46,13 +40,13 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
   const [open, setOpen] = useState(false)
   const [locations, setLocations] = useState<Location[] | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-    supabase.from('locations').select('id,name,parent_id').order('name').then(({ data }) => {
-      setLocations(data ?? [])
-    })
+    fetchLocations().then(setLocations)
   }, [])
 
   useEffect(() => {
@@ -60,6 +54,8 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
+        setShowCreate(false)
+        setNewName('')
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -83,6 +79,35 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
     })
   }
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setCreating(true)
+    try {
+      const newId = await createLocation(newName.trim())
+      if (newId) {
+        setLocations(prev => prev ? [...prev, { id: newId, name: newName.trim(), parent_id: null }] : prev)
+        onChange(newId)
+      }
+      setShowCreate(false)
+      setNewName('')
+      setOpen(false)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  function handleCancelCreate() {
+    setShowCreate(false)
+    setNewName('')
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      handleCancelCreate()
+    }
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -102,47 +127,82 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
         <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           {locations === null ? (
             <div className="px-3 py-2 text-sm text-slate-400">Cargando ubicaciones...</div>
-          ) : locations.length === 0 ? (
-            <div className="px-3 py-3 text-sm text-slate-400 text-center">
-              Sin ubicaciones creadas.{' '}
-              <a href="/locations" className="text-teal-600 hover:underline">Crear una</a>
-            </div>
           ) : (
             <>
-              <div
-                onClick={() => { onChange(null); setOpen(false) }}
-                className={`px-3 py-2 text-sm cursor-pointer ${
-                  value === null
-                    ? 'bg-teal-50 text-teal-700 font-medium'
-                    : 'text-slate-700 hover:bg-teal-50'
-                }`}
-              >
-                Sin ubicación
-              </div>
-              {nodes.map(({ loc, depth, hasChildren }) => (
-                <div
-                  key={loc.id}
-                  onClick={() => { onChange(loc.id); setOpen(false) }}
-                  className={`flex items-center text-sm cursor-pointer ${
-                    value === loc.id
-                      ? 'bg-teal-50 text-teal-700 font-medium'
-                      : 'text-slate-700 hover:bg-teal-50'
-                  }`}
-                  style={{ paddingLeft: depth * 16 + 12 + 'px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px' }}
-                >
-                  {hasChildren ? (
-                    <span
-                      onClick={(e) => toggleExpand(loc.id, e)}
-                      className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-slate-400"
+              {locations.length > 0 && (
+                <>
+                  <div
+                    onClick={() => { onChange(null); setOpen(false) }}
+                    className={`px-3 py-2 text-sm cursor-pointer ${
+                      value === null
+                        ? 'bg-teal-50 text-teal-700 font-medium'
+                        : 'text-slate-700 hover:bg-teal-50'
+                    }`}
+                  >
+                    Sin ubicación
+                  </div>
+                  {nodes.map(({ loc, depth, hasChildren }) => (
+                    <div
+                      key={loc.id}
+                      onClick={() => { onChange(loc.id); setOpen(false) }}
+                      className={`flex items-center text-sm cursor-pointer ${
+                        value === loc.id
+                          ? 'bg-teal-50 text-teal-700 font-medium'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                      style={{ paddingLeft: depth * 16 + 12 + 'px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px' }}
                     >
-                      {expanded.has(loc.id) ? '▾' : '▸'}
-                    </span>
-                  ) : (
-                    <span className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <span>{loc.name}</span>
-                </div>
-              ))}
+                      {hasChildren ? (
+                        <span
+                          onClick={(e) => toggleExpand(loc.id, e)}
+                          className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-slate-400"
+                        >
+                          {expanded.has(loc.id) ? '▾' : '▸'}
+                        </span>
+                      ) : (
+                        <span className="w-5 h-5 flex-shrink-0" />
+                      )}
+                      <span>{loc.name}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {showCreate ? (
+                <form onSubmit={handleCreate} className="px-3 py-2 flex gap-2 border-t border-slate-100">
+                  <input
+                    autoFocus
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Nombre de ubicación"
+                    className="flex-1 px-2 py-1 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="px-3 py-1 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 disabled:opacity-50"
+                  >
+                    {creating ? '...' : 'Crear'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelCreate}
+                    aria-label="Cancelar"
+                    className="px-2 py-1 text-slate-400 hover:text-slate-600 text-sm"
+                  >
+                    ✕
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="w-full px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 text-left border-t border-slate-100"
+                >
+                  + Nueva ubicación
+                </button>
+              )}
             </>
           )}
         </div>
