@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
 import ConnectivityEditor from './ConnectivityEditor'
 import SpecsEditor from './SpecsEditor'
 import LocationPicker from './LocationPicker'
+import { categoryColors } from '../../lib/constants'
+import { updateInventoryItem, deleteStockItem } from '../../lib/inventory'
 
 interface Props {
   stockId: string
@@ -24,15 +25,6 @@ interface Props {
 
 const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
 const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
-
-const categoryColors: Record<string, { bg: string; icon: string }> = {
-  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-400'  },
-  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-400'  },
-  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-400' },
-  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-400'  },
-  'Módulo':           { bg: 'bg-violet-50', icon: 'text-violet-400' },
-  'Pasivo':           { bg: 'bg-slate-100', icon: 'text-slate-400'  },
-}
 
 const capBadgeColors: Record<string, string> = {
   wifi:     'bg-sky-50 text-sky-700 border-sky-200',
@@ -82,50 +74,40 @@ export default function InventoryDetail({
   async function handleSave() {
     setSaving(true)
     setSaveError('')
-    try {
-      const supabase = createSupabaseBrowserClient()
-
-      const { error: compErr } = await supabase
-        .from('components')
-        .update({
-          name: editName,
-          category: editCategory,
-          platform_family: editPlatform || null,
-          connectivity_caps: editCaps,
-          technical_specs: editSpecs,
-          datasheet_url: editDatasheet || null,
-        })
-        .eq('id', componentId)
-      if (compErr) throw compErr
-
-      const { error: stockErr } = await supabase
-        .from('stock')
-        .update({
-          location_id: editLocationId,
-          notes: editNotes || null,
-        })
-        .eq('id', stockId)
-      if (stockErr) throw stockErr
-
-      window.location.reload()
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Error al guardar')
-    } finally {
+    const { error } = await updateInventoryItem(
+      componentId,
+      stockId,
+      {
+        name: editName,
+        category: editCategory,
+        platform_family: editPlatform || null,
+        connectivity_caps: editCaps,
+        technical_specs: editSpecs,
+        datasheet_url: editDatasheet || null,
+      },
+      {
+        location_id: editLocationId,
+        notes: editNotes || null,
+      },
+    )
+    if (error) {
+      setSaveError(error)
       setSaving(false)
+      return
     }
+    window.location.reload()
   }
 
   async function handleDelete() {
     if (!window.confirm('¿Eliminar este componente de tu inventario? El componente seguirá en el catálogo.')) return
     setDeleting(true)
-    try {
-      const supabase = createSupabaseBrowserClient()
-      await supabase.from('stock').delete().eq('id', stockId)
-      window.location.href = '/inventory'
-    } catch {
+    const { error } = await deleteStockItem(stockId)
+    if (error) {
       setDeleting(false)
       setError('Error al eliminar')
+      return
     }
+    window.location.href = '/inventory'
   }
 
   if (editing) {

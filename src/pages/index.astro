@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../layouts/AppLayout.astro'
 import { createSupabaseServerClient } from '../lib/supabase'
+import { categoryColors } from '../lib/constants'
 
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
 const { data: { user } } = await supabase.auth.getUser()
@@ -31,13 +32,6 @@ const projectColors = [
   { bg: 'bg-brand-100',  text: 'text-brand-600',  dot: 'bg-violet-400' },
   { bg: 'bg-rose-100',   text: 'text-rose-600',   dot: 'bg-rose-400'   },
 ]
-
-const categoryColors: Record<string, { bg: string; icon: string }> = {
-  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-600'  },
-  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-500'  },
-  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
-  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
-}
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—'

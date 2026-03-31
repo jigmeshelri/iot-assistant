@@ -5,6 +5,7 @@ import StockAdjuster from '../../components/islands/StockAdjuster'
 import QRLabel from '../../components/islands/QRLabel'
 import InventoryDetail from '../../components/islands/InventoryDetail'
 import { createSupabaseServerClient } from '../../lib/supabase'
+import { categoryColors } from '../../lib/constants'
 
 const { id } = Astro.params
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
@@ -20,14 +21,6 @@ const specs = (item.component?.technical_specs as Record<string, unknown>) ?? {}
 const caps  = (item.component?.connectivity_caps as Record<string, unknown>) ?? {}
 const activeCaps = Object.entries(caps).filter(([, v]) => v && v !== false)
 
-const categoryColors: Record<string, { bg: string; icon: string }> = {
-  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-400'  },
-  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-400'  },
-  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-400' },
-  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-400'  },
-  'Módulo':           { bg: 'bg-violet-50', icon: 'text-violet-400' },
-  'Pasivo':           { bg: 'bg-slate-100', icon: 'text-slate-400'  },
-}
 const cat = item.component?.category ?? ''
 const colors = categoryColors[cat] ?? { bg: 'bg-slate-100', icon: 'text-slate-400' }
 
