@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { DIFFICULTY } from '../../lib/constants'
+import { createProject } from '../../lib/projects'
 
 const PROJECT_TYPES = [
   { value: 'diy', label: 'DIY' },
@@ -7,11 +8,10 @@ const PROJECT_TYPES = [
   { value: 'professional', label: 'Profesional' },
 ] as const
 
-const DIFFICULTIES = [
-  { value: 'beginner', label: 'Principiante' },
-  { value: 'intermediate', label: 'Intermedio' },
-  { value: 'advanced', label: 'Avanzado' },
-] as const
+const DIFFICULTIES = (Object.keys(DIFFICULTY) as Array<keyof typeof DIFFICULTY>).map(key => ({
+  value: key,
+  label: DIFFICULTY[key].label,
+}))
 
 export default function ProjectForm() {
   const [title, setTitle] = useState('')
@@ -26,26 +26,14 @@ export default function ProjectForm() {
     setLoading(true)
     setError('')
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const { data, error: insertErr } = await supabase
-        .from('projects')
-        .insert({
-          user_id: user.id,
-          title,
-          description: description || null,
-          project_type: projectType,
-          difficulty,
-          status: 'saved',
-          source: 'manual',
-        })
-        .select()
-        .single()
-
+      const { data, error: insertErr } = await createProject({
+        title,
+        description: description || null,
+        projectType,
+        difficulty,
+      })
       if (insertErr) throw insertErr
-      window.location.href = `/projects/${data.id}`
+      window.location.href = `/projects/${data!.id}`
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Error desconocido'
       setError(msg)

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { updateProjectField, deleteProject } from '../../lib/projects'
+import { DIFFICULTY } from '../../lib/constants'
 
 interface Props {
   projectId: string
@@ -35,11 +36,6 @@ const TYPE_LABEL: Record<string, string> = {
   professional: 'Profesional',
 }
 
-const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Medio',
-  hard: 'Difícil',
-}
 
 const PENCIL_ICON = (
   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -331,7 +327,7 @@ export default function ProjectHeader({
         </span>
         {difficulty && (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-            {DIFFICULTY_LABEL[difficulty] ?? difficulty}
+            {DIFFICULTY[difficulty as keyof typeof DIFFICULTY]?.label ?? difficulty}
           </span>
         )}
       </div>

@@ -1,30 +1,20 @@
 import { useState } from 'react'
 import { discoverProjects, planProject } from '../../lib/api'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { getBrowserSession } from '../../lib/supabase'
 import { funErrorMessage, logError } from '../../lib/errorLog'
 import BOMTable from './BOMTable'
+import { DIFFICULTY } from '../../lib/constants'
+import { getUserStock } from '../../lib/stock'
+import { saveAIProject } from '../../lib/projects'
 
 interface Props {
   mode: 'discover' | 'plan'
 }
 
-const DIFFICULTIES = [
-  { value: 'beginner',     label: 'Principiante' },
-  { value: 'intermediate', label: 'Intermedio'   },
-  { value: 'advanced',     label: 'Avanzado'     },
-]
-
-const DIFFICULTY_BADGES: Record<string, string> = {
-  beginner:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-  intermediate: 'bg-amber-50 text-amber-700 border-amber-200',
-  advanced:     'bg-red-50 text-red-700 border-red-200',
-}
-
-const DIFFICULTY_LABELS: Record<string, string> = {
-  beginner:     'Principiante',
-  intermediate: 'Intermedio',
-  advanced:     'Avanzado',
-}
+const DIFFICULTIES = (Object.keys(DIFFICULTY) as Array<keyof typeof DIFFICULTY>).map(key => ({
+  value: key,
+  label: DIFFICULTY[key].label,
+}))
 
 // Normalize API response items: the API returns `status`, BOMTable expects `state`
 function normalizeBOMItems(items: unknown[]): Parameters<typeof BOMTable>[0]['items'] {
@@ -56,22 +46,10 @@ export default function PlanRefinement({ mode }: Props) {
     setSavedIdx(null)
     setSaveError('')
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const session = await getBrowserSession()
       if (!session) throw new Error('No autenticado')
 
-      const { data: stock } = await supabase
-        .from('stock')
-        .select('quantity, component:components(id,name,category,platform_family,connectivity_caps,technical_specs)')
-      const inventory = (stock ?? []).map(s => ({
-        component_id:      (s.component as Record<string, unknown>)?.id,
-        name:              (s.component as Record<string, unknown>)?.name,
-        category:          (s.component as Record<string, unknown>)?.category,
-        quantity:          s.quantity,
-        platform_family:   (s.component as Record<string, unknown>)?.platform_family,
-        connectivity_caps: (s.component as Record<string, unknown>)?.connectivity_caps ?? {},
-        specs:             (s.component as Record<string, unknown>)?.technical_specs ?? {},
-      }))
+      const inventory = await getUserStock()
 
       if (mode === 'discover') {
         const res = await discoverProjects(inventory, session.access_token)
@@ -98,23 +76,13 @@ export default function PlanRefinement({ mode }: Props) {
     setSavingIdx(idx)
     setSaveError('')
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No autenticado')
-
-      const { data: project, error: dbError } = await supabase
-        .from('projects')
-        .insert({
-          user_id:      user.id,
-          title:        String(result.title ?? 'Proyecto IA'),
-          description:  String(result.description ?? ''),
-          source:       mode === 'discover' ? 'ai_discovery' : 'ai_planning',
-          type:         'diy',
-          difficulty:   result.difficulty ? String(result.difficulty) : null,
-          tags:         Array.isArray(result.tags) ? result.tags.map(String) : [],
-        })
-        .select()
-        .single()
+      const { data: project, error: dbError } = await saveAIProject({
+        title:       String(result.title ?? 'Proyecto IA'),
+        description: String(result.description ?? ''),
+        source:      mode === 'discover' ? 'ai_discovery' : 'ai_planning',
+        difficulty:  result.difficulty ? String(result.difficulty) : null,
+        tags:        Array.isArray(result.tags) ? result.tags.map(String) : [],
+      })
 
       if (dbError) throw new Error(dbError.message)
       if (project) {
@@ -255,8 +223,8 @@ export default function PlanRefinement({ mode }: Props) {
               {/* Badges row */}
               <div className="flex flex-wrap gap-2 mt-3">
                 {diff && (
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${DIFFICULTY_BADGES[diff] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                    {DIFFICULTY_LABELS[diff] ?? diff}
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${DIFFICULTY[diff as keyof typeof DIFFICULTY]?.badge ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                    {DIFFICULTY[diff as keyof typeof DIFFICULTY]?.label ?? diff}
                   </span>
                 )}
                 {result.project_type && (

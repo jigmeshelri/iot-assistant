@@ -42,6 +42,13 @@ export async function updateStockQuantity(stockId: string, quantity: number): Pr
   return error ? error.message : null
 }
 
+/** Get current browser session (use inside React Islands) */
+export async function getBrowserSession() {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}
+
 /** Shorthand to get session from Astro page context */
 export async function getSession(cookies: AstroCookies, request: Request) {
   const supabase = createSupabaseServerClient(cookies, request)
