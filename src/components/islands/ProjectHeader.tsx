@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { updateProjectField, deleteProject } from '../../lib/projects'
-import { DIFFICULTY } from '../../lib/constants'
+import { DIFFICULTY, PROJECT_STATUS } from '../../lib/constants'
 
 interface Props {
   projectId: string
@@ -12,22 +12,6 @@ interface Props {
   progress: number
   isPublic: boolean
   tags: string[]
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  saved: 'bg-slate-100 text-slate-600',
-  in_progress: 'bg-brand-50 text-brand-700',
-  paused: 'bg-amber-50 text-amber-700',
-  completed: 'bg-green-50 text-green-700',
-  abandoned: 'bg-red-50 text-red-600',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  saved: 'Guardado',
-  in_progress: 'En progreso',
-  paused: 'Pausado',
-  completed: 'Completado',
-  abandoned: 'Abandonado',
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -269,8 +253,8 @@ export default function ProjectHeader({
 
       {/* Status + actions */}
       <div className="space-y-2">
-        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[status] ?? 'bg-slate-100 text-slate-600'}`}>
-          {STATUS_LABEL[status] ?? status}
+        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${PROJECT_STATUS[status as keyof typeof PROJECT_STATUS]?.badge ?? 'bg-slate-100 text-slate-600'}`}>
+          {PROJECT_STATUS[status as keyof typeof PROJECT_STATUS]?.label ?? status}
         </span>
         {renderStatusActions()}
         {statusError && <p className="text-xs text-red-600">{statusError}</p>}

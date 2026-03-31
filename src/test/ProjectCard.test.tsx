@@ -36,14 +36,14 @@ describe('ProjectCard', () => {
     render(<ProjectCard {...defaultProps} status="in_progress" />)
     const badge = screen.getByText('En progreso')
     expect(badge).toBeInTheDocument()
-    expect(badge.className).toContain('bg-teal-100')
+    expect(badge.className).toContain('bg-brand-50')
   })
 
   it('shows correct badge for completed status', () => {
     render(<ProjectCard {...defaultProps} status="completed" />)
     const badge = screen.getByText('Completado')
     expect(badge).toBeInTheDocument()
-    expect(badge.className).toContain('bg-emerald-100')
+    expect(badge.className).toContain('bg-green-50')
   })
 
   it('renders tag badges', () => {
