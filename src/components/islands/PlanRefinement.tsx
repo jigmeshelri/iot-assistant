@@ -6,6 +6,7 @@ import BOMTable from './BOMTable'
 import { DIFFICULTY } from '../../lib/constants'
 import { getUserStock } from '../../lib/stock'
 import { saveAIProject } from '../../lib/projects'
+import Spinner from './Spinner'
 
 interface Props {
   mode: 'discover' | 'plan'
@@ -166,7 +167,7 @@ export default function PlanRefinement({ mode }: Props) {
         >
           {loading ? (
             <>
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <Spinner />
               Consultando IA...
             </>
           ) : mode === 'discover' ? (
@@ -295,7 +296,7 @@ export default function PlanRefinement({ mode }: Props) {
                   </>
                 ) : isSaving ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Spinner />
                     Guardando...
                   </>
                 ) : (
