@@ -2,7 +2,7 @@ import { useState } from 'react'
 import ConnectivityEditor from './ConnectivityEditor'
 import SpecsEditor from './SpecsEditor'
 import LocationPicker from './LocationPicker'
-import { categoryColors, CATEGORIES, PLATFORMS } from '../../lib/constants'
+import { categoryColors, CATEGORIES, PLATFORMS, capBadgeColors } from '../../lib/constants'
 import { updateInventoryItem, deleteStockItem } from '../../lib/inventory'
 
 interface Props {
@@ -21,15 +21,6 @@ interface Props {
   locationId: string | null
   locationName: string | null
   locationQrCode: string | null
-}
-
-const capBadgeColors: Record<string, string> = {
-  wifi:     'bg-sky-50 text-sky-700 border-sky-200',
-  ble:      'bg-blue-50 text-blue-700 border-blue-200',
-  lora:     'bg-purple-50 text-purple-700 border-purple-200',
-  zigbee:   'bg-teal-50 text-teal-700 border-teal-200',
-  thread:   'bg-emerald-50 text-emerald-700 border-emerald-200',
-  ethernet: 'bg-indigo-50 text-indigo-700 border-indigo-200',
 }
 
 export default function InventoryDetail({

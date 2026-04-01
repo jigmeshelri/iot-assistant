@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DIFFICULTY, PROJECT_STATUS, categoryColors, CATEGORIES, PLATFORMS } from '../lib/constants'
+import { DIFFICULTY, PROJECT_STATUS, categoryColors, CATEGORIES, PLATFORMS, capBadgeColors } from '../lib/constants'
 
 describe('DIFFICULTY', () => {
   it('has beginner, intermediate and advanced keys', () => {
@@ -83,5 +83,29 @@ describe('PLATFORMS', () => {
   it('is a readonly tuple', () => {
     expect(Array.isArray(PLATFORMS)).toBe(true)
     expect(PLATFORMS.length).toBe(8)
+  })
+})
+
+describe('capBadgeColors', () => {
+  it('has entries for all 6 connectivity protocols', () => {
+    const expected = ['wifi', 'ble', 'lora', 'zigbee', 'thread', 'ethernet']
+    for (const key of expected) {
+      expect(capBadgeColors[key]).toBeDefined()
+    }
+  })
+
+  it('each entry is a non-empty string', () => {
+    for (const key of Object.keys(capBadgeColors)) {
+      expect(typeof capBadgeColors[key]).toBe('string')
+      expect(capBadgeColors[key].length).toBeGreaterThan(0)
+    }
+  })
+
+  it('wifi uses sky color classes', () => {
+    expect(capBadgeColors['wifi']).toContain('sky')
+  })
+
+  it('ble uses blue color classes', () => {
+    expect(capBadgeColors['ble']).toContain('blue')
   })
 })

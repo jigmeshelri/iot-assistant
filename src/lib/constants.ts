@@ -56,6 +56,19 @@ export type PlatformKey = typeof PLATFORMS[number]
 
 // ─── Category Colors ──────────────────────────────────────────────────────────
 
+// ─── Connectivity Badge Colors ────────────────────────────────────────────────
+
+export const capBadgeColors: Record<string, string> = {
+  wifi:     'bg-sky-50 text-sky-700 border-sky-200',
+  ble:      'bg-blue-50 text-blue-700 border-blue-200',
+  lora:     'bg-purple-50 text-purple-700 border-purple-200',
+  zigbee:   'bg-teal-50 text-teal-700 border-teal-200',
+  thread:   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  ethernet: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+}
+
+// ─── Category Colors ──────────────────────────────────────────────────────────
+
 export const categoryColors: Record<string, { bg: string; icon: string }> = {
   'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-600'  },
   'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-600'  },
