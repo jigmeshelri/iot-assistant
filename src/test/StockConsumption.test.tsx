@@ -2,24 +2,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import StockConsumption from '../components/islands/StockConsumption'
 
-const mockInsert = vi.fn().mockResolvedValue({ error: null })
-const mockUpdate = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
-const mockDelete = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
-const mockSelect = vi.fn(() => ({
-  eq: vi.fn(() => ({
-    single: vi.fn().mockResolvedValue({ data: { quantity: 5 }, error: null }),
-  })),
-}))
+const mockConsumeStock = vi.fn().mockResolvedValue(undefined)
+const mockUndoStockConsumption = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    from: vi.fn((_table: string) => ({
-      insert: mockInsert,
-      update: mockUpdate,
-      delete: mockDelete,
-      select: mockSelect,
-    })),
-  }),
+vi.mock('../lib/stock', () => ({
+  consumeStock: (...args: unknown[]) => mockConsumeStock(...args),
+  undoStockConsumption: (...args: unknown[]) => mockUndoStockConsumption(...args),
 }))
 
 Object.defineProperty(window, 'location', { writable: true, value: { href: '', reload: vi.fn() } })
@@ -67,14 +55,13 @@ describe('StockConsumption', () => {
     expect(screen.getByText(/Deshacer/)).toBeInTheDocument()
   })
 
-  it('consume calls supabase insert and update', async () => {
+  it('consume calls consumeStock', async () => {
     render(<StockConsumption {...baseProps} />)
     const usarBtn = screen.getByText('Usar')
     fireEvent.click(usarBtn)
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalled()
-      expect(mockUpdate).toHaveBeenCalled()
+      expect(mockConsumeStock).toHaveBeenCalled()
     })
   })
 })

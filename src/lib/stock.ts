@@ -1,5 +1,46 @@
 import { createSupabaseBrowserClient } from './supabase'
 
+export interface ConsumeStockParams {
+  projectId: string
+  stockId: string
+  quantityConsumed: number
+  stockAvailable: number
+}
+
+export async function consumeStock(params: ConsumeStockParams): Promise<void> {
+  const { projectId, stockId, quantityConsumed, stockAvailable } = params
+  const supabase = createSupabaseBrowserClient()
+  await supabase.from('project_consumed_stock').insert({
+    project_id: projectId,
+    stock_id: stockId,
+    quantity_consumed: quantityConsumed,
+  })
+  await supabase
+    .from('stock')
+    .update({ quantity: stockAvailable - quantityConsumed })
+    .eq('id', stockId)
+}
+
+export async function undoStockConsumption(
+  consumedId: string,
+  stockId: string,
+  quantityConsumed: number,
+): Promise<void> {
+  const supabase = createSupabaseBrowserClient()
+  const { data: stock } = await supabase
+    .from('stock')
+    .select('quantity')
+    .eq('id', stockId)
+    .single()
+  if (stock) {
+    await supabase
+      .from('stock')
+      .update({ quantity: (stock as { quantity: number }).quantity + quantityConsumed })
+      .eq('id', stockId)
+  }
+  await supabase.from('project_consumed_stock').delete().eq('id', consumedId)
+}
+
 export interface StockInventoryItem {
   component_id: string | null
   name: string | null

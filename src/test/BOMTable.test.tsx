@@ -3,18 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import BOMTable from '../components/islands/BOMTable'
 
-const mockInsert = vi.fn().mockResolvedValue({ data: { id: 'new-1' }, error: null })
-const mockUpdate = vi.fn().mockResolvedValue({ error: null })
-const mockDelete = vi.fn().mockResolvedValue({ error: null })
+const mockAddBomItem = vi.fn().mockResolvedValue({ id: 'new-1', component_name: 'Resistor 10k', quantity_required: 3 })
+const mockUpdateBomQty = vi.fn().mockResolvedValue(undefined)
+const mockDeleteBomItem = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockInsert })) })),
-      update: vi.fn(() => ({ eq: mockUpdate })),
-      delete: vi.fn(() => ({ eq: mockDelete })),
-    })),
-  }),
+vi.mock('../lib/bom', () => ({
+  addBomItem: (...args: unknown[]) => mockAddBomItem(...args),
+  updateBomQty: (...args: unknown[]) => mockUpdateBomQty(...args),
+  deleteBomItem: (...args: unknown[]) => mockDeleteBomItem(...args),
 }))
 
 const bomItems = [
@@ -53,10 +49,7 @@ describe('BOMTable', () => {
 
   it('add item flow', async () => {
     const user = userEvent.setup()
-    mockInsert.mockResolvedValueOnce({
-      data: { id: 'new-1', component_name: 'Resistor 10k', quantity_required: 3 },
-      error: null,
-    })
+    mockAddBomItem.mockResolvedValueOnce({ id: 'new-1', component_name: 'Resistor 10k', quantity_required: 3 })
 
     render(<BOMTable items={bomItems} projectId="p1" editable={true} />)
 
@@ -71,7 +64,7 @@ describe('BOMTable', () => {
 
     await user.click(screen.getByText('Guardar'))
 
-    expect(mockInsert).toHaveBeenCalled()
+    expect(mockAddBomItem).toHaveBeenCalled()
     expect(screen.getByText('Resistor 10k')).toBeInTheDocument()
   })
 
