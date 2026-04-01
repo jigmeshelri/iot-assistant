@@ -14,7 +14,7 @@ interface FlatNode {
 }
 
 function flattenTree(tree: Map<string | null, Location[]>, parentId: string | null, depth: number, expanded: Set<string>): FlatNode[] {
-  const children = tree.get(parentId) ?? []
+  const children = [...(tree.get(parentId) ?? [])].sort((a, b) => a.name.localeCompare(b.name))
   const result: FlatNode[] = []
   for (const loc of children) {
     const hasChildren = (tree.get(loc.id) ?? []).length > 0
@@ -119,47 +119,8 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
             <div className="px-3 py-2 text-sm text-slate-400">Cargando ubicaciones...</div>
           ) : (
             <>
-              {locations.length > 0 && (
-                <>
-                  <div
-                    onClick={() => { onChange(null); setOpen(false) }}
-                    className={`px-3 py-2 text-sm cursor-pointer ${
-                      value === null
-                        ? 'bg-teal-50 text-teal-700 font-medium'
-                        : 'text-slate-700 hover:bg-teal-50'
-                    }`}
-                  >
-                    Sin ubicación
-                  </div>
-                  {nodes.map(({ loc, depth, hasChildren }) => (
-                    <div
-                      key={loc.id}
-                      onClick={() => { onChange(loc.id); setOpen(false) }}
-                      className={`flex items-center text-sm cursor-pointer ${
-                        value === loc.id
-                          ? 'bg-teal-50 text-teal-700 font-medium'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                      style={{ paddingLeft: depth * 16 + 12 + 'px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px' }}
-                    >
-                      {hasChildren ? (
-                        <span
-                          onClick={(e) => toggleExpand(loc.id, e)}
-                          className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-slate-400"
-                        >
-                          {expanded.has(loc.id) ? '▾' : '▸'}
-                        </span>
-                      ) : (
-                        <span className="w-5 h-5 flex-shrink-0" />
-                      )}
-                      <span>{loc.name}</span>
-                    </div>
-                  ))}
-                </>
-              )}
-
               {showCreate ? (
-                <form onSubmit={handleCreate} className="px-3 py-2 flex gap-2 border-t border-slate-100">
+                <form onSubmit={handleCreate} className="px-3 py-2 flex gap-2">
                   <input
                     autoFocus
                     value={newName}
@@ -188,11 +149,49 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
                 <button
                   type="button"
                   onClick={() => setShowCreate(true)}
-                  className="w-full px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 text-left border-t border-slate-100"
+                  className="w-full px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 text-left"
                 >
                   + Nueva ubicación
                 </button>
               )}
+
+              <div className="border-b border-slate-100" />
+
+              <div
+                onClick={() => { onChange(null); setOpen(false) }}
+                className={`px-3 py-2 text-sm cursor-pointer ${
+                  value === null
+                    ? 'bg-teal-50 text-teal-700 font-medium'
+                    : 'text-slate-700 hover:bg-teal-50'
+                }`}
+              >
+                Sin ubicación
+              </div>
+
+              {nodes.map(({ loc, depth, hasChildren }) => (
+                <div
+                  key={loc.id}
+                  onClick={() => { onChange(loc.id); setOpen(false) }}
+                  className={`flex items-center text-sm cursor-pointer ${
+                    value === loc.id
+                      ? 'bg-teal-50 text-teal-700 font-medium'
+                      : 'text-slate-700 hover:bg-teal-50'
+                  }`}
+                  style={{ paddingLeft: depth * 16 + 12 + 'px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px' }}
+                >
+                  {hasChildren ? (
+                    <span
+                      onClick={(e) => toggleExpand(loc.id, e)}
+                      className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-slate-400"
+                    >
+                      {expanded.has(loc.id) ? '▾' : '▸'}
+                    </span>
+                  ) : (
+                    <span className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <span>{loc.name}</span>
+                </div>
+              ))}
             </>
           )}
         </div>

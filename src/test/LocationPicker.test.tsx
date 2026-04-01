@@ -88,6 +88,61 @@ describe('LocationPicker', () => {
   })
 })
 
+describe('LocationPicker — dropdown order (#14)', () => {
+  it('shows "+ Nueva ubicación" before location items in DOM', async () => {
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByText('Taller')).toBeInTheDocument())
+
+    // Get the full dropdown text and check ordering
+    const dropdown = screen.getByText('Taller').closest('[class*="absolute"]')!
+    const fullText = dropdown.textContent ?? ''
+
+    const nuevaPos = fullText.indexOf('Nueva ubicación')
+    const sinPos = fullText.indexOf('Sin ubicación')
+    const tallerPos = fullText.indexOf('Taller')
+
+    expect(nuevaPos).toBeGreaterThanOrEqual(0)
+    expect(nuevaPos).toBeLessThan(sinPos)
+    expect(sinPos).toBeLessThan(tallerPos)
+  })
+
+  it('shows "Sin ubicación" even when locations list is empty', async () => {
+    mockFetchLocations.mockResolvedValue([])
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /nueva ubicación/i })).toBeInTheDocument())
+
+    // Sin ubicación should appear in dropdown even with 0 locations
+    const allSin = screen.getAllByText('Sin ubicación')
+    // At least 2: button text + dropdown option
+    expect(allSin.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('sorts locations alphabetically within each level', async () => {
+    mockFetchLocations.mockResolvedValue([
+      { id: 'l1', name: 'Zebra', parent_id: null },
+      { id: 'l2', name: 'Alpha', parent_id: null },
+      { id: 'l3', name: 'Middle', parent_id: null },
+    ])
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument())
+
+    const dropdown = screen.getByText('Alpha').closest('.absolute')!
+    const locationItems = Array.from(dropdown.querySelectorAll('[class*="flex items-center text-sm"]'))
+    const names = locationItems.map(el => el.textContent?.trim())
+
+    expect(names).toEqual(['Alpha', 'Middle', 'Zebra'])
+  })
+})
+
 describe('LocationPicker — inline create (AC-7.1)', () => {
   it('AC-7.1.1: shows "+ Nueva ubicación" button when locations exist', async () => {
     const user = userEvent.setup()
