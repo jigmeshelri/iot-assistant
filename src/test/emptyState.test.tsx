@@ -3,9 +3,13 @@ import { vi, describe, it, expect } from 'vitest'
 import InventorySearch from '../components/islands/InventorySearch'
 import LocationTree from '../components/islands/LocationTree'
 
-vi.mock('../lib/locations', () => ({
-  insertLocation: vi.fn().mockResolvedValue(undefined),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    insertLocation: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe('AC-4.5: First-login empty state / onboarding', () => {
   describe('InventorySearch — no inventory data', () => {
@@ -23,14 +27,15 @@ describe('AC-4.5: First-login empty state / onboarding', () => {
   })
 
   describe('LocationTree — no locations', () => {
-    it('shows empty state message when there are no locations', () => {
+    it('shows create button when there are no locations', () => {
       render(<LocationTree locations={[]} />)
-      expect(screen.getByText(/no tenés ubicaciones/i)).toBeInTheDocument()
+      expect(screen.getByText('+ Nueva ubicación')).toBeInTheDocument()
     })
 
-    it('shows CTA button to create first location', () => {
-      render(<LocationTree locations={[]} />)
-      expect(screen.getByRole('button', { name: /crear primera ubicación/i })).toBeInTheDocument()
+    it('create button is always visible regardless of location count', () => {
+      const locs = [{ id: 'l1', name: 'Taller', parent_id: null, qr_code: 'qr1' }]
+      render(<LocationTree locations={locs} />)
+      expect(screen.getByText('+ Nueva ubicación')).toBeInTheDocument()
     })
   })
 })

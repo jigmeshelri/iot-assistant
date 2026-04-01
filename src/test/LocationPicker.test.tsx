@@ -4,12 +4,16 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LocationPicker from '../components/islands/LocationPicker'
 
 const mockFetchLocations = vi.fn()
-const mockCreateLocation = vi.fn()
+const mockInsertLocation = vi.fn()
 
-vi.mock('../lib/locations', () => ({
-  fetchLocations: (...args: unknown[]) => mockFetchLocations(...args),
-  createLocation: (...args: unknown[]) => mockCreateLocation(...args),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    fetchLocations: (...args: unknown[]) => mockFetchLocations(...args),
+    insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
+  }
+})
 
 const defaultLocations = [
   { id: 'l1', name: 'Taller', parent_id: null },
@@ -84,6 +88,61 @@ describe('LocationPicker', () => {
   })
 })
 
+describe('LocationPicker — dropdown order (#14)', () => {
+  it('shows "+ Nueva ubicación" before location items in DOM', async () => {
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByText('Taller')).toBeInTheDocument())
+
+    // Get the full dropdown text and check ordering
+    const dropdown = screen.getByText('Taller').closest('[class*="absolute"]')!
+    const fullText = dropdown.textContent ?? ''
+
+    const nuevaPos = fullText.indexOf('Nueva ubicación')
+    const sinPos = fullText.indexOf('Sin ubicación')
+    const tallerPos = fullText.indexOf('Taller')
+
+    expect(nuevaPos).toBeGreaterThanOrEqual(0)
+    expect(nuevaPos).toBeLessThan(sinPos)
+    expect(sinPos).toBeLessThan(tallerPos)
+  })
+
+  it('shows "Sin ubicación" even when locations list is empty', async () => {
+    mockFetchLocations.mockResolvedValue([])
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /nueva ubicación/i })).toBeInTheDocument())
+
+    // Sin ubicación should appear in dropdown even with 0 locations
+    const allSin = screen.getAllByText('Sin ubicación')
+    // At least 2: button text + dropdown option
+    expect(allSin.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('sorts locations alphabetically within each level', async () => {
+    mockFetchLocations.mockResolvedValue([
+      { id: 'l1', name: 'Zebra', parent_id: null },
+      { id: 'l2', name: 'Alpha', parent_id: null },
+      { id: 'l3', name: 'Middle', parent_id: null },
+    ])
+    const user = userEvent.setup()
+    render(<LocationPicker value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /sin ubicación/i }))
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument())
+
+    const dropdown = screen.getByText('Alpha').closest('.absolute')!
+    const locationItems = Array.from(dropdown.querySelectorAll('[class*="flex items-center text-sm"]'))
+    const names = locationItems.map(el => el.textContent?.trim())
+
+    expect(names).toEqual(['Alpha', 'Middle', 'Zebra'])
+  })
+})
+
 describe('LocationPicker — inline create (AC-7.1)', () => {
   it('AC-7.1.1: shows "+ Nueva ubicación" button when locations exist', async () => {
     const user = userEvent.setup()
@@ -127,7 +186,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
 
   it('AC-7.1.3: confirming name creates location and calls onChange with new ID', async () => {
     const newId = 'l-new'
-    mockCreateLocation.mockResolvedValue(newId)
+    mockInsertLocation.mockResolvedValue(newId)
 
     const onChange = vi.fn()
     const user = userEvent.setup()
@@ -143,7 +202,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(mockCreateLocation).toHaveBeenCalledWith('Nuevo lugar')
+      expect(mockInsertLocation).toHaveBeenCalledWith('Nuevo lugar')
     })
     expect(onChange).toHaveBeenCalledWith(newId)
   })
@@ -162,7 +221,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Escape}')
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockCreateLocation).not.toHaveBeenCalled()
+    expect(mockInsertLocation).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -180,6 +239,6 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.click(screen.getByRole('button', { name: /cancelar/i }))
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockCreateLocation).not.toHaveBeenCalled()
+    expect(mockInsertLocation).not.toHaveBeenCalled()
   })
 })

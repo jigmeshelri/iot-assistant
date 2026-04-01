@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { categoryColors } from '../../lib/constants'
 
 interface StockItem {
   id: string
@@ -23,15 +24,6 @@ interface Props {
 }
 
 const categories = ['Todos', 'Microcontrolador', 'Sensor', 'Módulo', 'Pasivo', 'Alimentación', 'Actuador'] as const
-
-const categoryColors: Record<string, { bg: string; icon: string }> = {
-  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-600'  },
-  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-500'  },
-  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
-  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
-  'Módulo':           { bg: 'bg-violet-50', icon: 'text-violet-500' },
-  'Pasivo':           { bg: 'bg-slate-100', icon: 'text-slate-500'  },
-}
 
 const categoryTagColors: Record<string, string> = {
   'Microcontrolador': 'bg-brand-50 text-brand-700',

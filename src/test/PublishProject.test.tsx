@@ -28,7 +28,7 @@ const defaultProps = {
   status: 'completed',
   title: 'Mi proyecto',
   description: 'Descripción del proyecto',
-  difficulty: 'easy',
+  difficulty: 'beginner',
   tags: ['wifi', 'sensor'],
   logEntries,
 }
@@ -77,7 +77,7 @@ describe('PublishProject', () => {
         is_public: true,
         title: 'Mi proyecto',
         description: 'Descripción del proyecto',
-        difficulty: 'easy',
+        difficulty: 'beginner',
         tags: ['wifi', 'sensor'],
       })
     })
@@ -247,7 +247,7 @@ describe('PublishProject', () => {
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ difficulty: 'hard' })
+        expect.objectContaining({ difficulty: 'advanced' })
       )
     })
   })

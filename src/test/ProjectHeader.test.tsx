@@ -369,15 +369,15 @@ describe('ProjectHeader', () => {
   })
 
   it('renders type and difficulty badges', () => {
-    render(<ProjectHeader {...defaultProps} projectType="diy" difficulty="easy" />)
+    render(<ProjectHeader {...defaultProps} projectType="diy" difficulty="beginner" />)
     expect(screen.getByText('DIY')).toBeInTheDocument()
-    expect(screen.getByText('Fácil')).toBeInTheDocument()
+    expect(screen.getByText('Principiante')).toBeInTheDocument()
   })
 
   it('does not render difficulty badge when null', () => {
     render(<ProjectHeader {...defaultProps} difficulty={null} />)
-    expect(screen.queryByText('Fácil')).not.toBeInTheDocument()
-    expect(screen.queryByText('Medio')).not.toBeInTheDocument()
+    expect(screen.queryByText('Principiante')).not.toBeInTheDocument()
+    expect(screen.queryByText('Intermedio')).not.toBeInTheDocument()
   })
 
   it('renders empty description placeholder', () => {

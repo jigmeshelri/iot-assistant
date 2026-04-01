@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { forkProject } from '../../lib/projects'
 
 interface Props {
   projectId: string
@@ -14,34 +14,12 @@ export default function ForkButton({ projectId, forkCount }: Props) {
   async function handleFork() {
     if (forked || loading) return
     setLoading(true)
-    try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/login'; return }
-
-      // Get original project data
-      const { data: original } = await supabase
-        .from('projects')
-        .select('title, description, project_type, difficulty, tags')
-        .eq('id', projectId)
-        .single()
-      if (!original) throw new Error('Project not found')
-
-      await supabase.from('projects').insert({
-        user_id: user.id,
-        parent_project_id: projectId,
-        title: `${original.title} (fork)`,
-        description: original.description,
-        project_type: original.project_type,
-        difficulty: original.difficulty,
-        tags: original.tags,
-        source: 'fork',
-      })
-
+    const { error } = await forkProject(projectId)
+    setLoading(false)
+    if (error === 'Not authenticated') { window.location.href = '/login'; return }
+    if (!error) {
       setCount(c => c + 1)
       setForked(true)
-    } finally {
-      setLoading(false)
     }
   }
 

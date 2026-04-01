@@ -2,20 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LogTimeline from '../components/islands/LogTimeline'
 
-const mockSingle = vi.fn().mockResolvedValue({
+const mockAddLogEntry = vi.fn().mockResolvedValue({
   data: { id: 'log-new', content: 'Nueva entrada', tag: 'progress', is_public: false, created_at: '2026-03-25T12:00:00Z' },
   error: null,
 })
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
-    },
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
-    })),
-  }),
+vi.mock('../lib/projects', () => ({
+  addLogEntry: (...args: unknown[]) => mockAddLogEntry(...args),
 }))
 
 const sampleEntries = [
@@ -26,6 +19,10 @@ const sampleEntries = [
 describe('LogTimeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAddLogEntry.mockResolvedValue({
+      data: { id: 'log-new', content: 'Nueva entrada', tag: 'progress', is_public: false, created_at: '2026-03-25T12:00:00Z' },
+      error: null,
+    })
   })
 
   it('renders log entries with content', () => {
@@ -109,7 +106,7 @@ describe('LogTimeline', () => {
   })
 
   it('submits entry with is_public true when checkbox is checked', async () => {
-    mockSingle.mockResolvedValueOnce({
+    mockAddLogEntry.mockResolvedValueOnce({
       data: { id: 'log-public', content: 'Entrada pública', tag: 'progress', is_public: true, created_at: '2026-03-25T12:00:00Z' },
       error: null,
     })

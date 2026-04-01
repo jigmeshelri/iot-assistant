@@ -3,28 +3,22 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import PlanRefinement from '../components/islands/PlanRefinement'
 
-const mockGetSession = vi.fn().mockResolvedValue({
-  data: { session: { access_token: 'tok123' } },
-})
-
-const mockInsertSelect = vi.fn(() => ({
-  single: vi.fn().mockResolvedValue({ data: { id: 'proj1' }, error: null }),
-}))
-const mockInsert = vi.fn(() => ({
-  select: mockInsertSelect,
-}))
+const mockGetBrowserSession = vi.fn().mockResolvedValue({ access_token: 'tok123' })
 
 vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    from: vi.fn(() => ({
-      select: vi.fn().mockResolvedValue({ data: [] }),
-      insert: mockInsert,
-    })),
-    auth: {
-      getSession: mockGetSession,
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }),
-    },
-  }),
+  getBrowserSession: (...args: unknown[]) => mockGetBrowserSession(...args),
+}))
+
+const mockGetUserStock = vi.fn().mockResolvedValue([])
+
+vi.mock('../lib/stock', () => ({
+  getUserStock: (...args: unknown[]) => mockGetUserStock(...args),
+}))
+
+const mockSaveAIProject = vi.fn().mockResolvedValue({ data: { id: 'proj1' }, error: null })
+
+vi.mock('../lib/projects', () => ({
+  saveAIProject: (...args: unknown[]) => mockSaveAIProject(...args),
 }))
 
 const mockDiscoverProjects = vi.fn()
@@ -44,6 +38,9 @@ Object.defineProperty(window, 'location', { writable: true, value: { href: '', r
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockGetBrowserSession.mockResolvedValue({ access_token: 'tok123' })
+  mockGetUserStock.mockResolvedValue([])
+  mockSaveAIProject.mockResolvedValue({ data: { id: 'proj1' }, error: null })
   mockDiscoverProjects.mockResolvedValue({ suggestions: [] })
   mockPlanProject.mockResolvedValue({ title: 'Plan result', bom: [] })
   window.location.href = ''
@@ -126,7 +123,7 @@ describe('PlanRefinement', () => {
   // --- New tests for uncovered lines ---
 
   it('error on unauthenticated session', async () => {
-    mockGetSession.mockResolvedValueOnce({ data: { session: null } })
+    mockGetBrowserSession.mockResolvedValueOnce(null)
     const user = userEvent.setup()
     render(<PlanRefinement mode="discover" />)
     await user.click(screen.getByText('Descubrir proyectos'))
@@ -206,7 +203,7 @@ describe('PlanRefinement', () => {
     await user.click(screen.getByText('Guardar proyecto'))
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(mockSaveAIProject).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Proyecto guardable',
           source: 'ai_discovery',
@@ -275,9 +272,7 @@ describe('PlanRefinement', () => {
 
   it('handles save error gracefully', async () => {
     const user = userEvent.setup()
-    mockInsertSelect.mockReturnValue({
-      single: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
-    })
+    mockSaveAIProject.mockResolvedValueOnce({ data: null, error: { message: 'DB error' } })
 
     mockDiscoverProjects.mockResolvedValue({
       suggestions: [

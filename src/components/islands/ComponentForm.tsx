@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
+import { CATEGORIES, PLATFORMS } from '../../lib/constants'
+import { addComponentToStock } from '../../lib/inventory'
 import ConnectivityEditor from './ConnectivityEditor'
 import SpecsEditor from './SpecsEditor'
 import LocationPicker from './LocationPicker'
-
-const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
-const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
 
 interface ComponentFormProps {
   prefill?: {
@@ -66,54 +65,31 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
     setLoading(true)
     setError('')
     setSkuConflict('')
-    try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const effectiveSku = sku.trim() || skuPlaceholder
-
-      // Upsert component to shared catalog
-      const { data: component, error: compErr } = await supabase
-        .from('components')
-        .upsert({
-          sku: effectiveSku,
-          name,
-          category,
-          platform_family: platform || null,
-          technical_specs: specs,
-          datasheet_url: datasheetUrl || null,
-          connectivity_caps: caps,
-        }, { onConflict: 'sku' })
-        .select()
-        .single()
-      if (compErr) throw compErr
-
-      // Add to user stock
-      const { error: stockErr } = await supabase
-        .from('stock')
-        .insert({
-          user_id: user.id,
-          component_id: component.id,
-          quantity,
-          notes: notes || null,
-          location_id: locationId,
-        })
-      if (stockErr) throw stockErr
-
-      setSuccess(true)
-      setTimeout(() => { window.location.href = '/inventory' }, 1200)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Error desconocido'
-      if (msg.includes('23505') || msg.includes('duplicate key')) {
+    const effectiveSku = sku.trim() || skuPlaceholder
+    const { error: err } = await addComponentToStock({
+      sku: effectiveSku,
+      name,
+      category,
+      platform_family: platform || null,
+      technical_specs: specs,
+      datasheet_url: datasheetUrl || null,
+      connectivity_caps: caps,
+      quantity,
+      notes: notes || null,
+      location_id: locationId,
+    })
+    setLoading(false)
+    if (err) {
+      if (err.includes('23505') || err.includes('duplicate key')) {
         nextAvailableSku(categoryPrefix(category), createSupabaseBrowserClient())
           .then(suggestion => setSkuConflict(`Este código ya está en uso, sugerencia: ${suggestion}`))
           .catch(() => {})
       }
-      setError(msg)
-    } finally {
-      setLoading(false)
+      setError(err)
+      return
     }
+    setSuccess(true)
+    setTimeout(() => { window.location.href = '/inventory' }, 1200)
   }
 
   if (success) {

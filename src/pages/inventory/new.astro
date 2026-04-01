@@ -1,5 +1,7 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro'
+import BackButton from '../../components/ui/BackButton.astro'
+import Breadcrumb from '../../components/ui/Breadcrumb.astro'
 import CameraCapture from '../../components/islands/CameraCapture'
 ---
 
@@ -8,11 +10,7 @@ import CameraCapture from '../../components/islands/CameraCapture'
   <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
   <div class="px-4 pt-6 pb-8 lg:hidden">
     <div class="flex items-center gap-3 mb-6">
-      <a href="/inventory" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors">
-        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </a>
+      <BackButton href="/inventory" />
       <h1 class="text-xl font-bold text-slate-900">Añadir componente</h1>
     </div>
     <CameraCapture client:load />
@@ -20,13 +18,7 @@ import CameraCapture from '../../components/islands/CameraCapture'
 
   <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
   <Fragment slot="topbar">
-    <div class="flex items-center gap-2 text-sm text-slate-500">
-      <a href="/inventory" class="hover:text-slate-700 transition-colors">Inventario</a>
-      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 18l6-6-6-6"/>
-      </svg>
-      <span class="font-semibold text-slate-900">Escanear IA</span>
-    </div>
+    <Breadcrumb items={[{ label: 'Inventario', href: '/inventory' }, { label: 'Escanear IA' }]} />
   </Fragment>
 
   <!-- ── Desktop main ────────────────────────────────────────────────────── -->

@@ -1,15 +1,7 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { addLogEntry, type LogEntry } from '../../lib/projects'
 
 type LogTag = 'progress' | 'problem' | 'solution' | 'learning' | 'code'
-
-interface LogEntry {
-  id: string
-  content: string
-  tag: LogTag
-  is_public: boolean
-  created_at: string
-}
 
 interface Props {
   projectId: string
@@ -32,26 +24,16 @@ export default function LogTimeline({ projectId, initialEntries }: Props) {
   const [adding, setAdding] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
-  async function addEntry(e: React.FormEvent) {
+  async function handleAddEntry(e: React.FormEvent) {
     e.preventDefault()
     if (!content.trim()) return
     setAdding(true)
-    try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      const { data } = await supabase
-        .from('project_log_entries')
-        .insert({ project_id: projectId, user_id: user.id, content, tag, is_public: isPublic })
-        .select()
-        .single()
-      if (data) {
-        setEntries(prev => [data as LogEntry, ...prev])
-        setContent('')
-        setShowForm(false)
-      }
-    } finally {
-      setAdding(false)
+    const { data } = await addLogEntry({ projectId, content, tag, isPublic })
+    setAdding(false)
+    if (data) {
+      setEntries(prev => [data, ...prev])
+      setContent('')
+      setShowForm(false)
     }
   }
 
@@ -65,7 +47,7 @@ export default function LogTimeline({ projectId, initialEntries }: Props) {
           + Añadir entrada a la bitácora
         </button>
       ) : (
-        <form onSubmit={addEntry} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
+        <form onSubmit={handleAddEntry} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
           <select value={tag} onChange={e => setTag(e.target.value as LogTag)}
             className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
             {Object.entries(TAG_LABELS).map(([k, v]) => (

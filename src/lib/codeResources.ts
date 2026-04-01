@@ -32,13 +32,6 @@ export function localMaxVersion(resources: SavedCodeResource[], filename: string
     .reduce((max, r) => Math.max(max, r.version), 0)
 }
 
-export async function getAuthToken(): Promise<string> {
-  const supabase = createSupabaseBrowserClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Not authenticated')
-  return session.access_token
-}
-
 export async function fetchMaxVersion(projectId: string, filename: string): Promise<number> {
   const supabase = createSupabaseBrowserClient()
   const { data } = await supabase

@@ -73,18 +73,56 @@ function sidebarItemClass(key: string) {
           </svg>
           <span style="font-size:10px; font-weight:500;">Ubicaciones</span>
         </a>
-        <button id="theme-toggle-mobile" class="flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400">
-          <svg id="theme-icon-sun-mobile" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="5"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          <svg id="theme-icon-moon-mobile" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-          </svg>
-          <span style="font-size:10px; font-weight:500;" id="theme-label-mobile">Tema</span>
+        <button id="user-menu-btn-mobile" class="flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400">
+          <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold" style="font-size:10px;">
+            {initial}
+          </div>
+          <span style="font-size:10px; font-weight:500;">{name}</span>
         </button>
       </div>
     </nav>
+
+    <!-- Mobile user menu popup -->
+    <div id="user-menu-mobile-backdrop" class="hidden fixed inset-0 bg-black/30 z-50" />
+    <div
+      id="user-menu-mobile"
+      class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 pb-safe"
+    >
+      <div class="mx-4 mb-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <!-- User info -->
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-slate-100">
+          <div class="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {initial}
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800 truncate">{name}</p>
+            <p class="text-xs text-slate-400 truncate">{email}</p>
+          </div>
+        </div>
+
+        <!-- Theme toggle -->
+        <button id="theme-toggle-mobile" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+          <svg id="theme-icon-sun-mobile" class="w-4 h-4 flex-shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg id="theme-icon-moon-mobile" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          <span id="theme-label-mobile">Tema oscuro</span>
+        </button>
+
+        <!-- Logout -->
+        <button id="logout-btn-mobile" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ─── Desktop layout (≥ lg) ────────────────────────────────────────── -->
@@ -257,7 +295,7 @@ function sidebarItemClass(key: string) {
     applyTheme(!document.documentElement.classList.contains('dark'))
   })
 
-  // ── User menu ────────────────────────────────────────────────────────────
+  // ── Desktop user menu ────────────────────────────────────────────────────
   const btn = document.getElementById('user-menu-btn')
   const dropdown = document.getElementById('user-menu-dropdown')
   const logoutBtn = document.getElementById('logout-btn')
@@ -266,7 +304,6 @@ function sidebarItemClass(key: string) {
     dropdown?.classList.toggle('hidden')
   })
 
-  // Close on outside click
   document.addEventListener('click', (e) => {
     if (!btn?.contains(e.target as Node) && !dropdown?.contains(e.target as Node)) {
       dropdown?.classList.add('hidden')
@@ -274,6 +311,26 @@ function sidebarItemClass(key: string) {
   })
 
   logoutBtn?.addEventListener('click', async () => {
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  })
+
+  // ── Mobile user menu ─────────────────────────────────────────────────────
+  const mobileBtn = document.getElementById('user-menu-btn-mobile')
+  const mobileMenu = document.getElementById('user-menu-mobile')
+  const mobileBackdrop = document.getElementById('user-menu-mobile-backdrop')
+  const mobileLogout = document.getElementById('logout-btn-mobile')
+
+  function toggleMobileMenu() {
+    mobileMenu?.classList.toggle('hidden')
+    mobileBackdrop?.classList.toggle('hidden')
+  }
+
+  mobileBtn?.addEventListener('click', toggleMobileMenu)
+  mobileBackdrop?.addEventListener('click', toggleMobileMenu)
+
+  mobileLogout?.addEventListener('click', async () => {
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
     window.location.href = '/login'

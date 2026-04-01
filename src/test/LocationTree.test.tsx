@@ -5,9 +5,13 @@ import LocationTree from '../components/islands/LocationTree'
 
 const mockInsertLocation = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('../lib/locations', () => ({
-  insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
+  }
+})
 
 Object.defineProperty(window, 'location', {
   value: { reload: vi.fn() },
@@ -47,7 +51,7 @@ describe('LocationTree', () => {
     const user = userEvent.setup()
     render(<LocationTree locations={locations} />)
 
-    await user.click(screen.getByText('+ Nueva ubicación raíz'))
+    await user.click(screen.getByText('+ Nueva ubicación'))
     const input = screen.getByPlaceholderText('Nombre de ubicación')
     expect(input).toBeInTheDocument()
 

@@ -42,6 +42,13 @@ export async function updateStockQuantity(stockId: string, quantity: number): Pr
   return error ? error.message : null
 }
 
+/** Get current browser session (use inside React Islands) */
+export async function getBrowserSession() {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}
+
 /** Shorthand to get session from Astro page context */
 export async function getSession(cookies: AstroCookies, request: Request) {
   const supabase = createSupabaseServerClient(cookies, request)
@@ -54,4 +61,12 @@ export async function getUser(cookies: AstroCookies, request: Request) {
   const supabase = createSupabaseServerClient(cookies, request)
   const { data: { user } } = await supabase.auth.getUser()
   return user
+}
+
+/** Get the current browser session's access token. Throws if not authenticated. */
+export async function getAuthToken(): Promise<string> {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  return session.access_token
 }

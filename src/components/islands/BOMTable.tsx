@@ -1,18 +1,6 @@
 import { useState, useRef } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
-
-interface BOMItem {
-  id?: string
-  component_id?: string
-  component_name: string
-  quantity_required: number
-  state?: BOMState
-  available_quantity?: number
-  notes?: string | null
-  component?: { name?: string; sku?: string } | null
-}
-
-type BOMState = 'available' | 'partial' | 'missing' | 'incompatible'
+import type { BOMItem, BOMState } from '../../lib/types'
+import { addBomItem, updateBomQty, deleteBomItem } from '../../lib/bom'
 
 const STATE_BADGES: Record<BOMState, { label: string; class: string }> = {
   available:    { label: 'Disponible',  class: 'bg-emerald-100 text-emerald-700' },
@@ -38,10 +26,8 @@ export default function BOMTable({ items, projectId, editable = false }: Props) 
 
   async function handleAdd() {
     if (!newName.trim() || !projectId) return
-    const supabase = createSupabaseBrowserClient()
-    const row = { project_id: projectId, component_name: newName.trim(), quantity_required: newQty }
-    const { data, error } = await supabase.from('project_bom').insert(row).select().single()
-    if (!error && data) {
+    const data = await addBomItem(projectId, newName.trim(), newQty)
+    if (data) {
       setBomItems(prev => [...prev, data])
     }
     setNewName('')
@@ -54,17 +40,15 @@ export default function BOMTable({ items, projectId, editable = false }: Props) 
       setEditingId(null)
       return
     }
-    const supabase = createSupabaseBrowserClient()
     setBomItems(prev => prev.map(b => b.id === item.id ? { ...b, quantity_required: editQty } : b))
     setEditingId(null)
-    await supabase.from('project_bom').update({ quantity_required: editQty }).eq('id', item.id)
+    await updateBomQty(item.id, editQty)
   }
 
   async function handleDelete(item: BOMItem) {
     if (!item.id || !window.confirm('¿Eliminar este componente del BOM?')) return
-    const supabase = createSupabaseBrowserClient()
     setBomItems(prev => prev.filter(b => b.id !== item.id))
-    await supabase.from('project_bom').delete().eq('id', item.id)
+    await deleteBomItem(item.id)
   }
 
   function startEditing(item: BOMItem) {

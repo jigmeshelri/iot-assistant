@@ -38,6 +38,7 @@ function makeDefaultSupabaseClient() {
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: vi.fn(),
+  getAuthToken: vi.fn().mockResolvedValue('tok'),
 }))
 
 vi.mock('../lib/api', () => ({

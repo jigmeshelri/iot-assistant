@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { generateCode, analyzeCode } from '../../lib/api'
 import type { SavedCodeResource } from '../../lib/codeResources'
-import { localMaxVersion, getAuthToken, saveCodeResource, deleteCodeResource } from '../../lib/codeResources'
+import { localMaxVersion, saveCodeResource, deleteCodeResource } from '../../lib/codeResources'
+import { getAuthToken } from '../../lib/supabase'
+import Spinner from './Spinner'
 
 const IMPROVEMENT_KEYWORDS: { pattern: RegExp; label: string; color: string }[] = [
   { pattern: /performance|rendimiento/i,  label: 'rendimiento', color: 'bg-blue-100 text-blue-700' },
@@ -207,7 +209,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
           <button type="submit" disabled={loading}
             className="w-full py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 disabled:opacity-50 flex items-center justify-center gap-2">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generando...</>
+              ? <><Spinner /> Generando...</>
               : '✨ Generar código'}
           </button>
         </form>
@@ -271,7 +273,7 @@ export default function CodeResources({ projectId, projectTitle, projectType, bo
           <button type="submit" disabled={loading}
             className="w-full py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 disabled:opacity-50 flex items-center justify-center gap-2">
             {loading
-              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analizando...</>
+              ? <><Spinner /> Analizando...</>
               : '🔍 Analizar código'}
           </button>
         </form>
