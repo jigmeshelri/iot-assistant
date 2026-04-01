@@ -91,6 +91,69 @@ export interface SaveAIProjectInput {
   tags: string[]
 }
 
+export async function forkProject(
+  projectId: string,
+): Promise<{ error: string | null }> {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: original } = await supabase
+    .from('projects')
+    .select('title, description, project_type, difficulty, tags')
+    .eq('id', projectId)
+    .single()
+  if (!original) return { error: 'Project not found' }
+
+  const { error } = await supabase.from('projects').insert({
+    user_id: user.id,
+    parent_project_id: projectId,
+    title: `${original.title} (fork)`,
+    description: original.description,
+    project_type: original.project_type,
+    difficulty: original.difficulty,
+    tags: original.tags,
+    source: 'fork',
+  })
+  return { error: error?.message ?? null }
+}
+
+export interface AddLogEntryInput {
+  projectId: string
+  content: string
+  tag: string
+  isPublic: boolean
+}
+
+export interface LogEntry {
+  id: string
+  content: string
+  tag: string
+  is_public: boolean
+  created_at: string
+}
+
+export async function addLogEntry(
+  input: AddLogEntryInput,
+): Promise<{ data: LogEntry | null; error: string | null }> {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null, error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('project_log_entries')
+    .insert({
+      project_id: input.projectId,
+      user_id: user.id,
+      content: input.content,
+      tag: input.tag,
+      is_public: input.isPublic,
+    })
+    .select()
+    .single()
+  return { data: error ? null : (data as LogEntry), error: error?.message ?? null }
+}
+
 export async function saveAIProject(
   input: SaveAIProjectInput,
 ): Promise<{ data: { id: string } | null; error: { message: string } | null }> {

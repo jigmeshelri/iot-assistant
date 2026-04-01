@@ -62,3 +62,11 @@ export async function getUser(cookies: AstroCookies, request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
+
+/** Get authenticated browser client — use inside React Islands. Throws if not authenticated. */
+export async function getAuthenticatedClient() {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  return { supabase, user }
+}

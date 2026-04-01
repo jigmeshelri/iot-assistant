@@ -20,6 +20,12 @@ vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'test-anon-key')
 describe('supabase lib', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateBrowserClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }),
+      },
+    })
   })
 
   it('createSupabaseBrowserClient calls createBrowserClient with correct args', async () => {
@@ -101,5 +107,22 @@ describe('supabase lib', () => {
     const cookiesArg = mockCreateServerClient.mock.calls[0][2].cookies
     const result = cookiesArg.getAll()
     expect(result).toEqual([])
+  })
+
+  it('getAuthenticatedClient returns supabase and user when authenticated', async () => {
+    const { getAuthenticatedClient } = await import('../lib/supabase')
+    const result = await getAuthenticatedClient()
+    expect(result.user).toEqual({ id: 'u1' })
+    expect(result.supabase).toBeDefined()
+  })
+
+  it('getAuthenticatedClient throws when user is not authenticated', async () => {
+    mockCreateBrowserClient.mockReturnValueOnce({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+    })
+    const { getAuthenticatedClient } = await import('../lib/supabase')
+    await expect(getAuthenticatedClient()).rejects.toThrow('Not authenticated')
   })
 })
