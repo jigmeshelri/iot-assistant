@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import ComponentForm from '../components/islands/ComponentForm'
 
-const mockSingle = vi.fn().mockResolvedValue({
-  data: { id: 'comp-1', sku: 'ESP32-001', name: 'ESP32-C6 XIAO' },
-  error: null,
-})
-const mockInsert = vi.fn().mockResolvedValue({ error: null })
+const mockAddComponentToStock = vi.fn().mockResolvedValue({ componentId: 'comp-1', error: null })
 const mockLike   = vi.fn().mockResolvedValue({ data: [], error: null })
-const mockUpsert = vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
+const mockUpsert = vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: 'comp-1' }, error: null }) })) }))
+
+vi.mock('../lib/inventory', () => ({
+  addComponentToStock: (...args: unknown[]) => mockAddComponentToStock(...args),
+}))
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
@@ -28,7 +28,7 @@ vi.mock('../lib/supabase', () => ({
           select: vi.fn(() => ({ order: vi.fn().mockResolvedValue({ data: [], error: null }) })),
         }
       }
-      return { insert: mockInsert }
+      return {}
     }),
   }),
 }))
@@ -57,13 +57,8 @@ describe('ComponentForm — renderizado básico', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.location.href = ''
-    mockSingle.mockResolvedValue({
-      data: { id: 'comp-1', sku: 'ESP32-001', name: 'ESP32-C6 XIAO' },
-      error: null,
-    })
-    mockInsert.mockResolvedValue({ error: null })
+    mockAddComponentToStock.mockResolvedValue({ componentId: 'comp-1', error: null })
     mockLike.mockResolvedValue({ data: [], error: null })
-    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
   })
 
   it('renderiza los 6 campos del formulario', () => {
@@ -91,9 +86,7 @@ describe('ComponentForm — auto-generación de SKU', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockLike.mockResolvedValue({ data: [], error: null })
-    mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
-    mockInsert.mockResolvedValue({ error: null })
-    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
+    mockAddComponentToStock.mockResolvedValue({ componentId: 'c1', error: null })
   })
 
   it('pre-rellena MCU-001 al cargar con categoría Microcontrolador', async () => {
@@ -106,9 +99,9 @@ describe('ComponentForm — auto-generación de SKU', () => {
   })
 
   it('muestra aviso cuando el SKU escrito ya existe', async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: null,
-      error: { message: 'duplicate key value violates unique constraint', code: '23505' },
+    mockAddComponentToStock.mockResolvedValueOnce({
+      componentId: null,
+      error: 'duplicate key value violates unique constraint',
     })
     render(<ComponentForm />)
     await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'Test')
@@ -123,9 +116,7 @@ describe('ComponentForm — prefill y submit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockLike.mockResolvedValue({ data: [], error: null })
-    mockSingle.mockResolvedValue({ data: { id: 'c1', sku: 'MCU-001' }, error: null })
-    mockInsert.mockResolvedValue({ error: null })
-    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
+    mockAddComponentToStock.mockResolvedValue({ componentId: 'c1', error: null })
   })
 
   it('prefill rellena nombre, categoría y plataforma', () => {
@@ -151,15 +142,10 @@ describe('ComponentForm — AC-4.6: enriquecimiento del catálogo maestro', () =
   beforeEach(() => {
     vi.clearAllMocks()
     mockLike.mockResolvedValue({ data: [], error: null })
-    mockSingle.mockResolvedValue({
-      data: { id: 'catalog-id-123', sku: 'MOD-001', name: 'SX1276 LoRa Module' },
-      error: null,
-    })
-    mockInsert.mockResolvedValue({ error: null })
-    mockUpsert.mockImplementation(() => ({ select: vi.fn(() => ({ single: mockSingle })) }))
+    mockAddComponentToStock.mockResolvedValue({ componentId: 'catalog-id-123', error: null })
   })
 
-  it('upserta en la tabla components al confirmar el formulario (enrichment)', async () => {
+  it('llama a addComponentToStock con name y category correctos (enrichment)', async () => {
     render(
       <ComponentForm
         prefill={{
@@ -173,14 +159,13 @@ describe('ComponentForm — AC-4.6: enriquecimiento del catálogo maestro', () =
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
 
     await waitFor(() => {
-      expect(mockUpsert).toHaveBeenCalledOnce()
-      const [payload, options] = mockUpsert.mock.calls[0]
-      expect(payload).toMatchObject({ name: 'SX1276 LoRa Module', category: 'Módulo' })
-      expect(options).toEqual({ onConflict: 'sku' })
+      expect(mockAddComponentToStock).toHaveBeenCalledOnce()
+      const [input] = mockAddComponentToStock.mock.calls[0]
+      expect(input).toMatchObject({ name: 'SX1276 LoRa Module', category: 'Módulo' })
     })
   })
 
-  it('el stock insert referencia el id del componente del catálogo', async () => {
+  it('llama a addComponentToStock con quantity y location_id del estado del formulario', async () => {
     render(
       <ComponentForm
         prefill={{
@@ -193,21 +178,21 @@ describe('ComponentForm — AC-4.6: enriquecimiento del catálogo maestro', () =
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalledOnce()
-      const [stockPayload] = mockInsert.mock.calls[0]
-      expect(stockPayload).toMatchObject({ component_id: 'catalog-id-123', user_id: 'test-user-id' })
+      expect(mockAddComponentToStock).toHaveBeenCalledOnce()
+      const [input] = mockAddComponentToStock.mock.calls[0]
+      expect(input).toMatchObject({ quantity: 1, location_id: null })
     })
   })
 
-  it('el upsert usa onConflict sku para evitar duplicados', async () => {
+  it('el input a addComponentToStock incluye sku para evitar duplicados', async () => {
     render(<ComponentForm prefill={{ name: 'ESP32-C6', category: 'Microcontrolador' }} />)
 
     fireEvent.submit(screen.getByRole('button', { name: /Guardar/i }))
 
     await waitFor(() => {
-      expect(mockUpsert).toHaveBeenCalledOnce()
-      const [, options] = mockUpsert.mock.calls[0]
-      expect(options).toEqual({ onConflict: 'sku' })
+      expect(mockAddComponentToStock).toHaveBeenCalledOnce()
+      const [input] = mockAddComponentToStock.mock.calls[0]
+      expect(input).toHaveProperty('sku')
     })
   })
 })

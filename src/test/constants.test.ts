@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DIFFICULTY, PROJECT_STATUS, categoryColors } from '../lib/constants'
+import { DIFFICULTY, PROJECT_STATUS, categoryColors, CATEGORIES, PLATFORMS } from '../lib/constants'
 
 describe('DIFFICULTY', () => {
   it('has beginner, intermediate and advanced keys', () => {
@@ -61,5 +61,27 @@ describe('categoryColors', () => {
   it('Microcontrolador uses brand color', () => {
     expect(categoryColors['Microcontrolador'].bg).toContain('brand')
     expect(categoryColors['Microcontrolador'].icon).toContain('brand')
+  })
+})
+
+describe('CATEGORIES', () => {
+  it('contains all 6 expected categories', () => {
+    expect(CATEGORIES).toEqual(['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'])
+  })
+
+  it('is a readonly tuple', () => {
+    expect(Array.isArray(CATEGORIES)).toBe(true)
+    expect(CATEGORIES.length).toBe(6)
+  })
+})
+
+describe('PLATFORMS', () => {
+  it('contains all 8 expected platforms', () => {
+    expect(PLATFORMS).toEqual(['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'])
+  })
+
+  it('is a readonly tuple', () => {
+    expect(Array.isArray(PLATFORMS)).toBe(true)
+    expect(PLATFORMS.length).toBe(8)
   })
 })

@@ -44,6 +44,16 @@ export const PROJECT_STATUS = {
 
 export type ProjectStatusKey = keyof typeof PROJECT_STATUS
 
+// ─── Component Categories ─────────────────────────────────────────────────────
+
+export const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
+export type CategoryKey = typeof CATEGORIES[number]
+
+// ─── Platform Families ────────────────────────────────────────────────────────
+
+export const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
+export type PlatformKey = typeof PLATFORMS[number]
+
 // ─── Category Colors ──────────────────────────────────────────────────────────
 
 export const categoryColors: Record<string, { bg: string; icon: string }> = {

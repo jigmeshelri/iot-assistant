@@ -2,7 +2,7 @@ import { useState } from 'react'
 import ConnectivityEditor from './ConnectivityEditor'
 import SpecsEditor from './SpecsEditor'
 import LocationPicker from './LocationPicker'
-import { categoryColors } from '../../lib/constants'
+import { categoryColors, CATEGORIES, PLATFORMS } from '../../lib/constants'
 import { updateInventoryItem, deleteStockItem } from '../../lib/inventory'
 
 interface Props {
@@ -22,9 +22,6 @@ interface Props {
   locationName: string | null
   locationQrCode: string | null
 }
-
-const CATEGORIES = ['Microcontrolador','Sensor','Alimentación','Actuador','Módulo','Pasivo'] as const
-const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
 
 const capBadgeColors: Record<string, string> = {
   wifi:     'bg-sky-50 text-sky-700 border-sky-200',
