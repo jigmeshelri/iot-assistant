@@ -2,6 +2,7 @@
 import AppLayout from '../layouts/AppLayout.astro'
 import { createSupabaseServerClient } from '../lib/supabase'
 import { categoryColors } from '../lib/constants'
+import { formatDate } from '../lib/formatDate'
 
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
 const { data: { user } } = await supabase.auth.getUser()
@@ -33,10 +34,6 @@ const projectColors = [
   { bg: 'bg-rose-100',   text: 'text-rose-600',   dot: 'bg-rose-400'   },
 ]
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-}
 ---
 
 <AppLayout title="Dashboard" activeTab="home">

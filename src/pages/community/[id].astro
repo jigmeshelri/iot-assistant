@@ -5,6 +5,7 @@ import BOMTable from '../../components/islands/BOMTable'
 import ForkButton from '../../components/islands/ForkButton'
 import CommentThread from '../../components/islands/CommentThread'
 import { createSupabaseServerClient } from '../../lib/supabase'
+import { formatDateShort as formatDate, formatDateLong } from '../../lib/formatDate'
 
 const { id } = Astro.params
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
@@ -25,14 +26,6 @@ const { data: codeResources } = await supabase
   .select('*')
   .eq('project_id', id!)
   .limit(5)
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function formatDateLong(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-}
 
 function tagColor(tag: string) {
   const colors: Record<string, string> = {
