@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { generateCode, analyzeCode } from '../../lib/api'
 import type { SavedCodeResource } from '../../lib/codeResources'
-import { localMaxVersion, getAuthToken, saveCodeResource, deleteCodeResource } from '../../lib/codeResources'
+import { localMaxVersion, saveCodeResource, deleteCodeResource } from '../../lib/codeResources'
+import { getAuthToken } from '../../lib/supabase'
 
 const IMPROVEMENT_KEYWORDS: { pattern: RegExp; label: string; color: string }[] = [
   { pattern: /performance|rendimiento/i,  label: 'rendimiento', color: 'bg-blue-100 text-blue-700' },

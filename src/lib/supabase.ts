@@ -63,6 +63,14 @@ export async function getUser(cookies: AstroCookies, request: Request) {
   return user
 }
 
+/** Get the current browser session's access token. Throws if not authenticated. */
+export async function getAuthToken(): Promise<string> {
+  const supabase = createSupabaseBrowserClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  return session.access_token
+}
+
 /** Get authenticated browser client — use inside React Islands. Throws if not authenticated. */
 export async function getAuthenticatedClient() {
   const supabase = createSupabaseBrowserClient()
