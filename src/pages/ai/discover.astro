@@ -1,5 +1,6 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro'
+import Breadcrumb from '../../components/ui/Breadcrumb.astro'
 import PlanRefinement from '../../components/islands/PlanRefinement'
 ---
 
@@ -16,13 +17,7 @@ import PlanRefinement from '../../components/islands/PlanRefinement'
 
   <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
   <Fragment slot="topbar">
-    <div class="flex items-center gap-2 text-sm text-slate-500">
-      <a href="/projects" class="hover:text-slate-700 transition-colors">Proyectos</a>
-      <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 18l6-6-6-6"/>
-      </svg>
-      <span class="font-semibold text-slate-900">Descubrir proyectos</span>
-    </div>
+    <Breadcrumb items={[{ label: 'Proyectos', href: '/projects' }, { label: 'Descubrir proyectos' }]} />
   </Fragment>
 
   <!-- ── Desktop main ────────────────────────────────────────────────────── -->
