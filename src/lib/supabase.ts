@@ -70,11 +70,3 @@ export async function getAuthToken(): Promise<string> {
   if (!session) throw new Error('Not authenticated')
   return session.access_token
 }
-
-/** Get authenticated browser client — use inside React Islands. Throws if not authenticated. */
-export async function getAuthenticatedClient() {
-  const supabase = createSupabaseBrowserClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-  return { supabase, user }
-}

@@ -54,8 +54,6 @@ export type CategoryKey = typeof CATEGORIES[number]
 export const PLATFORMS = ['ESP32','ESP8266','RP2040','STM32','AVR','nRF52','SAMD','Other'] as const
 export type PlatformKey = typeof PLATFORMS[number]
 
-// ─── Category Colors ──────────────────────────────────────────────────────────
-
 // ─── Connectivity Badge Colors ────────────────────────────────────────────────
 
 export const capBadgeColors: Record<string, string> = {
