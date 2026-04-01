@@ -4,12 +4,16 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LocationPicker from '../components/islands/LocationPicker'
 
 const mockFetchLocations = vi.fn()
-const mockCreateLocation = vi.fn()
+const mockInsertLocation = vi.fn()
 
-vi.mock('../lib/locations', () => ({
-  fetchLocations: (...args: unknown[]) => mockFetchLocations(...args),
-  createLocation: (...args: unknown[]) => mockCreateLocation(...args),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    fetchLocations: (...args: unknown[]) => mockFetchLocations(...args),
+    insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
+  }
+})
 
 const defaultLocations = [
   { id: 'l1', name: 'Taller', parent_id: null },
@@ -127,7 +131,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
 
   it('AC-7.1.3: confirming name creates location and calls onChange with new ID', async () => {
     const newId = 'l-new'
-    mockCreateLocation.mockResolvedValue(newId)
+    mockInsertLocation.mockResolvedValue(newId)
 
     const onChange = vi.fn()
     const user = userEvent.setup()
@@ -143,7 +147,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(mockCreateLocation).toHaveBeenCalledWith('Nuevo lugar')
+      expect(mockInsertLocation).toHaveBeenCalledWith('Nuevo lugar')
     })
     expect(onChange).toHaveBeenCalledWith(newId)
   })
@@ -162,7 +166,7 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.keyboard('{Escape}')
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockCreateLocation).not.toHaveBeenCalled()
+    expect(mockInsertLocation).not.toHaveBeenCalled()
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -180,6 +184,6 @@ describe('LocationPicker — inline create (AC-7.1)', () => {
     await user.click(screen.getByRole('button', { name: /cancelar/i }))
 
     expect(screen.queryByPlaceholderText(/nombre/i)).not.toBeInTheDocument()
-    expect(mockCreateLocation).not.toHaveBeenCalled()
+    expect(mockInsertLocation).not.toHaveBeenCalled()
   })
 })

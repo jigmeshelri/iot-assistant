@@ -1,20 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { fetchLocations, createLocation, type Location } from '../../lib/locations'
+import { fetchLocations, insertLocation, buildTree, type Location } from '../../lib/locations'
 
 interface Props {
   value: string | null
   onChange: (locationId: string | null) => void
   locationName?: string
-}
-
-function buildTree(locations: Location[]) {
-  const map = new Map<string | null, Location[]>()
-  for (const loc of locations) {
-    const parentKey = loc.parent_id ?? null
-    if (!map.has(parentKey)) map.set(parentKey, [])
-    map.get(parentKey)!.push(loc)
-  }
-  return map
 }
 
 interface FlatNode {
@@ -84,7 +74,7 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const newId = await createLocation(newName.trim())
+      const newId = await insertLocation(newName.trim())
       if (newId) {
         setLocations(prev => prev ? [...prev, { id: newId, name: newName.trim(), parent_id: null }] : prev)
         onChange(newId)

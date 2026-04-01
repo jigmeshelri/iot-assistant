@@ -1,26 +1,13 @@
 import { useState } from 'react'
-import { insertLocation } from '../../lib/locations'
+import { insertLocation, buildTree, type Location as BaseLocation } from '../../lib/locations'
 
-interface Location {
-  id: string
-  name: string
-  parent_id: string | null
+interface Location extends BaseLocation {
   qr_code: string
 }
 
 interface Props {
   locations: Location[]
   stockCounts?: Record<string, number>
-}
-
-function buildTree(locations: Location[]) {
-  const map = new Map<string | null, Location[]>()
-  for (const loc of locations) {
-    const parentKey = loc.parent_id ?? null
-    if (!map.has(parentKey)) map.set(parentKey, [])
-    map.get(parentKey)!.push(loc)
-  }
-  return map
 }
 
 function TreeNode({ loc, tree, stockCounts, depth = 0 }: { loc: Location; tree: Map<string | null, Location[]>; stockCounts?: Record<string, number>; depth?: number }) {

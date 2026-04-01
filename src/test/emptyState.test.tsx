@@ -3,9 +3,13 @@ import { vi, describe, it, expect } from 'vitest'
 import InventorySearch from '../components/islands/InventorySearch'
 import LocationTree from '../components/islands/LocationTree'
 
-vi.mock('../lib/locations', () => ({
-  insertLocation: vi.fn().mockResolvedValue(undefined),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    insertLocation: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe('AC-4.5: First-login empty state / onboarding', () => {
   describe('InventorySearch — no inventory data', () => {
