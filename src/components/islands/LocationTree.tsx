@@ -105,30 +105,12 @@ export default function LocationTree({ locations, stockCounts }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {roots.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-sm text-slate-400 mb-4">No tenés ubicaciones creadas todavía.</p>
-            <button
-              onClick={() => setShowNew(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 transition-colors"
-            >
-              Crear primera ubicación
-            </button>
-          </div>
-        ) : (
-          <div className="p-2">
-            {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
-          </div>
-        )}
-      </div>
-
       {!showNew ? (
         <button
           onClick={() => setShowNew(true)}
           className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm text-slate-400 hover:border-teal-400 hover:text-teal-600 transition-colors"
         >
-          + Nueva ubicación raíz
+          + Nueva ubicación
         </button>
       ) : (
         <form onSubmit={createLocation} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex gap-2">
@@ -148,6 +130,12 @@ export default function LocationTree({ locations, stockCounts }: Props) {
             ✕
           </button>
         </form>
+      )}
+
+      {roots.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-2">
+          {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
+        </div>
       )}
     </div>
   )
