@@ -72,7 +72,7 @@ const capBadgeColors: Record<string, string> = {
     <Breadcrumb items={[{ label: 'Inventario', href: '/inventory' }, { label: item.component?.name ?? 'Componente' }]} />
     <div class="ml-auto flex items-center gap-2">
       <a
-        href={`/inventory/${id}/edit`}
+        href="#edit"
         class="flex items-center gap-1.5 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -252,6 +252,28 @@ const capBadgeColors: Record<string, string> = {
         )}
 
       </div>
+    </div>
+
+    <!-- Edit form (scroll target) -->
+    <div id="edit" class="mt-5">
+      <InventoryDetail
+        stockId={id!}
+        componentId={item.component?.id}
+        name={item.component?.name ?? ''}
+        sku={item.component?.sku ?? ''}
+        category={cat}
+        platformFamily={item.component?.platform_family ?? null}
+        imageUrl={item.component?.image_url ?? null}
+        connectivityCaps={caps as Record<string, boolean>}
+        technicalSpecs={specs}
+        datasheetUrl={item.component?.datasheet_url ?? null}
+        quantity={item.quantity}
+        notes={item.notes ?? null}
+        locationId={item.location?.id ?? null}
+        locationName={item.location?.name ?? null}
+        locationQrCode={item.location?.qr_code ?? null}
+        client:load
+      />
     </div>
   </Fragment>
 
