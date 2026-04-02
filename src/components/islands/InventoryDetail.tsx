@@ -21,6 +21,7 @@ interface Props {
   locationId: string | null
   locationName: string | null
   locationQrCode: string | null
+  initialEditing?: boolean
 }
 
 export default function InventoryDetail({
@@ -37,8 +38,9 @@ export default function InventoryDetail({
   notes,
   locationId,
   locationName,
+  initialEditing = false,
 }: Props) {
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(initialEditing)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
