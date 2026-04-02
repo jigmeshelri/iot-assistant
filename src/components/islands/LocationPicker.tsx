@@ -53,7 +53,7 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
   }, [open])
 
   const selectedName = value
-    ? locationName ?? locations?.find(l => l.id === value)?.name ?? 'Sin ubicación'
+    ? locations?.find(l => l.id === value)?.name ?? locationName ?? 'Sin ubicación'
     : 'Sin ubicación'
 
   const tree = locations ? buildTree(locations) : null
