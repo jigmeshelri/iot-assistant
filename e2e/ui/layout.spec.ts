@@ -61,11 +61,12 @@ test.describe('Layout desktop', () => {
 test.describe('Layout móvil', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('bottom nav visible con 4 tabs', async ({ page }) => {
+  test('bottom nav visible con 3 tabs + botón Más', async ({ page }) => {
     await page.goto('/')
     const nav = page.locator('nav.fixed')
     await expect(nav).toBeVisible()
-    await expect(nav.locator('a')).toHaveCount(4)
+    await expect(nav.locator('a')).toHaveCount(3)
+    await expect(nav.getByRole('button', { name: 'Más' })).toBeVisible()
   })
 
   test('sidebar oculto', async ({ page }) => {
@@ -73,12 +74,77 @@ test.describe('Layout móvil', () => {
     await expect(page.locator('aside')).toBeHidden()
   })
 
-  test('tabs: Inicio, Inventario, Proyectos, Comunidad', async ({ page }) => {
+  test('tabs visibles: Inicio, Inventario, Proyectos', async ({ page }) => {
     await page.goto('/')
     const nav = page.locator('nav.fixed')
     await expect(nav.getByText('Inicio')).toBeVisible()
     await expect(nav.getByText('Inventario')).toBeVisible()
     await expect(nav.getByText('Proyectos')).toBeVisible()
+    await expect(nav.getByText('Comunidad')).toBeHidden()
+  })
+
+  test('botón Más abre bottom sheet con 6 ítems', async ({ page }) => {
+    await page.goto('/')
+    const moreBtn = page.getByRole('button', { name: 'Más' })
+    await moreBtn.click()
+    const sheet = page.locator('#bottom-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByText('Escanear')).toBeVisible()
+    await expect(sheet.getByText('Ubicaciones')).toBeVisible()
+    await expect(sheet.getByText('Comunidad')).toBeVisible()
+    await expect(sheet.getByText('Tema')).toBeVisible()
+    await expect(sheet.getByText('Perfil')).toBeVisible()
+    await expect(sheet.getByText('Salir')).toBeVisible()
+  })
+
+  test('tap en overlay cierra bottom sheet', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Más' }).click()
+    await expect(page.locator('#bottom-sheet')).toBeVisible()
+    await page.locator('#sheet-overlay').click()
+    await expect(page.locator('#bottom-sheet')).toBeHidden()
+  })
+
+  test('navegación desde sheet funciona', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Más' }).click()
+    await page.locator('#bottom-sheet').getByText('Ubicaciones').click()
+    await expect(page).toHaveURL(/\/locations/)
+  })
+})
+
+test.describe('Layout tablet', () => {
+  test.use({ viewport: { width: 768, height: 1024 } })
+
+  test('bottom nav visible con 6 tabs + botón Más', async ({ page }) => {
+    await page.goto('/')
+    const nav = page.locator('nav.fixed')
+    await expect(nav).toBeVisible()
+    await expect(nav.locator('a')).toHaveCount(6)
+    await expect(nav.getByRole('button', { name: 'Más' })).toBeVisible()
+  })
+
+  test('sidebar oculto en tablet', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('aside')).toBeHidden()
+  })
+
+  test('tabs tablet incluyen Escanear, Ubicaciones, Comunidad', async ({ page }) => {
+    await page.goto('/')
+    const nav = page.locator('nav.fixed')
+    await expect(nav.getByText('Escanear')).toBeVisible()
+    await expect(nav.getByText('Ubicaciones')).toBeVisible()
     await expect(nav.getByText('Comunidad')).toBeVisible()
+  })
+
+  test('sheet en tablet solo tiene Tema, Perfil, Salir', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Más' }).click()
+    const sheet = page.locator('#bottom-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByText('Tema')).toBeVisible()
+    await expect(sheet.getByText('Perfil')).toBeVisible()
+    await expect(sheet.getByText('Salir')).toBeVisible()
+    await expect(sheet.getByText('Escanear')).toBeHidden()
   })
 })
