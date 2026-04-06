@@ -38,8 +38,9 @@ function sidebarItemClass(key: string) {
       <slot />
     </main>
 
-    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white border-t border-slate-100 z-50 pb-safe">
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white border-t border-slate-100 z-50 pb-safe lg:hidden">
       <div class="flex items-center px-2 pt-2 pb-6">
+        <!-- Always-visible tabs -->
         <a href="/" class={tabClass('home')}>
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
@@ -59,68 +60,138 @@ function sidebarItemClass(key: string) {
           </svg>
           <span style="font-size:10px; font-weight:500;">Proyectos</span>
         </a>
-        <a href="/community" class={tabClass('community')}>
+
+        <!-- Tablet-only tabs (hidden on mobile) -->
+        <a href="/inventory/new" class={`hidden sm:flex flex-col items-center gap-0.5 flex-1 py-2 ${activeTab === 'scan' ? 'text-brand-600' : 'text-slate-400'}`}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span style="font-size:10px; font-weight:500;">Escanear</span>
+        </a>
+        <a href="/locations" class={`hidden sm:flex flex-col items-center gap-0.5 flex-1 py-2 ${activeTab === 'locations' ? 'text-brand-600' : 'text-slate-400'}`}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+          <span style="font-size:10px; font-weight:500;">Ubicaciones</span>
+        </a>
+        <a href="/community" class={`hidden sm:flex flex-col items-center gap-0.5 flex-1 py-2 ${activeTab === 'community' ? 'text-brand-600' : 'text-slate-400'}`}>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10"/>
             <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
           </svg>
           <span style="font-size:10px; font-weight:500;">Comunidad</span>
         </a>
-        <a href="/locations" class={tabClass('locations')}>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            <circle cx="12" cy="11" r="3"/>
-          </svg>
-          <span style="font-size:10px; font-weight:500;">Ubicaciones</span>
-        </a>
-        <button id="user-menu-btn-mobile" class="flex flex-col items-center gap-0.5 flex-1 py-2 text-slate-400">
-          <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold" style="font-size:10px;">
-            {initial}
+
+        <!-- More button (visible on mobile, hidden on tablet where all items fit) -->
+        <button
+          id="more-btn"
+          aria-expanded="false"
+          aria-controls="bottom-sheet"
+          class={`flex flex-col items-center gap-0.5 flex-1 py-2 ${(activeTab === 'scan' || activeTab === 'locations' || activeTab === 'community') ? 'text-brand-600 sm:text-slate-400' : 'text-slate-400'}`}
+        >
+          <div class="relative">
+            {(activeTab === 'scan' || activeTab === 'locations' || activeTab === 'community') && (
+              <span class="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-brand-600 rounded-full sm:hidden"></span>
+            )}
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="5" cy="12" r="2"/>
+              <circle cx="12" cy="12" r="2"/>
+              <circle cx="19" cy="12" r="2"/>
+            </svg>
           </div>
-          <span style="font-size:10px; font-weight:500;">{name}</span>
+          <span style="font-size:10px; font-weight:500;">Más</span>
         </button>
       </div>
     </nav>
 
-    <!-- Mobile user menu popup -->
-    <div id="user-menu-mobile-backdrop" class="hidden fixed inset-0 bg-black/30 z-50" />
+    <!-- ─── Sheet overlay ──────────────────────────────────────────────── -->
     <div
-      id="user-menu-mobile"
-      class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 pb-safe"
+      id="sheet-overlay"
+      class="fixed inset-0 bg-black/40 z-40 hidden opacity-0 transition-opacity lg:hidden"
+    ></div>
+
+    <!-- ─── Bottom sheet ───────────────────────────────────────────────── -->
+    <div
+      id="bottom-sheet"
+      role="dialog"
+      aria-modal="true"
+      class="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-t-2xl z-50 hidden translate-y-full transition-transform lg:hidden"
     >
-      <div class="mx-4 mb-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        <!-- User info -->
-        <div class="px-4 py-3 flex items-center gap-3 border-b border-slate-100">
-          <div class="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            {initial}
+      <!-- Drag handle -->
+      <div class="flex justify-center pt-3 pb-1">
+        <div class="w-8 h-1 bg-slate-200 rounded-full"></div>
+      </div>
+
+      <!-- Grid of items -->
+      <div class="grid grid-cols-3 gap-4 p-4 pb-6">
+
+        <!-- Mobile-only nav items (hidden on tablet, where they're in the bar) -->
+        <a href="/inventory/new" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
           </div>
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-slate-800 truncate">{name}</p>
-            <p class="text-xs text-slate-400 truncate">{email}</p>
+          <span class="text-xs font-medium text-slate-600">Escanear</span>
+        </a>
+        <a href="/locations" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
           </div>
-        </div>
+          <span class="text-xs font-medium text-slate-600">Ubicaciones</span>
+        </a>
+        <a href="/community" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Comunidad</span>
+        </a>
+
+        <!-- Always-in-sheet items -->
 
         <!-- Theme toggle -->
-        <button id="theme-toggle-mobile" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-          <svg id="theme-icon-sun-mobile" class="w-4 h-4 flex-shrink-0 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="5"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          <svg id="theme-icon-moon-mobile" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-          </svg>
-          <span id="theme-label-mobile">Tema oscuro</span>
+        <button id="theme-toggle-sheet" class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center">
+            <svg id="theme-icon-sheet-sun" class="w-6 h-6 text-slate-600 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg id="theme-icon-sheet-moon" class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Tema</span>
         </button>
 
+        <!-- Perfil (non-navigable) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center">
+            <span class="text-xl font-bold text-slate-600">{initial}</span>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Perfil</span>
+        </div>
+
         <!-- Logout -->
-        <button id="logout-btn-mobile" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Cerrar sesión
+        <button id="logout-btn-sheet" class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-red-500">Salir</span>
         </button>
+
       </div>
     </div>
   </div>
@@ -277,11 +348,9 @@ function sidebarItemClass(key: string) {
     const label = document.getElementById('theme-label')
     if (label) label.textContent = dark ? 'Tema claro' : 'Tema oscuro'
 
-    // Mobile icons / label
-    document.getElementById('theme-icon-sun-mobile')?.classList.toggle('hidden', !dark)
-    document.getElementById('theme-icon-moon-mobile')?.classList.toggle('hidden', dark)
-    const labelMobile = document.getElementById('theme-label-mobile')
-    if (labelMobile) labelMobile.textContent = dark ? 'Claro' : 'Oscuro'
+    // Sheet icons
+    document.getElementById('theme-icon-sheet-sun')?.classList.toggle('hidden', !dark)
+    document.getElementById('theme-icon-sheet-moon')?.classList.toggle('hidden', dark)
   }
 
   // Init icons to match current state
@@ -291,11 +360,98 @@ function sidebarItemClass(key: string) {
   document.getElementById('theme-toggle')?.addEventListener('click', () => {
     applyTheme(!document.documentElement.classList.contains('dark'))
   })
-  document.getElementById('theme-toggle-mobile')?.addEventListener('click', () => {
+
+  // ── Bottom sheet ─────────────────────────────────────────────────────────
+  const sheet = document.getElementById('bottom-sheet')
+  const overlay = document.getElementById('sheet-overlay')
+  const moreBtn = document.getElementById('more-btn')
+
+  function openSheet() {
+    if (!sheet || !overlay) return
+    sheet.classList.remove('hidden')
+    overlay.classList.remove('hidden')
+    // Trigger reflow to enable transition
+    sheet.getBoundingClientRect()
+    overlay.getBoundingClientRect()
+    sheet.classList.remove('translate-y-full')
+    sheet.classList.add('translate-y-0')
+    overlay.classList.remove('opacity-0')
+    overlay.classList.add('opacity-100')
+    moreBtn?.setAttribute('aria-expanded', 'true')
+  }
+
+  function closeSheet() {
+    if (!sheet || !overlay) return
+    sheet.classList.remove('translate-y-0')
+    sheet.classList.add('translate-y-full')
+    overlay.classList.remove('opacity-100')
+    overlay.classList.add('opacity-0')
+    moreBtn?.setAttribute('aria-expanded', 'false')
+    setTimeout(() => {
+      sheet.classList.add('hidden')
+      overlay.classList.add('hidden')
+    }, 300)
+  }
+
+  moreBtn?.addEventListener('click', () => {
+    const isOpen = moreBtn.getAttribute('aria-expanded') === 'true'
+    isOpen ? closeSheet() : openSheet()
+  })
+
+  overlay?.addEventListener('click', () => closeSheet())
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet()
+  })
+
+  // ── Swipe to close ────────────────────────────────────────────────────────
+  let touchStartY = 0
+  let currentDeltaY = 0
+
+  sheet?.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY
+    currentDeltaY = 0
+    if (sheet) sheet.style.transition = 'none'
+  }, { passive: true })
+
+  sheet?.addEventListener('touchmove', (e) => {
+    const deltaY = e.touches[0].clientY - touchStartY
+    if (deltaY < 0) return // don't allow dragging up
+    currentDeltaY = deltaY
+    if (sheet) sheet.style.transform = `translateX(-50%) translateY(${deltaY}px)`
+  }, { passive: true })
+
+  sheet?.addEventListener('touchend', () => {
+    if (sheet) sheet.style.transition = ''
+    if (currentDeltaY > 50) {
+      closeSheet()
+      // Reset transform after animation
+      setTimeout(() => {
+        if (sheet) sheet.style.transform = ''
+      }, 300)
+    } else {
+      // Snap back
+      if (sheet) sheet.style.transform = 'translateX(-50%) translateY(0)'
+      setTimeout(() => {
+        if (sheet) sheet.style.transform = ''
+      }, 300)
+    }
+    currentDeltaY = 0
+  })
+
+  // ── Sheet theme toggle ────────────────────────────────────────────────────
+  document.getElementById('theme-toggle-sheet')?.addEventListener('click', () => {
     applyTheme(!document.documentElement.classList.contains('dark'))
   })
 
-  // ── Desktop user menu ────────────────────────────────────────────────────
+  // ── Sheet logout ──────────────────────────────────────────────────────────
+  document.getElementById('logout-btn-sheet')?.addEventListener('click', async () => {
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  })
+
+  // ── User menu (desktop) ───────────────────────────────────────────────────
   const btn = document.getElementById('user-menu-btn')
   const dropdown = document.getElementById('user-menu-dropdown')
   const logoutBtn = document.getElementById('logout-btn')
@@ -316,23 +472,4 @@ function sidebarItemClass(key: string) {
     window.location.href = '/login'
   })
 
-  // ── Mobile user menu ─────────────────────────────────────────────────────
-  const mobileBtn = document.getElementById('user-menu-btn-mobile')
-  const mobileMenu = document.getElementById('user-menu-mobile')
-  const mobileBackdrop = document.getElementById('user-menu-mobile-backdrop')
-  const mobileLogout = document.getElementById('logout-btn-mobile')
-
-  function toggleMobileMenu() {
-    mobileMenu?.classList.toggle('hidden')
-    mobileBackdrop?.classList.toggle('hidden')
-  }
-
-  mobileBtn?.addEventListener('click', toggleMobileMenu)
-  mobileBackdrop?.addEventListener('click', toggleMobileMenu)
-
-  mobileLogout?.addEventListener('click', async () => {
-    const supabase = createSupabaseBrowserClient()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  })
 </script>
