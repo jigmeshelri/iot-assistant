@@ -105,6 +105,95 @@ function sidebarItemClass(key: string) {
         </button>
       </div>
     </nav>
+
+    <!-- ─── Sheet overlay ──────────────────────────────────────────────── -->
+    <div
+      id="sheet-overlay"
+      class="fixed inset-0 bg-black/40 z-40 hidden opacity-0 transition-opacity lg:hidden"
+    ></div>
+
+    <!-- ─── Bottom sheet ───────────────────────────────────────────────── -->
+    <div
+      id="bottom-sheet"
+      role="dialog"
+      aria-modal="true"
+      class="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-t-2xl z-50 hidden translate-y-full transition-transform lg:hidden"
+    >
+      <!-- Drag handle -->
+      <div class="flex justify-center pt-3 pb-1">
+        <div class="w-8 h-1 bg-slate-200 rounded-full"></div>
+      </div>
+
+      <!-- Grid of items -->
+      <div class="grid grid-cols-3 gap-4 p-4 pb-6">
+
+        <!-- Mobile-only nav items (hidden on tablet, where they're in the bar) -->
+        <a href="/inventory/new" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Escanear</span>
+        </a>
+        <a href="/locations" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Ubicaciones</span>
+        </a>
+        <a href="/community" class="sm:hidden flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Comunidad</span>
+        </a>
+
+        <!-- Always-in-sheet items -->
+
+        <!-- Theme toggle -->
+        <button id="theme-toggle-sheet" class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <svg id="theme-icon-sheet-sun" class="w-6 h-6 text-brand-600 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg id="theme-icon-sheet-moon" class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Tema</span>
+        </button>
+
+        <!-- Perfil (non-navigable) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-brand-50 rounded-2xl flex items-center justify-center">
+            <span class="text-xl font-bold text-brand-600">{initial}</span>
+          </div>
+          <span class="text-xs font-medium text-slate-600">Perfil</span>
+        </div>
+
+        <!-- Logout -->
+        <button id="logout-btn-sheet" class="flex flex-col items-center gap-2">
+          <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </div>
+          <span class="text-xs font-medium text-red-500">Salir</span>
+        </button>
+
+      </div>
+    </div>
   </div>
 
   <!-- ─── Desktop layout (≥ lg) ────────────────────────────────────────── -->
