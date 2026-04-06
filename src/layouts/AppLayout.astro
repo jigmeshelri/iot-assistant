@@ -341,11 +341,9 @@ function sidebarItemClass(key: string) {
     const label = document.getElementById('theme-label')
     if (label) label.textContent = dark ? 'Tema claro' : 'Tema oscuro'
 
-    // Mobile icons / label
-    document.getElementById('theme-icon-sun-mobile')?.classList.toggle('hidden', !dark)
-    document.getElementById('theme-icon-moon-mobile')?.classList.toggle('hidden', dark)
-    const labelMobile = document.getElementById('theme-label-mobile')
-    if (labelMobile) labelMobile.textContent = dark ? 'Claro' : 'Oscuro'
+    // Sheet icons
+    document.getElementById('theme-icon-sheet-sun')?.classList.toggle('hidden', !dark)
+    document.getElementById('theme-icon-sheet-moon')?.classList.toggle('hidden', dark)
   }
 
   // Init icons to match current state
@@ -355,11 +353,98 @@ function sidebarItemClass(key: string) {
   document.getElementById('theme-toggle')?.addEventListener('click', () => {
     applyTheme(!document.documentElement.classList.contains('dark'))
   })
-  document.getElementById('theme-toggle-mobile')?.addEventListener('click', () => {
+
+  // ── Bottom sheet ─────────────────────────────────────────────────────────
+  const sheet = document.getElementById('bottom-sheet')
+  const overlay = document.getElementById('sheet-overlay')
+  const moreBtn = document.getElementById('more-btn')
+
+  function openSheet() {
+    if (!sheet || !overlay) return
+    sheet.classList.remove('hidden')
+    overlay.classList.remove('hidden')
+    // Trigger reflow to enable transition
+    sheet.getBoundingClientRect()
+    overlay.getBoundingClientRect()
+    sheet.classList.remove('translate-y-full')
+    sheet.classList.add('translate-y-0')
+    overlay.classList.remove('opacity-0')
+    overlay.classList.add('opacity-100')
+    moreBtn?.setAttribute('aria-expanded', 'true')
+  }
+
+  function closeSheet() {
+    if (!sheet || !overlay) return
+    sheet.classList.remove('translate-y-0')
+    sheet.classList.add('translate-y-full')
+    overlay.classList.remove('opacity-100')
+    overlay.classList.add('opacity-0')
+    moreBtn?.setAttribute('aria-expanded', 'false')
+    setTimeout(() => {
+      sheet.classList.add('hidden')
+      overlay.classList.add('hidden')
+    }, 300)
+  }
+
+  moreBtn?.addEventListener('click', () => {
+    const isOpen = moreBtn.getAttribute('aria-expanded') === 'true'
+    isOpen ? closeSheet() : openSheet()
+  })
+
+  overlay?.addEventListener('click', () => closeSheet())
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet()
+  })
+
+  // ── Swipe to close ────────────────────────────────────────────────────────
+  let touchStartY = 0
+  let currentDeltaY = 0
+
+  sheet?.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY
+    currentDeltaY = 0
+    if (sheet) sheet.style.transition = 'none'
+  }, { passive: true })
+
+  sheet?.addEventListener('touchmove', (e) => {
+    const deltaY = e.touches[0].clientY - touchStartY
+    if (deltaY < 0) return // don't allow dragging up
+    currentDeltaY = deltaY
+    if (sheet) sheet.style.transform = `translateX(-50%) translateY(${deltaY}px)`
+  }, { passive: true })
+
+  sheet?.addEventListener('touchend', () => {
+    if (sheet) sheet.style.transition = ''
+    if (currentDeltaY > 50) {
+      closeSheet()
+      // Reset transform after animation
+      setTimeout(() => {
+        if (sheet) sheet.style.transform = ''
+      }, 300)
+    } else {
+      // Snap back
+      if (sheet) sheet.style.transform = 'translateX(-50%) translateY(0)'
+      setTimeout(() => {
+        if (sheet) sheet.style.transform = ''
+      }, 300)
+    }
+    currentDeltaY = 0
+  })
+
+  // ── Sheet theme toggle ────────────────────────────────────────────────────
+  document.getElementById('theme-toggle-sheet')?.addEventListener('click', () => {
     applyTheme(!document.documentElement.classList.contains('dark'))
   })
 
-  // ── User menu ────────────────────────────────────────────────────────────
+  // ── Sheet logout ──────────────────────────────────────────────────────────
+  document.getElementById('logout-btn-sheet')?.addEventListener('click', async () => {
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  })
+
+  // ── User menu (desktop) ───────────────────────────────────────────────────
   const btn = document.getElementById('user-menu-btn')
   const dropdown = document.getElementById('user-menu-dropdown')
   const logoutBtn = document.getElementById('logout-btn')
