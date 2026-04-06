@@ -20,6 +20,12 @@ vi.stubEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'test-anon-key')
 describe('supabase lib', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateBrowserClient.mockReturnValue({
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }),
+      },
+    })
   })
 
   it('createSupabaseBrowserClient calls createBrowserClient with correct args', async () => {
@@ -102,4 +108,28 @@ describe('supabase lib', () => {
     const result = cookiesArg.getAll()
     expect(result).toEqual([])
   })
+
+  it('getAuthToken returns the access_token from session', async () => {
+    mockCreateBrowserClient.mockReturnValueOnce({
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'my-token' } } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }),
+      },
+    })
+    const { getAuthToken } = await import('../lib/supabase')
+    const token = await getAuthToken()
+    expect(token).toBe('my-token')
+  })
+
+  it('getAuthToken throws when session is null', async () => {
+    mockCreateBrowserClient.mockReturnValueOnce({
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+    })
+    const { getAuthToken } = await import('../lib/supabase')
+    await expect(getAuthToken()).rejects.toThrow('Not authenticated')
+  })
+
 })

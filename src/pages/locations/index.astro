@@ -17,21 +17,47 @@ for (const s of allStock ?? []) {
     stockCounts[s.location_id] = (stockCounts[s.location_id] ?? 0) + 1
   }
 }
+
+const isEmpty = !locations || locations.length === 0
 ---
+
 <AppLayout title="Ubicaciones" activeTab="locations">
-  <div class="px-4 pt-6 pb-4">
+
+  <!-- ── Mobile ─────────────────────────────────────────────────────────── -->
+  <div class="lg:hidden px-4 pt-6 pb-4">
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-xl font-bold text-slate-900">Ubicaciones</h1>
     </div>
 
-    {(!locations || locations.length === 0) ? (
+    {isEmpty ? (
       <EmptyState
         title="Sin ubicaciones"
         description="Crea ubicaciones para organizar físicamente tus componentes"
         icon="📍"
       />
-    ) : (
-      <LocationTree locations={locations} stockCounts={stockCounts} client:load />
-    )}
+    ) : null}
+
+    <LocationTree locations={locations ?? []} stockCounts={stockCounts} client:load />
   </div>
+
+  <!-- ── Desktop topbar ──────────────────────────────────────────────────── -->
+  <Fragment slot="topbar">
+    <h2 class="text-base font-bold text-slate-900 flex-1">Ubicaciones</h2>
+  </Fragment>
+
+  <!-- ── Desktop main ────────────────────────────────────────────────────── -->
+  <Fragment slot="desktop-main">
+    {isEmpty ? (
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+        <EmptyState
+          title="Sin ubicaciones"
+          description="Crea ubicaciones para organizar físicamente tus componentes"
+          icon="📍"
+        />
+      </div>
+    ) : null}
+
+    <LocationTree locations={locations ?? []} stockCounts={stockCounts} client:load />
+  </Fragment>
+
 </AppLayout>

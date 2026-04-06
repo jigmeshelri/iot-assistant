@@ -1,18 +1,17 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { vi, describe, it, expect } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LocationTree from '../components/islands/LocationTree'
 
-const mockInsert = vi.fn().mockResolvedValue({ error: null })
+const mockInsertLocation = vi.fn().mockResolvedValue(undefined)
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
-    from: vi.fn(() => ({
-      insert: mockInsert,
-    })),
-  }),
-}))
+vi.mock('../lib/locations', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/locations')>()
+  return {
+    ...real,
+    insertLocation: (...args: unknown[]) => mockInsertLocation(...args),
+  }
+})
 
 Object.defineProperty(window, 'location', {
   value: { reload: vi.fn() },
@@ -27,6 +26,10 @@ const locations = [
 const stockCounts = { l1: 5, l2: 12, l3: 3 }
 
 describe('LocationTree', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('renders root locations', () => {
     render(<LocationTree locations={locations} />)
     expect(screen.getByText('Taller')).toBeInTheDocument()
@@ -48,15 +51,45 @@ describe('LocationTree', () => {
     const user = userEvent.setup()
     render(<LocationTree locations={locations} />)
 
-    await user.click(screen.getByText('+ Nueva ubicación raíz'))
+    await user.click(screen.getByText('+ Nueva ubicación'))
     const input = screen.getByPlaceholderText('Nombre de ubicación')
     expect(input).toBeInTheDocument()
 
     await user.type(input, 'Bodega')
     await user.click(screen.getByRole('button', { name: 'Crear' }))
 
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 'u1', name: 'Bodega' }),
-    )
+    expect(mockInsertLocation).toHaveBeenCalledWith('Bodega')
+  })
+
+  describe('sub-location creation (AC-3.3.2)', () => {
+    it('creates a sub-location under a parent when valid name is provided', async () => {
+      const user = userEvent.setup()
+      render(<LocationTree locations={locations} />)
+
+      // Click the "+" button to add a sub-location under "Taller" (l1)
+      const addButtons = screen.getAllByTitle('Añadir sub-ubicación')
+      await user.click(addButtons[0])
+
+      const input = screen.getByPlaceholderText('Nombre sub-ubicación')
+      expect(input).toBeInTheDocument()
+
+      await user.type(input, 'Estante A')
+      await user.click(screen.getByRole('button', { name: 'Crear' }))
+
+      expect(mockInsertLocation).toHaveBeenCalledWith('Estante A', 'l1')
+    })
+
+    it('does not submit when sub-location name is empty', async () => {
+      const user = userEvent.setup()
+      render(<LocationTree locations={locations} />)
+
+      const addButtons = screen.getAllByTitle('Añadir sub-ubicación')
+      await user.click(addButtons[0])
+
+      // Submit with empty input
+      await user.click(screen.getByRole('button', { name: 'Crear' }))
+
+      expect(mockInsertLocation).not.toHaveBeenCalled()
+    })
   })
 })

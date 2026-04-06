@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { updateProjectField, deleteProject } from '../../lib/projects'
+import { DIFFICULTY, PROJECT_STATUS } from '../../lib/constants'
 
 interface Props {
   projectId: string
@@ -13,33 +14,12 @@ interface Props {
   tags: string[]
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  saved: 'bg-slate-100 text-slate-600',
-  in_progress: 'bg-brand-50 text-brand-700',
-  paused: 'bg-amber-50 text-amber-700',
-  completed: 'bg-green-50 text-green-700',
-  abandoned: 'bg-red-50 text-red-600',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  saved: 'Guardado',
-  in_progress: 'En progreso',
-  paused: 'Pausado',
-  completed: 'Completado',
-  abandoned: 'Abandonado',
-}
-
 const TYPE_LABEL: Record<string, string> = {
   diy: 'DIY',
   prototype: 'Prototipo',
   professional: 'Profesional',
 }
 
-const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Medio',
-  hard: 'Difícil',
-}
 
 const PENCIL_ICON = (
   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -108,8 +88,7 @@ export default function ProjectHeader({
       return
     }
     setTitleError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ title: trimmed }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { title: trimmed })
     if (error) {
       setTitleError('Error al guardar título')
       return
@@ -133,8 +112,7 @@ export default function ProjectHeader({
       return
     }
     setDescError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ description: trimmed }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { description: trimmed })
     if (error) {
       setDescError('Error al guardar descripción')
       return
@@ -143,10 +121,16 @@ export default function ProjectHeader({
     flashSaved(setDescSaved)
   }
 
+  function handleDescriptionKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setDescription(initialDescription)
+      setEditingDescription(false)
+    }
+  }
+
   async function changeStatus(newStatus: string) {
     setStatusError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ status: newStatus }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { status: newStatus })
     if (error) {
       setStatusError('Error al cambiar estado')
       return
@@ -157,8 +141,7 @@ export default function ProjectHeader({
   async function saveProgress(value: number) {
     setProgress(value)
     setProgressError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').update({ progress: value }).eq('id', projectId)
+    const { error } = await updateProjectField(projectId, { progress: value })
     if (error) {
       setProgressError('Error al guardar progreso')
       return
@@ -169,8 +152,7 @@ export default function ProjectHeader({
   async function handleDelete() {
     if (!window.confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) return
     setDeleteError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.from('projects').delete().eq('id', projectId)
+    const { error } = await deleteProject(projectId)
     if (error) {
       setDeleteError('Error al eliminar proyecto')
       return
@@ -245,6 +227,7 @@ export default function ProjectHeader({
             value={description}
             onChange={e => setDescription(e.target.value)}
             onBlur={saveDescription}
+            onKeyDown={handleDescriptionKeyDown}
             rows={3}
             className="w-full text-sm text-slate-600 bg-transparent border border-brand-300 rounded-lg p-2 outline-none focus:border-brand-500 resize-none leading-relaxed"
           />
@@ -270,8 +253,8 @@ export default function ProjectHeader({
 
       {/* Status + actions */}
       <div className="space-y-2">
-        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[status] ?? 'bg-slate-100 text-slate-600'}`}>
-          {STATUS_LABEL[status] ?? status}
+        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${PROJECT_STATUS[status as keyof typeof PROJECT_STATUS]?.badge ?? 'bg-slate-100 text-slate-600'}`}>
+          {PROJECT_STATUS[status as keyof typeof PROJECT_STATUS]?.label ?? status}
         </span>
         {renderStatusActions()}
         {statusError && <p className="text-xs text-red-600">{statusError}</p>}
@@ -328,7 +311,7 @@ export default function ProjectHeader({
         </span>
         {difficulty && (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-            {DIFFICULTY_LABEL[difficulty] ?? difficulty}
+            {DIFFICULTY[difficulty as keyof typeof DIFFICULTY]?.label ?? difficulty}
           </span>
         )}
       </div>

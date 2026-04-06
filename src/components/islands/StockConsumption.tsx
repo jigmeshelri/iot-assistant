@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
-
-interface BOMItem {
-  id: string
-  component_name: string
-  quantity_required: number
-  component_id?: string
-}
+import type { BOMItem } from '../../lib/types'
+import { consumeStock, undoStockConsumption } from '../../lib/stock'
 
 interface StockMatch {
   stockId: string
@@ -84,42 +78,21 @@ export default function StockConsumption({ projectId, bomItems, userStock, consu
   const rows = bomItems.map(b => ({ bom: b, status: getStatus(b) }))
   const usedCount = rows.filter(r => r.status.kind === 'used').length
 
-  async function consumeItem(bomItem: BOMItem, match: StockMatch) {
-    setBusy(bomItem.id)
+  async function handleConsume(bomItem: BOMItem, match: StockMatch) {
+    setBusy(bomItem.id ?? null)
     try {
       const qty = Math.min(bomItem.quantity_required, match.available)
-      const supabase = createSupabaseBrowserClient()
-      await supabase.from('project_consumed_stock').insert({
-        project_id: projectId,
-        stock_id: match.stockId,
-        quantity_consumed: qty,
-      })
-      await supabase
-        .from('stock')
-        .update({ quantity: match.available - qty })
-        .eq('id', match.stockId)
+      await consumeStock({ projectId, stockId: match.stockId, quantityConsumed: qty, stockAvailable: match.available })
       window.location.reload()
     } finally {
       setBusy(null)
     }
   }
 
-  async function undoConsumption(consumedItem: ConsumedItem) {
+  async function handleUndo(consumedItem: ConsumedItem) {
     setBusy(consumedItem.id)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: stock } = await supabase
-        .from('stock')
-        .select('quantity')
-        .eq('id', consumedItem.stock_id)
-        .single()
-      if (stock) {
-        await supabase
-          .from('stock')
-          .update({ quantity: stock.quantity + consumedItem.quantity_consumed })
-          .eq('id', consumedItem.stock_id)
-      }
-      await supabase.from('project_consumed_stock').delete().eq('id', consumedItem.id)
+      await undoStockConsumption(consumedItem.id, consumedItem.stock_id, consumedItem.quantity_consumed)
       window.location.reload()
     } finally {
       setBusy(null)
@@ -163,7 +136,7 @@ export default function StockConsumption({ projectId, bomItems, userStock, consu
                 <button
                   className="text-xs text-slate-400 hover:text-slate-600"
                   disabled={busy !== null}
-                  onClick={() => undoConsumption(status.consumed)}
+                  onClick={() => handleUndo(status.consumed)}
                 >
                   &crarr; Deshacer
                 </button>
@@ -174,7 +147,7 @@ export default function StockConsumption({ projectId, bomItems, userStock, consu
               <button
                 className="bg-teal-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium disabled:opacity-50"
                 disabled={busy !== null}
-                onClick={() => consumeItem(bom, status.match)}
+                onClick={() => handleConsume(bom, status.match)}
               >
                 Usar
               </button>
@@ -188,7 +161,7 @@ export default function StockConsumption({ projectId, bomItems, userStock, consu
                 <button
                   className="bg-teal-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium disabled:opacity-50"
                   disabled={busy !== null}
-                  onClick={() => consumeItem(bom, status.match)}
+                  onClick={() => handleConsume(bom, status.match)}
                 >
                   Usar {status.match.available} disponibles
                 </button>

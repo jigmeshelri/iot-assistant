@@ -1,26 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
-
-interface Location {
-  id: string
-  name: string
-  parent_id: string | null
-}
+import { fetchLocations, insertLocation, buildTree, type Location } from '../../lib/locations'
 
 interface Props {
   value: string | null
   onChange: (locationId: string | null) => void
   locationName?: string
-}
-
-function buildTree(locations: Location[]) {
-  const map = new Map<string | null, Location[]>()
-  for (const loc of locations) {
-    const parentKey = loc.parent_id ?? null
-    if (!map.has(parentKey)) map.set(parentKey, [])
-    map.get(parentKey)!.push(loc)
-  }
-  return map
 }
 
 interface FlatNode {
@@ -30,7 +14,7 @@ interface FlatNode {
 }
 
 function flattenTree(tree: Map<string | null, Location[]>, parentId: string | null, depth: number, expanded: Set<string>): FlatNode[] {
-  const children = tree.get(parentId) ?? []
+  const children = [...(tree.get(parentId) ?? [])].sort((a, b) => a.name.localeCompare(b.name))
   const result: FlatNode[] = []
   for (const loc of children) {
     const hasChildren = (tree.get(loc.id) ?? []).length > 0
@@ -46,13 +30,13 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
   const [open, setOpen] = useState(false)
   const [locations, setLocations] = useState<Location[] | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-    supabase.from('locations').select('id,name,parent_id').order('name').then(({ data }) => {
-      setLocations(data ?? [])
-    })
+    fetchLocations().then(setLocations)
   }, [])
 
   useEffect(() => {
@@ -60,6 +44,8 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
+        setShowCreate(false)
+        setNewName('')
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -67,7 +53,7 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
   }, [open])
 
   const selectedName = value
-    ? locationName ?? locations?.find(l => l.id === value)?.name ?? 'Sin ubicación'
+    ? locations?.find(l => l.id === value)?.name ?? locationName ?? 'Sin ubicación'
     : 'Sin ubicación'
 
   const tree = locations ? buildTree(locations) : null
@@ -81,6 +67,35 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
       else next.add(id)
       return next
     })
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newName.trim()) return
+    setCreating(true)
+    try {
+      const newId = await insertLocation(newName.trim())
+      if (newId) {
+        setLocations(prev => prev ? [...prev, { id: newId, name: newName.trim(), parent_id: null }] : prev)
+        onChange(newId)
+      }
+      setShowCreate(false)
+      setNewName('')
+      setOpen(false)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  function handleCancelCreate() {
+    setShowCreate(false)
+    setNewName('')
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      handleCancelCreate()
+    }
   }
 
   return (
@@ -102,13 +117,46 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
         <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           {locations === null ? (
             <div className="px-3 py-2 text-sm text-slate-400">Cargando ubicaciones...</div>
-          ) : locations.length === 0 ? (
-            <div className="px-3 py-3 text-sm text-slate-400 text-center">
-              Sin ubicaciones creadas.{' '}
-              <a href="/locations" className="text-teal-600 hover:underline">Crear una</a>
-            </div>
           ) : (
             <>
+              {showCreate ? (
+                <form onSubmit={handleCreate} className="px-3 py-2 flex gap-2">
+                  <input
+                    autoFocus
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Nombre de ubicación"
+                    className="flex-1 px-2 py-1 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="px-3 py-1 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 disabled:opacity-50"
+                  >
+                    {creating ? '...' : 'Crear'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelCreate}
+                    aria-label="Cancelar"
+                    className="px-2 py-1 text-slate-400 hover:text-slate-600 text-sm"
+                  >
+                    ✕
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(true)}
+                  className="w-full px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 text-left"
+                >
+                  + Nueva ubicación
+                </button>
+              )}
+
+              <div className="border-b border-slate-100" />
+
               <div
                 onClick={() => { onChange(null); setOpen(false) }}
                 className={`px-3 py-2 text-sm cursor-pointer ${
@@ -119,6 +167,7 @@ export default function LocationPicker({ value, onChange, locationName }: Props)
               >
                 Sin ubicación
               </div>
+
               {nodes.map(({ loc, depth, hasChildren }) => (
                 <div
                   key={loc.id}

@@ -4,6 +4,7 @@ import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 import { funErrorMessage, logError } from '../../lib/errorLog'
 import ComponentForm from './ComponentForm'
+import Spinner from './Spinner'
 
 export default function CameraCapture() {
   const [prefill, setPrefill] = useState<Record<string, unknown> | null>(null)
@@ -60,7 +61,7 @@ export default function CameraCapture() {
 
       {loading && (
         <div className="bg-teal-50 rounded-2xl p-4 text-center">
-          <div className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mb-2" />
+          <Spinner className="w-6 h-6 border-teal-500 mb-2" />
           <p className="text-sm text-teal-700">Reconociendo componente...</p>
         </div>
       )}
@@ -71,6 +72,12 @@ export default function CameraCapture() {
         <div className="bg-teal-50 rounded-2xl p-3 text-xs text-teal-700">
           ✨ Componente identificado: <strong>{String(prefill.name)}</strong>
           {' '}(confianza: {Math.round(Number(prefill.confidence) * 100)}%)
+        </div>
+      )}
+
+      {prefill && !loading && Number(prefill.confidence) < 0.7 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-700">
+          ⚠️ La IA no está segura de esta identificación. Revisá los datos antes de guardar.
         </div>
       )}
 

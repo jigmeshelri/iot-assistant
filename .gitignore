@@ -26,6 +26,9 @@ lerna-debug.log*
 # Astro build cache
 .astro/
 
+# Vercel output
+.vercel/
+
 # Python cache
 api/__pycache__/
 **/*.pyc
@@ -34,3 +37,4 @@ coverage/
 .vercel
 .npmrc
 .worktrees/
+.remember/

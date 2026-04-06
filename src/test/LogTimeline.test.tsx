@@ -2,20 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import LogTimeline from '../components/islands/LogTimeline'
 
-const mockSingle = vi.fn().mockResolvedValue({
+const mockAddLogEntry = vi.fn().mockResolvedValue({
   data: { id: 'log-new', content: 'Nueva entrada', tag: 'progress', is_public: false, created_at: '2026-03-25T12:00:00Z' },
   error: null,
 })
 
-vi.mock('../lib/supabase', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
-    },
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
-    })),
-  }),
+vi.mock('../lib/projects', () => ({
+  addLogEntry: (...args: unknown[]) => mockAddLogEntry(...args),
 }))
 
 const sampleEntries = [
@@ -26,6 +19,10 @@ const sampleEntries = [
 describe('LogTimeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAddLogEntry.mockResolvedValue({
+      data: { id: 'log-new', content: 'Nueva entrada', tag: 'progress', is_public: false, created_at: '2026-03-25T12:00:00Z' },
+      error: null,
+    })
   })
 
   it('renders log entries with content', () => {
@@ -75,6 +72,53 @@ describe('LogTimeline', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Nueva entrada')).toBeInTheDocument()
+    })
+  })
+
+  it('shows public indicator on entries marked as public', () => {
+    render(<LogTimeline projectId="p1" initialEntries={sampleEntries} />)
+    expect(screen.getByText('🌍 Público')).toBeInTheDocument()
+  })
+
+  it('does not show public indicator on private entries', () => {
+    const privateEntries = [
+      { id: 'e3', content: 'Entrada privada', tag: 'progress' as const, is_public: false, created_at: '2026-03-22T10:00:00Z' },
+    ]
+    render(<LogTimeline projectId="p1" initialEntries={privateEntries} />)
+    expect(screen.queryByText('🌍 Público')).not.toBeInTheDocument()
+  })
+
+  it('form has public toggle checkbox unchecked by default', () => {
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it('can toggle public checkbox in the form', () => {
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    const checkbox = screen.getByRole('checkbox')
+    fireEvent.click(checkbox)
+    expect(checkbox).toBeChecked()
+    fireEvent.click(checkbox)
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it('submits entry with is_public true when checkbox is checked', async () => {
+    mockAddLogEntry.mockResolvedValueOnce({
+      data: { id: 'log-public', content: 'Entrada pública', tag: 'progress', is_public: true, created_at: '2026-03-25T12:00:00Z' },
+      error: null,
+    })
+
+    render(<LogTimeline projectId="p1" initialEntries={[]} />)
+    fireEvent.click(screen.getByText(/Añadir entrada/))
+    fireEvent.change(screen.getByPlaceholderText(/Qué hiciste/), { target: { value: 'Entrada pública' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByText('Guardar'))
+
+    await waitFor(() => {
+      expect(screen.getByText('🌍 Público')).toBeInTheDocument()
     })
   })
 })

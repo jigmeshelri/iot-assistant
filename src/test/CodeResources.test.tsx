@@ -38,6 +38,7 @@ function makeDefaultSupabaseClient() {
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: vi.fn(),
+  getAuthToken: vi.fn().mockResolvedValue('tok'),
 }))
 
 vi.mock('../lib/api', () => ({
@@ -102,6 +103,16 @@ describe('CodeResources — Errores', () => {
     fireEvent.click(screen.getByRole('button', { name: /✨ Generar/i }))
     await waitFor(() => {
       expect(screen.getByText(/oficina sin teléfono/i)).toBeInTheDocument()
+    })
+  })
+
+  it('muestra mensaje divertido en error 422', async () => {
+    const { generateCode } = await import('../lib/api')
+    vi.mocked(generateCode).mockRejectedValueOnce(new Error('API 422: validation error'))
+    render(<CodeResources {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /✨ Generar/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/no nos estamos entendiendo/i)).toBeInTheDocument()
     })
   })
 })
@@ -185,5 +196,139 @@ describe('CodeResources — Modo Analizar', () => {
     await waitFor(() => {
       expect(vi.mocked(analyzeCode)).toHaveBeenCalled()
     })
+  })
+
+  // AC-3.7.4: analysis result displays explanation
+  it('muestra el resultado del análisis tras enviar', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+
+    const resources = [{
+      id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+      language: 'cpp', environment: 'arduino', content: '// v1',
+      version: 1, parent_id: null, is_generated: true,
+      created_at: new Date().toISOString(),
+    }]
+
+    render(<CodeResources {...defaultProps} initialResources={resources} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Analizar/i }))
+
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'r1' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /🔍 Analizar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Resultado del análisis/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Fix the bug/i)).toBeInTheDocument()
+  })
+
+  // AC-3.7.5: improvement type badges parsed from explanation text
+  it('muestra badges de tipo de mejora extraídos del texto del análisis', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    const { analyzeCode } = await import('../lib/api')
+    vi.mocked(analyzeCode).mockResolvedValueOnce({
+      explanation: 'Performance: use faster algorithm\nSecurity: sanitize inputs\nReadability: rename variables',
+      improved_code: '// improved',
+    })
+
+    const resources = [{
+      id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+      language: 'cpp', environment: 'arduino', content: '// v1',
+      version: 1, parent_id: null, is_generated: true,
+      created_at: new Date().toISOString(),
+    }]
+
+    render(<CodeResources {...defaultProps} initialResources={resources} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Analizar/i }))
+
+    const selects = screen.getAllByRole('combobox')
+    fireEvent.change(selects[0], { target: { value: 'r1' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /🔍 Analizar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Resultado del análisis/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/rendimiento/i)).toBeInTheDocument()
+    expect(screen.getByText(/seguridad/i)).toBeInTheDocument()
+    expect(screen.getByText(/legibilidad/i)).toBeInTheDocument()
+  })
+})
+
+describe('CodeResources — Default env from project type (AC-3.7.3)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('defaults to arduino env when projectType is arduino', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="arduino" />)
+    expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
+  })
+
+  it('defaults to esphome env when projectType is esphome', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="esphome" />)
+    expect(screen.getByDisplayValue('esphome')).toBeInTheDocument()
+  })
+
+  it('defaults to micropython env when projectType is micropython', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="micropython" />)
+    expect(screen.getByDisplayValue('micropython')).toBeInTheDocument()
+  })
+
+  it('falls back to arduino for unknown project type', async () => {
+    const { createSupabaseBrowserClient } = await import('../lib/supabase')
+    vi.mocked(createSupabaseBrowserClient).mockImplementation(makeDefaultSupabaseClient)
+    render(<CodeResources {...defaultProps} projectType="unknown-type" />)
+    expect(screen.getByDisplayValue('arduino')).toBeInTheDocument()
+  })
+})
+
+describe('CodeResources — Descarga de archivo (AC-3.7.2)', () => {
+  const resourceWithCode = {
+    id: 'r1', project_id: 'proj-1', filename: 'main.ino',
+    language: 'cpp', environment: 'arduino', content: '#include <Arduino.h>\nvoid setup() {}',
+    version: 1, parent_id: null, is_generated: true,
+    created_at: new Date().toISOString(),
+  }
+
+  it('crea un Blob con el contenido del archivo y dispara la descarga', async () => {
+    const mockObjectUrl = 'blob:http://localhost/fake-url'
+    const mockCreateObjectURL = vi.fn().mockReturnValue(mockObjectUrl)
+    const mockRevokeObjectURL = vi.fn()
+    const mockClick = vi.fn()
+
+    globalThis.URL.createObjectURL = mockCreateObjectURL
+    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
+
+    const mockAnchor = { href: '', download: '', click: mockClick }
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'a') return mockAnchor as unknown as HTMLElement
+      return originalCreateElement(tag)
+    })
+
+    render(<CodeResources {...defaultProps} initialResources={[resourceWithCode]} />)
+
+    fireEvent.click(screen.getByTitle('Descargar'))
+
+    expect(mockCreateObjectURL).toHaveBeenCalledOnce()
+    const blob = mockCreateObjectURL.mock.calls[0][0] as Blob
+    expect(blob).toBeInstanceOf(Blob)
+
+    expect(mockAnchor.download).toBe('main.ino')
+    expect(mockAnchor.href).toBe(mockObjectUrl)
+    expect(mockClick).toHaveBeenCalledOnce()
+    expect(mockRevokeObjectURL).toHaveBeenCalledWith(mockObjectUrl)
+
+    createElementSpy.mockRestore()
   })
 })

@@ -197,6 +197,38 @@ describe('ProjectHeader', () => {
     expect(mockUpdate).not.toHaveBeenCalled()
   })
 
+  // AC-3.6.3: Project details can be edited inline
+  it('AC-3.6.3 — calls update with new name when user edits title and confirms', async () => {
+    const user = userEvent.setup()
+    render(<ProjectHeader {...defaultProps} />)
+
+    await user.click(screen.getByTitle('Editar título'))
+    const input = screen.getByDisplayValue('Estación meteorológica')
+    await user.clear(input)
+    await user.type(input, 'Nuevo nombre del proyecto')
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith({ title: 'Nuevo nombre del proyecto' })
+    })
+  })
+
+  it('AC-3.6.3 — reverts description on Escape and dismisses edit mode', async () => {
+    const user = userEvent.setup()
+    render(<ProjectHeader {...defaultProps} />)
+
+    await user.click(screen.getByText('Proyecto de prueba'))
+    const textarea = screen.getByDisplayValue('Proyecto de prueba')
+    await user.clear(textarea)
+    await user.type(textarea, 'Descripción modificada')
+    await user.keyboard('{Escape}')
+
+    // Edit mode should be dismissed and original value should remain
+    expect(screen.getByText('Proyecto de prueba')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Descripción modificada')).not.toBeInTheDocument()
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
   it('shows description error on save failure', async () => {
     mockEq.mockResolvedValue({ error: { message: 'fail' } })
     const user = userEvent.setup()
@@ -337,15 +369,15 @@ describe('ProjectHeader', () => {
   })
 
   it('renders type and difficulty badges', () => {
-    render(<ProjectHeader {...defaultProps} projectType="diy" difficulty="easy" />)
+    render(<ProjectHeader {...defaultProps} projectType="diy" difficulty="beginner" />)
     expect(screen.getByText('DIY')).toBeInTheDocument()
-    expect(screen.getByText('Fácil')).toBeInTheDocument()
+    expect(screen.getByText('Principiante')).toBeInTheDocument()
   })
 
   it('does not render difficulty badge when null', () => {
     render(<ProjectHeader {...defaultProps} difficulty={null} />)
-    expect(screen.queryByText('Fácil')).not.toBeInTheDocument()
-    expect(screen.queryByText('Medio')).not.toBeInTheDocument()
+    expect(screen.queryByText('Principiante')).not.toBeInTheDocument()
+    expect(screen.queryByText('Intermedio')).not.toBeInTheDocument()
   })
 
   it('renders empty description placeholder', () => {

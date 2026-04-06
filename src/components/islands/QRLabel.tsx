@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { qrImageUrl } from '../../lib/api'
 
 interface Props {
@@ -7,17 +8,33 @@ interface Props {
 
 export default function QRLabel({ qrCode, locationName }: Props) {
   const imageUrl = qrImageUrl(qrCode)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   function handlePrint() {
-    const w = window.open('', '_blank')
-    if (!w) return
-    w.document.write(`
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document
+    if (!doc) return
+
+    doc.open()
+    doc.write(`
       <html><head><title>QR — ${locationName}</title>
       <style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#fff}
       img{max-width:400px;border:1px solid #e2e8f0;border-radius:8px}</style></head>
-      <body><img src="${imageUrl}" onload="window.print();window.close()" /></body></html>
+      <body><img src="${imageUrl}" /></body></html>
     `)
-    w.document.close()
+    doc.close()
+
+    const img = doc.querySelector('img')
+    if (!img) return
+
+    function doPrint() {
+      iframe!.contentWindow?.focus()
+      iframe!.contentWindow?.print()
+    }
+
+    if (img.complete) doPrint()
+    else img.onload = doPrint
   }
 
   return (
@@ -37,6 +54,7 @@ export default function QRLabel({ qrCode, locationName }: Props) {
         className="w-full rounded-xl border border-slate-100"
       />
       <p className="text-xs text-slate-400 text-center mt-2 font-mono truncate">{qrCode}</p>
+      <iframe ref={iframeRef} className="hidden" title="print" />
     </div>
   )
 }

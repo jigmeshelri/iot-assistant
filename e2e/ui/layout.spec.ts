@@ -148,3 +148,53 @@ test.describe('Layout tablet', () => {
     await expect(sheet.getByText('Escanear')).toBeHidden()
   })
 })
+
+test.describe('Navegación Ubicaciones — AC-6.1 (móvil)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('AC-6.1.1: bottom nav muestra link "Ubicaciones"', async ({ page }) => {
+    await page.goto('/')
+    const nav = page.locator('nav.fixed')
+    await expect(nav.getByText('Ubicaciones')).toBeVisible()
+  })
+
+  test('AC-6.1.2: click en "Ubicaciones" navega a /locations', async ({ page }) => {
+    await page.goto('/')
+    const nav = page.locator('nav.fixed')
+    await nav.getByText('Ubicaciones').click()
+    await expect(page).toHaveURL(/\/locations/)
+  })
+
+  test('AC-6.1.3: link activo en /locations', async ({ page }) => {
+    await page.goto('/locations')
+    const nav = page.locator('nav.fixed')
+    const link = nav.locator('a[href="/locations"]')
+    await expect(link).toBeVisible()
+    const color = await link.evaluate((el) => getComputedStyle(el).color)
+    // brand-600 (teal-600) active color
+    expect(color).toBe('rgb(13, 148, 136)')
+  })
+})
+
+test.describe('Navegación Ubicaciones — AC-6.2 (desktop)', () => {
+  test.use({ viewport: { width: 1280, height: 800 } })
+
+  test('AC-6.2.1: sidebar muestra "Ubicaciones"', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.locator('aside').getByText('Ubicaciones')).toBeVisible()
+  })
+
+  test('AC-6.2.2: click en "Ubicaciones" navega a /locations', async ({ page }) => {
+    await page.goto('/')
+    await page.locator('aside a[href="/locations"]').click()
+    await expect(page).toHaveURL(/\/locations/)
+  })
+
+  test('AC-6.2.3: link activo en /locations con fondo brand-600', async ({ page }) => {
+    await page.goto('/locations')
+    const link = page.locator('aside a[href="/locations"]')
+    await expect(link).toBeVisible()
+    const bg = await link.evaluate((el) => getComputedStyle(el).backgroundColor)
+    expect(bg).toBe('rgb(13, 148, 136)')
+  })
+})

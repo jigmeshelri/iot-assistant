@@ -1,26 +1,13 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { insertLocation, buildTree, type Location as BaseLocation } from '../../lib/locations'
 
-interface Location {
-  id: string
-  name: string
-  parent_id: string | null
+interface Location extends BaseLocation {
   qr_code: string
 }
 
 interface Props {
   locations: Location[]
   stockCounts?: Record<string, number>
-}
-
-function buildTree(locations: Location[]) {
-  const map = new Map<string | null, Location[]>()
-  for (const loc of locations) {
-    const parentKey = loc.parent_id ?? null
-    if (!map.has(parentKey)) map.set(parentKey, [])
-    map.get(parentKey)!.push(loc)
-  }
-  return map
 }
 
 function TreeNode({ loc, tree, stockCounts, depth = 0 }: { loc: Location; tree: Map<string | null, Location[]>; stockCounts?: Record<string, number>; depth?: number }) {
@@ -36,10 +23,7 @@ function TreeNode({ loc, tree, stockCounts, depth = 0 }: { loc: Location; tree: 
     if (!newChildName.trim()) return
     setCreatingChild(true)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      await supabase.from('locations').insert({ user_id: user.id, name: newChildName.trim(), parent_id: loc.id })
+      await insertLocation(newChildName, loc.id)
       window.location.reload()
     } finally {
       setCreatingChild(false)
@@ -112,10 +96,7 @@ export default function LocationTree({ locations, stockCounts }: Props) {
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      await supabase.from('locations').insert({ user_id: user.id, name: newName.trim() })
+      await insertLocation(newName)
       window.location.reload()
     } finally {
       setCreating(false)
@@ -124,22 +105,12 @@ export default function LocationTree({ locations, stockCounts }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {roots.length === 0 ? (
-          <p className="text-sm text-slate-400 p-4 text-center">Sin ubicaciones raíz</p>
-        ) : (
-          <div className="p-2">
-            {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
-          </div>
-        )}
-      </div>
-
       {!showNew ? (
         <button
           onClick={() => setShowNew(true)}
           className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm text-slate-400 hover:border-teal-400 hover:text-teal-600 transition-colors"
         >
-          + Nueva ubicación raíz
+          + Nueva ubicación
         </button>
       ) : (
         <form onSubmit={createLocation} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex gap-2">
@@ -159,6 +130,12 @@ export default function LocationTree({ locations, stockCounts }: Props) {
             ✕
           </button>
         </form>
+      )}
+
+      {roots.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-2">
+          {roots.map(loc => <TreeNode key={loc.id} loc={loc} tree={tree} stockCounts={stockCounts} />)}
+        </div>
       )}
     </div>
   )

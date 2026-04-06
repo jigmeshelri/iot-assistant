@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { DIFFICULTY } from '../../lib/constants'
+import { publishProject, unpublishProject } from '../../lib/projects'
 
 interface LogEntry {
   id: string
@@ -20,11 +21,10 @@ interface Props {
   logEntries: LogEntry[]
 }
 
-const DIFFICULTY_OPTIONS = [
-  { value: 'easy', label: 'Principiante' },
-  { value: 'medium', label: 'Intermedio' },
-  { value: 'hard', label: 'Avanzado' },
-]
+const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTY) as Array<keyof typeof DIFFICULTY>).map(key => ({
+  value: key,
+  label: DIFFICULTY[key].label,
+}))
 
 const TAG_BADGE: Record<string, string> = {
   progress: 'bg-brand-50 text-brand-700',
@@ -50,7 +50,7 @@ export default function PublishProject({
 
   const [pubTitle, setPubTitle] = useState(title)
   const [pubDescription, setPubDescription] = useState(description ?? '')
-  const [pubDifficulty, setPubDifficulty] = useState(difficulty ?? 'easy')
+  const [pubDifficulty, setPubDifficulty] = useState(difficulty ?? 'beginner')
   const [pubTags, setPubTags] = useState<string[]>(tags)
   const [tagInput, setTagInput] = useState('')
   const [selectedLogs, setSelectedLogs] = useState<Set<string>>(
@@ -62,31 +62,19 @@ export default function PublishProject({
   async function handlePublish() {
     setPublishing(true)
     setError('')
-    const supabase = createSupabaseBrowserClient()
-
-    const { error: projErr } = await supabase.from('projects').update({
-      is_public: true,
-      title: pubTitle.trim(),
-      description: pubDescription.trim() || null,
-      difficulty: pubDifficulty,
-      tags: pubTags,
-    }).eq('id', projectId)
-
+    const logUpdates = logEntries
+      .filter(entry => entry.is_public !== selectedLogs.has(entry.id))
+      .map(entry => ({ id: entry.id, is_public: selectedLogs.has(entry.id) }))
+    const { error: projErr } = await publishProject(
+      projectId,
+      { title: pubTitle.trim(), description: pubDescription.trim() || null, difficulty: pubDifficulty, tags: pubTags },
+      logUpdates,
+    )
     if (projErr) {
       setError('Error al publicar el proyecto')
       setPublishing(false)
       return
     }
-
-    for (const entry of logEntries) {
-      const shouldBePublic = selectedLogs.has(entry.id)
-      if (entry.is_public !== shouldBePublic) {
-        await supabase.from('project_log_entries').update({
-          is_public: shouldBePublic,
-        }).eq('id', entry.id)
-      }
-    }
-
     window.location.reload()
   }
 
@@ -94,8 +82,7 @@ export default function PublishProject({
     if (!window.confirm('¿Despublicar este proyecto? Ya no será visible en la comunidad.')) return
     setUnpublishing(true)
     setError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error: err } = await supabase.from('projects').update({ is_public: false }).eq('id', projectId)
+    const { error: err } = await unpublishProject(projectId)
     if (err) {
       setError('Error al despublicar')
       setUnpublishing(false)

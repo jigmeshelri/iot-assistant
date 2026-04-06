@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { categoryColors } from '../../lib/constants'
 
 interface StockItem {
   id: string
@@ -23,15 +24,6 @@ interface Props {
 }
 
 const categories = ['Todos', 'Microcontrolador', 'Sensor', 'Módulo', 'Pasivo', 'Alimentación', 'Actuador'] as const
-
-const categoryColors: Record<string, { bg: string; icon: string }> = {
-  'Microcontrolador': { bg: 'bg-brand-50',  icon: 'text-brand-600'  },
-  'Sensor':           { bg: 'bg-amber-50',  icon: 'text-amber-500'  },
-  'Actuador':         { bg: 'bg-violet-50', icon: 'text-violet-500' },
-  'Alimentación':     { bg: 'bg-green-50',  icon: 'text-green-500'  },
-  'Módulo':           { bg: 'bg-violet-50', icon: 'text-violet-500' },
-  'Pasivo':           { bg: 'bg-slate-100', icon: 'text-slate-500'  },
-}
 
 const categoryTagColors: Record<string, string> = {
   'Microcontrolador': 'bg-brand-50 text-brand-700',
@@ -130,7 +122,21 @@ function CategoryChips({ activeCategory, setActiveCategory, className }: { activ
   )
 }
 
-function MobileView({ filtered, query, setQuery, activeCategory, setActiveCategory }: ViewProps) {
+function MobileView({ items, filtered, query, setQuery, activeCategory, setActiveCategory }: ViewProps) {
+  if (items.length === 0) {
+    return (
+      <div className="bg-white min-h-full flex flex-col items-center justify-center px-8 py-16 text-center">
+        <p className="text-slate-500 text-sm mb-4">No tenés componentes en tu inventario todavía.</p>
+        <a
+          href="/inventory/new"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors"
+        >
+          Añadir primer componente
+        </a>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white min-h-full">
       <div className="px-5 pt-3 pb-3 bg-white sticky top-0 z-10">

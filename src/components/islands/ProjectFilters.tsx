@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PROJECT_STATUS } from '../../lib/constants'
 
 interface Project {
   id: string
@@ -25,21 +26,6 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key']
 
-const statusLabel: Record<string, string> = {
-  saved: 'Guardado',
-  in_progress: 'En curso',
-  paused: 'Pausado',
-  completed: 'Completado',
-  abandoned: 'Abandonado',
-}
-
-const statusBadge: Record<string, string> = {
-  saved: 'bg-slate-100 text-slate-600',
-  in_progress: 'bg-brand-50 text-brand-700',
-  paused: 'bg-amber-50 text-amber-700',
-  completed: 'bg-green-50 text-green-700',
-  abandoned: 'bg-red-50 text-red-600',
-}
 
 const progressBarColor: Record<string, string> = {
   in_progress: 'bg-brand-500',
@@ -129,8 +115,8 @@ export default function ProjectFilters({ projects }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${statusBadge[p.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {statusLabel[p.status] ?? p.status}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${PROJECT_STATUS[p.status as keyof typeof PROJECT_STATUS]?.badge ?? 'bg-slate-100 text-slate-600'}`}>
+                        {PROJECT_STATUS[p.status as keyof typeof PROJECT_STATUS]?.label ?? p.status}
                       </span>
                     </div>
                     {p.description && (
@@ -189,8 +175,8 @@ export default function ProjectFilters({ projects }: Props) {
                         </a>
                       </td>
                       <td className="px-4 py-3 border-b border-slate-100">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge[p.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                          {statusLabel[p.status] ?? p.status}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PROJECT_STATUS[p.status as keyof typeof PROJECT_STATUS]?.badge ?? 'bg-slate-100 text-slate-600'}`}>
+                          {PROJECT_STATUS[p.status as keyof typeof PROJECT_STATUS]?.label ?? p.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 border-b border-slate-100">

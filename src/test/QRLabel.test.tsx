@@ -35,32 +35,40 @@ describe('QRLabel', () => {
     expect(img).toHaveAttribute('src', 'https://api.test/qr/LOC-ABC-123')
   })
 
-  it('handlePrint opens a new window and writes HTML', () => {
+  it('renders a hidden iframe for printing', () => {
+    render(<QRLabel qrCode="LOC-ABC-123" locationName="Laboratorio" />)
+    const iframe = document.querySelector('iframe[title="print"]')
+    expect(iframe).toBeInTheDocument()
+    expect(iframe).toHaveClass('hidden')
+  })
+
+  it('handlePrint writes QR image to iframe document', () => {
+    render(<QRLabel qrCode="LOC-XYZ-999" locationName="Oficina" />)
+    const iframe = document.querySelector('iframe[title="print"]') as HTMLIFrameElement
+
+    // Mock iframe contentDocument
     const mockWrite = vi.fn()
     const mockClose = vi.fn()
-    const mockOpen = vi.fn().mockReturnValue({
-      document: { write: mockWrite, close: mockClose },
-    })
-    vi.spyOn(window, 'open').mockImplementation(mockOpen)
+    const mockImg = { complete: true, onload: null }
+    const mockQuerySelector = vi.fn().mockReturnValue(mockImg)
+    const mockFocus = vi.fn()
+    const mockPrint = vi.fn()
 
-    render(<QRLabel qrCode="LOC-XYZ-999" locationName="Oficina" />)
+    Object.defineProperty(iframe, 'contentDocument', {
+      value: { open: vi.fn(), write: mockWrite, close: mockClose, querySelector: mockQuerySelector },
+      configurable: true,
+    })
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { focus: mockFocus, print: mockPrint },
+      configurable: true,
+    })
+
     fireEvent.click(screen.getByText(/Imprimir/))
 
-    expect(mockOpen).toHaveBeenCalledWith('', '_blank')
     expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining('QR — Oficina'))
     expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining('https://api.test/qr/LOC-XYZ-999'))
     expect(mockClose).toHaveBeenCalled()
-
-    vi.restoreAllMocks()
-  })
-
-  it('handlePrint does nothing when window.open returns null', () => {
-    vi.spyOn(window, 'open').mockReturnValue(null)
-
-    render(<QRLabel qrCode="LOC-ABC-123" locationName="Laboratorio" />)
-    // Should not throw
-    fireEvent.click(screen.getByText(/Imprimir/))
-
-    vi.restoreAllMocks()
+    expect(mockFocus).toHaveBeenCalled()
+    expect(mockPrint).toHaveBeenCalled()
   })
 })
