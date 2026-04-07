@@ -4,6 +4,29 @@
 
 Astro 6 + React 19 (Islands) + Tailwind 4 + Supabase (PostgreSQL + RLS) + Vitest + Playwright
 
+## Documentación Clave
+
+- `FUNCTIONAL_SPEC.md` — PRD con acceptance criteria (45 ACs, priorización MoSCoW)
+- `TECHNICAL_SPEC.md` — Schema de DB, arquitectura del sistema, stack completo
+- `supabase/schema.sql` — Source of truth del schema de base de datos
+
+## Estructura del Proyecto
+
+```
+src/
+  components/islands/  → React islands (25 componentes interactivos)
+  components/ui/       → Astro components (5 componentes estáticos)
+  lib/                 → Lógica de negocio y acceso a datos (13 módulos)
+  pages/               → Rutas Astro (17 páginas)
+  test/                → Unit tests Vitest (39 archivos)
+e2e/
+  ui/                  → Playwright specs (29 archivos)
+  fixtures/            → Seed data para E2E (seeded-test.ts)
+supabase/
+  schema.sql           → Schema de DB (source of truth)
+  migrations/          → Migraciones SQL
+```
+
 ## TDD Estricto
 
 Todo código nuevo sigue Red → Green → Refactor. Sin excepciones.
@@ -32,6 +55,13 @@ Los demás principios SOLID se aplican solo cuando el contexto lo justifica.
 - No diseñar para requisitos hipotéticos futuros.
 - Tres líneas similares > una abstracción prematura.
 
+## Definition of Done
+
+- **Bug fix**: test que reproduce el bug (RED) → fix mínimo (GREEN) → tests pasan → commit
+- **Feature**: unit tests + implementación + E2E si hay AC en FUNCTIONAL_SPEC → commit
+- **Refactor**: tests existentes siguen pasando sin modificación → commit
+- **Cualquier tarea**: correr `npx vitest run` antes de declarar victoria
+
 ## Commits
 
 Los commits siguen SRP: cada commit cuenta UNA parte de la historia del trabajo.
@@ -41,6 +71,17 @@ Los commits siguen SRP: cada commit cuenta UNA parte de la historia del trabajo.
 - Un commit por unidad lógica de cambio. NO acumular trabajo de múltiples tareas en un solo commit.
 - **Regla para agentes**: al terminar una tarea, hacer commit ANTES de pasar a la siguiente. La historia del repo debe reflejar el progreso paso a paso.
 - Nunca commitear: `.env`, `coverage/`, `node_modules/`, archivos con secretos.
+
+## Task Intake
+
+Antes de empezar una tarea, verificar que el prompt incluye estos elementos. Si falta alguno, PREGUNTAR antes de escribir código:
+
+1. **Contexto** — ¿Qué motivó la tarea? (bug report, issue, observación del usuario)
+2. **Alcance** — ¿Qué archivos/componentes/módulos se ven afectados? ¿Qué NO debe tocarse?
+3. **Criterio de éxito** — ¿Cómo se verifica que está listo? (test que pasa, comportamiento esperado)
+4. **Tamaño** — ¿Es una tarea atómica o necesita planificación (SDD)?
+
+Si el prompt es ambiguo en alguno de estos puntos, preguntar UNA VEZ con las dudas agrupadas. No asumir.
 
 ## Convenciones
 
