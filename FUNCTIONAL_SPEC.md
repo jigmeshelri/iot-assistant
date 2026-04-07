@@ -76,6 +76,7 @@ IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudi
 | **Should Have** | 3.7.1 Generación de código (DIY/Prototipo) | Parte del flujo natural: Arduino IDE, ESPHome, MicroPython, PlatformIO. Completa el ciclo proyecto → código. |
 | **Won't Have (v1)** | 3.7.1 Generación de código profesional (C++/Rust/ESP-IDF/Zephyr) | Entornos de alto nivel requieren contexto avanzado (memory management, energy optimization). Postergar hasta validar demanda. |
 | **Won't Have (v1)** | 3.7.2 Análisis y mejora de código existente | Requiere pipeline de análisis más sofisticado. Postergar. |
+| **Won't Have (v1)** | Imágenes de proyecto: subir múltiples imágenes a un proyecto y elegir una como portada para el feed de Comunidad | Mejora discoverability del feed comunitario, pero requiere storage de imágenes (Supabase Storage), políticas RLS para acceso público, redimensionamiento, y UI de selección de portada. Postergar hasta validar tracción de Comunidad. |
 
 > **MVP mínimo (v0.1):** Módulos 3.1 + 3.3 + Auth. Un usuario puede registrar componentes, organizarlos por ubicación y buscar su inventario. Esto ya resuelve el dolor principal.
 
