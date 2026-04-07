@@ -28,7 +28,7 @@ const test = base.extend<{ communityProjectId: string }>({
 })
 
 test.describe('Community — AC-3.6.14, AC-3.6.15, AC-3.6.17', () => {
-  // Community page only renders content in the mobile slot — force mobile viewport
+  // Mobile viewport for these flow tests; community index also has a desktop layout.
   test.use({ viewport: { width: 390, height: 844 } })
 
   // ── AC-3.6.14: Fork project → copy in user list, counter increments ──
