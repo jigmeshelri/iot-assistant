@@ -45,3 +45,6 @@ coverage/
 
 # Playwright visual regression baselines (machine-specific, regenerated locally)
 e2e/ui/*-snapshots/
+
+# Playwright MCP browser session artifacts
+.playwright-mcp/
