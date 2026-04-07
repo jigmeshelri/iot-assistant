@@ -39,3 +39,9 @@ coverage/
 .worktrees/
 .remember/
 .envrc
+
+# Skill scratchpad (local brainstorming notes)
+.superpowers/
+
+# Playwright visual regression baselines (machine-specific, regenerated locally)
+e2e/ui/*-snapshots/
