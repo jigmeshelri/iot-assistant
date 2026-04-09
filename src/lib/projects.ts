@@ -83,12 +83,19 @@ export async function unpublishProject(
   return { error }
 }
 
+export interface SaveAIProjectBOMItem {
+  component_name: string
+  quantity_required?: number
+  notes?: string | null
+}
+
 export interface SaveAIProjectInput {
   title: string
   description: string
   source: string
   difficulty: string | null
   tags: string[]
+  bom?: SaveAIProjectBOMItem[]
 }
 
 export async function forkProject(
@@ -173,5 +180,20 @@ export async function saveAIProject(
     })
     .select()
     .single()
+
+  if (!error && data && input.bom && input.bom.length > 0) {
+    const rows = input.bom
+      .filter(item => item.component_name && item.component_name.trim() !== '')
+      .map(item => ({
+        project_id: data.id,
+        component_name: item.component_name.trim(),
+        quantity_required: item.quantity_required ?? 1,
+        notes: item.notes ?? null,
+      }))
+    if (rows.length > 0) {
+      await supabase.from('project_bom').insert(rows)
+    }
+  }
+
   return { data, error }
 }

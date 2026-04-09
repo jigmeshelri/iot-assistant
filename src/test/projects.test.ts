@@ -25,6 +25,8 @@ const mockLogInsert = vi.fn().mockReturnValue({
   }),
 })
 
+const mockBomInsert = vi.fn().mockResolvedValue({ error: null })
+
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
     auth: { getUser: mockGetUser },
@@ -47,6 +49,9 @@ vi.mock('../lib/supabase', () => ({
           insert: mockLogInsert,
         }
       }
+      if (table === 'project_bom') {
+        return { insert: mockBomInsert }
+      }
       return {}
     }),
   }),
@@ -67,6 +72,7 @@ beforeEach(() => {
     error: null,
   })
   mockLogUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+  mockBomInsert.mockResolvedValue({ error: null })
 })
 
 // ─── updateProjectField ──────────────────────────────────────────────────────
@@ -236,6 +242,69 @@ describe('saveAIProject', () => {
     })
     expect(result.data).toBeNull()
     expect(result.error?.message).toBe('No autenticado')
+  })
+
+  it('persists BOM items into project_bom when provided', async () => {
+    const { saveAIProject } = await import('../lib/projects')
+    const result = await saveAIProject({
+      title: 'AI Project',
+      description: 'Generated',
+      source: 'ai_plan',
+      difficulty: 'intermediate',
+      tags: ['iot'],
+      bom: [
+        { component_name: 'ESP32', quantity_required: 1, notes: 'wifi' },
+        { component_name: 'DHT22', quantity_required: 2 },
+      ],
+    })
+    expect(result.error).toBeNull()
+    expect(mockBomInsert).toHaveBeenCalledTimes(1)
+    const rows = mockBomInsert.mock.calls[0][0] as Array<Record<string, unknown>>
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      project_id: 'new-1',
+      component_name: 'ESP32',
+      quantity_required: 1,
+      notes: 'wifi',
+    })
+    expect(rows[1]).toMatchObject({
+      project_id: 'new-1',
+      component_name: 'DHT22',
+      quantity_required: 2,
+    })
+  })
+
+  it('skips BOM insert when bom is empty or omitted', async () => {
+    const { saveAIProject } = await import('../lib/projects')
+    await saveAIProject({
+      title: 'AI Project',
+      description: 'Generated',
+      source: 'ai_plan',
+      difficulty: null,
+      tags: [],
+      bom: [],
+    })
+    expect(mockBomInsert).not.toHaveBeenCalled()
+  })
+
+  it('skips BOM items without a component_name', async () => {
+    const { saveAIProject } = await import('../lib/projects')
+    await saveAIProject({
+      title: 'AI Project',
+      description: 'Generated',
+      source: 'ai_plan',
+      difficulty: null,
+      tags: [],
+      bom: [
+        { component_name: '', quantity_required: 1 },
+        { component_name: '  ', quantity_required: 1 },
+        { component_name: 'ESP32', quantity_required: 1 },
+      ],
+    })
+    expect(mockBomInsert).toHaveBeenCalledTimes(1)
+    const rows = mockBomInsert.mock.calls[0][0] as Array<Record<string, unknown>>
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ component_name: 'ESP32' })
   })
 })
 

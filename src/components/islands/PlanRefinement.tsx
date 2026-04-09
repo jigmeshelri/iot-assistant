@@ -77,12 +77,20 @@ export default function PlanRefinement({ mode }: Props) {
     setSavingIdx(idx)
     setSaveError('')
     try {
+      const rawBom = Array.isArray(result.bom) ? (result.bom as Record<string, unknown>[]) : []
+      const bom = rawBom.map(item => ({
+        component_name:    String(item.component_name ?? ''),
+        quantity_required: Number(item.quantity_required ?? 1),
+        notes:             item.incompatibility_reason ? String(item.incompatibility_reason) : null,
+      }))
+
       const { data: project, error: dbError } = await saveAIProject({
         title:       String(result.title ?? 'Proyecto IA'),
         description: String(result.description ?? ''),
         source:      mode === 'discover' ? 'ai_discovery' : 'ai_planning',
         difficulty:  result.difficulty ? String(result.difficulty) : null,
         tags:        Array.isArray(result.tags) ? result.tags.map(String) : [],
+        bom,
       })
 
       if (dbError) throw new Error(dbError.message)
