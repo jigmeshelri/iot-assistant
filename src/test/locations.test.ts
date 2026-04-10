@@ -1,7 +1,8 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { insertLocation, buildTree } from '../lib/locations'
 
-const mockSelectAfterInsert = vi.fn().mockResolvedValue({ data: [{ id: 'new-loc-id' }], error: null })
+const mockSingleAfterSelect = vi.fn().mockResolvedValue({ data: { id: 'new-loc-id', name: 'Taller', parent_id: null }, error: null })
+const mockSelectAfterInsert = vi.fn(() => ({ single: mockSingleAfterSelect }))
 const mockInsert = vi.fn(() => ({ select: mockSelectAfterInsert }))
 const mockFrom = vi.fn(() => ({ insert: mockInsert }))
 const mockGetCurrentUserId = vi.fn()
@@ -19,7 +20,8 @@ vi.mock('../lib/auth', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetCurrentUserId.mockResolvedValue('user-1')
-  mockSelectAfterInsert.mockResolvedValue({ data: [{ id: 'new-loc-id' }], error: null })
+  mockSingleAfterSelect.mockResolvedValue({ data: { id: 'new-loc-id', name: 'Taller', parent_id: null }, error: null })
+  mockSelectAfterInsert.mockReturnValue({ single: mockSingleAfterSelect })
   mockInsert.mockReturnValue({ select: mockSelectAfterInsert })
   mockFrom.mockReturnValue({ insert: mockInsert })
 })
@@ -77,15 +79,15 @@ describe('insertLocation', () => {
     expect(mockInsert).toHaveBeenCalledWith({ user_id: 'user-1', name: 'Rack', parent_id: 'loc-parent' })
   })
 
-  it('returns the id of the newly created location', async () => {
-    const id = await insertLocation('Taller')
-    expect(id).toBe('new-loc-id')
+  it('returns the newly created location row', async () => {
+    const loc = await insertLocation('Taller')
+    expect(loc).toEqual({ id: 'new-loc-id', name: 'Taller', parent_id: null })
   })
 
   it('returns null when insert returns no data', async () => {
-    mockSelectAfterInsert.mockResolvedValueOnce({ data: [], error: null })
-    const id = await insertLocation('Empty')
-    expect(id).toBeNull()
+    mockSingleAfterSelect.mockResolvedValueOnce({ data: null, error: null })
+    const loc = await insertLocation('Empty')
+    expect(loc).toBeNull()
   })
 
   it('throws when user is not authenticated', async () => {

@@ -23,14 +23,18 @@ export async function fetchLocations(): Promise<Location[]> {
   return data ?? []
 }
 
-export async function insertLocation(name: string, parentId?: string): Promise<string | null> {
+export async function insertLocation(name: string, parentId?: string): Promise<Location | null> {
   const userId = await getCurrentUserId()
   if (!userId) throw new Error('Not authenticated')
   const supabase = createSupabaseBrowserClient()
-  const { data } = await supabase.from('locations').insert({
-    user_id: userId,
-    name: name.trim(),
-    ...(parentId ? { parent_id: parentId } : {}),
-  }).select()
-  return data?.[0]?.id ?? null
+  const { data } = await supabase
+    .from('locations')
+    .insert({
+      user_id: userId,
+      name: name.trim(),
+      ...(parentId ? { parent_id: parentId } : {}),
+    })
+    .select('id,name,parent_id')
+    .single()
+  return data ?? null
 }
