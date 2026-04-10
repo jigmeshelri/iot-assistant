@@ -42,19 +42,6 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (prefill?.name)            setName(prefill.name)
-    if (prefill?.category)        setCategory(prefill.category)
-    if (prefill?.platform_family) setPlatform(prefill.platform_family)
-    if (prefill?.sku)             setSku(prefill.sku)
-    if (prefill?.connectivity_caps) setCaps(prefill.connectivity_caps)
-    if (prefill?.technical_specs) setSpecs(
-      Object.fromEntries(Object.entries(prefill.technical_specs).map(([k, v]) => [k, String(v)]))
-    )
-    if (prefill?.datasheet_url)   setDatasheetUrl(prefill.datasheet_url)
-    if (prefill?.location_id)     setLocationId(prefill.location_id)
-  }, [prefill])
-
-  useEffect(() => {
     const prefix = categoryPrefix(category)
     nextAvailableSku(prefix).then(setSkuPlaceholder).catch(() => {})
   }, [category])

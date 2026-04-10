@@ -119,6 +119,22 @@ describe('ComponentForm — prefill y submit', () => {
     mockAddComponentToStock.mockResolvedValue({ componentId: 'c1', error: null })
   })
 
+  it('no sobrescribe ediciones del usuario cuando el prefill cambia', async () => {
+    const { rerender } = render(
+      <ComponentForm prefill={{ name: 'DHT22', category: 'Sensor' }} />,
+    )
+    const nameInput = screen.getByDisplayValue('DHT22') as HTMLInputElement
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Mi nombre custom')
+    expect(nameInput.value).toBe('Mi nombre custom')
+
+    rerender(
+      <ComponentForm prefill={{ name: 'BMP280', category: 'Sensor' }} />,
+    )
+
+    expect((screen.getByPlaceholderText('ESP32-C6 XIAO') as HTMLInputElement).value).toBe('Mi nombre custom')
+  })
+
   it('prefill rellena nombre, categoría y plataforma', () => {
     render(
       <ComponentForm prefill={{ name: 'DHT22', category: 'Sensor', platform_family: 'ESP32' }} />,

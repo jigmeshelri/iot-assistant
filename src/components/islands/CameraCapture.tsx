@@ -86,7 +86,11 @@ export default function CameraCapture() {
         </div>
       )}
 
-      <ComponentForm prefill={prefill ?? undefined} imageFile={capturedFile} />
+      <ComponentForm
+        key={(prefill?.sku as string | undefined) ?? 'manual'}
+        prefill={prefill ?? undefined}
+        imageFile={capturedFile}
+      />
     </div>
   )
 }
