@@ -146,6 +146,23 @@ describe('CameraCapture', () => {
     })
   })
 
+  it('revoca el object URL al desmontar para evitar memory leak', async () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL')
+    vi.mocked(URL.createObjectURL).mockReturnValueOnce('blob:first')
+
+    const { unmount } = render(<CameraCapture />)
+    const input = document.querySelector('input[type=file]') as HTMLInputElement
+    const file = new File(['fake'], 'esp32.jpg', { type: 'image/jpeg' })
+    await userEvent.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Componente identificado/)).toBeInTheDocument()
+    })
+
+    unmount()
+    expect(revokeSpy).toHaveBeenCalledWith('blob:first')
+  })
+
   it('no muestra warning cuando la confianza de la IA es alta (AC-3.2.2)', async () => {
     render(<CameraCapture />)
     const input = document.querySelector('input[type=file]') as HTMLInputElement

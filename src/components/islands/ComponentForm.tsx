@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 import { CATEGORIES, PLATFORMS } from '../../lib/constants'
 import { addComponentToStock } from '../../lib/inventory'
@@ -43,22 +42,8 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (prefill?.name)            setName(prefill.name)
-    if (prefill?.category)        setCategory(prefill.category)
-    if (prefill?.platform_family) setPlatform(prefill.platform_family)
-    if (prefill?.sku)             setSku(prefill.sku)
-    if (prefill?.connectivity_caps) setCaps(prefill.connectivity_caps)
-    if (prefill?.technical_specs) setSpecs(
-      Object.fromEntries(Object.entries(prefill.technical_specs).map(([k, v]) => [k, String(v)]))
-    )
-    if (prefill?.datasheet_url)   setDatasheetUrl(prefill.datasheet_url)
-    if (prefill?.location_id)     setLocationId(prefill.location_id)
-  }, [prefill])
-
-  useEffect(() => {
     const prefix = categoryPrefix(category)
-    const supabase = createSupabaseBrowserClient()
-    nextAvailableSku(prefix, supabase).then(setSkuPlaceholder).catch(() => {})
+    nextAvailableSku(prefix).then(setSkuPlaceholder).catch(() => {})
   }, [category])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -82,12 +67,12 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
     })
     setLoading(false)
     if (err) {
-      if (err.includes('23505') || err.includes('duplicate key')) {
-        nextAvailableSku(categoryPrefix(category), createSupabaseBrowserClient())
+      if (err.type === 'sku_conflict') {
+        nextAvailableSku(categoryPrefix(category))
           .then(suggestion => setSkuConflict(`Este código ya está en uso, sugerencia: ${suggestion}`))
           .catch(() => {})
       }
-      setError(err)
+      setError(err.message)
       return
     }
     setSuccess(true)

@@ -1,3 +1,5 @@
+import { createSupabaseBrowserClient } from './supabase'
+
 const PREFIXES: Record<string, string> = {
   'Microcontrolador': 'MCU',
   'Sensor':           'SEN',
@@ -12,14 +14,11 @@ export function categoryPrefix(category: string): string {
 }
 
 /**
- * Retorna el primer SKU disponible para el prefijo dado.
- * Consulta Supabase en tiempo real — no usar el estado local del formulario.
+ * Returns the first available SKU for the given prefix.
+ * Queries Supabase in real time — do not rely on local form state.
  */
-export async function nextAvailableSku(
-  prefix: string,
-  // Aceptamos cualquier objeto con .from() para facilitar el testing
-  supabase: { from: (table: string) => any },
-): Promise<string> {
+export async function nextAvailableSku(prefix: string): Promise<string> {
+  const supabase = createSupabaseBrowserClient()
   const { data } = await supabase
     .from('components')
     .select('sku')

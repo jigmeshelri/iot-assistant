@@ -113,24 +113,34 @@ describe('addComponentToStock', () => {
     expect(result.error).toBeNull()
   })
 
-  it('returns error when user is not authenticated', async () => {
+  it('returns auth error when user is not authenticated', async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null } })
     const result = await addComponentToStock(input)
-    expect(result.error).toBe('Not authenticated')
+    expect(result.error).toEqual({ type: 'auth', message: 'Not authenticated' })
     expect(result.componentId).toBeNull()
   })
 
-  it('returns error when component upsert fails', async () => {
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: { message: 'upsert failed' } })
+  it('returns sku_conflict error when upsert fails with Postgres 23505', async () => {
+    mockSelectSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint' },
+    })
     const result = await addComponentToStock(input)
-    expect(result.error).toBe('upsert failed')
+    expect(result.error?.type).toBe('sku_conflict')
     expect(result.componentId).toBeNull()
   })
 
-  it('returns error when stock insert fails', async () => {
+  it('returns unknown error when upsert fails with a non-conflict error', async () => {
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: { code: '42P01', message: 'relation does not exist' } })
+    const result = await addComponentToStock(input)
+    expect(result.error?.type).toBe('unknown')
+    expect(result.error?.message).toBe('relation does not exist')
+  })
+
+  it('returns unknown error when stock insert fails', async () => {
     mockStockInsert.mockResolvedValueOnce({ error: { message: 'stock error' } })
     const result = await addComponentToStock(input)
-    expect(result.error).toBe('stock error')
+    expect(result.error).toEqual({ type: 'unknown', message: 'stock error' })
     expect(result.componentId).toBeNull()
   })
 
@@ -162,7 +172,7 @@ describe('addComponentToStock', () => {
     mockStorageUpload.mockResolvedValueOnce({ data: null, error: { message: 'upload failed' } })
     const file = new File(['fake'], 'photo.jpg', { type: 'image/jpeg' })
     const result = await addComponentToStock({ ...input, imageFile: file })
-    expect(result.error).toBe('upload failed')
+    expect(result.error).toEqual({ type: 'unknown', message: 'upload failed' })
     expect(result.componentId).toBeNull()
     expect(mockStockInsert).not.toHaveBeenCalled()
   })

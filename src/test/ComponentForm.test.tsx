@@ -101,7 +101,7 @@ describe('ComponentForm — auto-generación de SKU', () => {
   it('muestra aviso cuando el SKU escrito ya existe', async () => {
     mockAddComponentToStock.mockResolvedValueOnce({
       componentId: null,
-      error: 'duplicate key value violates unique constraint',
+      error: { type: 'sku_conflict', message: 'duplicate key value violates unique constraint' },
     })
     render(<ComponentForm />)
     await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'Test')
@@ -117,6 +117,22 @@ describe('ComponentForm — prefill y submit', () => {
     vi.clearAllMocks()
     mockLike.mockResolvedValue({ data: [], error: null })
     mockAddComponentToStock.mockResolvedValue({ componentId: 'c1', error: null })
+  })
+
+  it('no sobrescribe ediciones del usuario cuando el prefill cambia', async () => {
+    const { rerender } = render(
+      <ComponentForm prefill={{ name: 'DHT22', category: 'Sensor' }} />,
+    )
+    const nameInput = screen.getByDisplayValue('DHT22') as HTMLInputElement
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Mi nombre custom')
+    expect(nameInput.value).toBe('Mi nombre custom')
+
+    rerender(
+      <ComponentForm prefill={{ name: 'BMP280', category: 'Sensor' }} />,
+    )
+
+    expect((screen.getByPlaceholderText('ESP32-C6 XIAO') as HTMLInputElement).value).toBe('Mi nombre custom')
   })
 
   it('prefill rellena nombre, categoría y plataforma', () => {

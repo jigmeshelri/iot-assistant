@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { recognizeComponent } from '../../lib/api'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { getCurrentSession } from '../../lib/auth'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 import { funErrorMessage, logError } from '../../lib/errorLog'
 import ComponentForm from './ComponentForm'
@@ -14,18 +14,21 @@ export default function CameraCapture() {
   const [preview, setPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview) }
+  }, [preview])
+
   async function handleFile(file: File) {
     setLoading(true)
     setError('')
     setPreview(URL.createObjectURL(file))
     setCapturedFile(file)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const session = await getCurrentSession()
       if (!session) throw new Error('Not authenticated')
       const result = await recognizeComponent(file, session.access_token)
       const prefix = categoryPrefix(result.category)
-      const autoSku = await nextAvailableSku(prefix, supabase).catch(() => '')
+      const autoSku = await nextAvailableSku(prefix).catch(() => '')
       setPrefill({ ...result, sku: autoSku })
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : String(err)
@@ -83,7 +86,11 @@ export default function CameraCapture() {
         </div>
       )}
 
-      <ComponentForm prefill={prefill ?? undefined} imageFile={capturedFile} />
+      <ComponentForm
+        key={(prefill?.sku as string | undefined) ?? 'manual'}
+        prefill={prefill ?? undefined}
+        imageFile={capturedFile}
+      />
     </div>
   )
 }
