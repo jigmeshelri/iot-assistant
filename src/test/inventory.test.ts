@@ -7,11 +7,14 @@ const mockDeleteEq = vi.fn().mockResolvedValue({ error: null })
 const mockDelete = vi.fn(() => ({ eq: mockDeleteEq }))
 const mockFrom = vi.fn()
 const mockGetUser = vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } })
+const mockStorageUpload = vi.fn().mockResolvedValue({ data: { path: 'user-1/comp-1/x.jpg' }, error: null })
+const mockStorageFrom = vi.fn(() => ({ upload: mockStorageUpload }))
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
     auth: { getUser: mockGetUser },
     from: mockFrom,
+    storage: { from: mockStorageFrom },
   }),
 }))
 
@@ -74,6 +77,8 @@ describe('addComponentToStock', () => {
   const mockUpsertSelect = vi.fn(() => ({ single: mockSelectSingle }))
   const mockUpsert = vi.fn(() => ({ select: mockUpsertSelect }))
   const mockStockInsert = vi.fn().mockResolvedValue({ error: null })
+  const mockComponentsUpdateEq = vi.fn().mockResolvedValue({ error: null })
+  const mockComponentsUpdate = vi.fn(() => ({ eq: mockComponentsUpdateEq }))
 
   const input = {
     sku: 'MCU-001',
@@ -91,8 +96,12 @@ describe('addComponentToStock', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockSelectSingle.mockResolvedValue({ data: { id: 'comp-1', sku: 'MCU-001' }, error: null })
+    mockStockInsert.mockResolvedValue({ error: null })
+    mockStorageUpload.mockResolvedValue({ data: { path: 'user-1/comp-1/x.jpg' }, error: null })
+    mockComponentsUpdateEq.mockResolvedValue({ error: null })
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'components') return { upsert: mockUpsert }
+      if (table === 'components') return { upsert: mockUpsert, update: mockComponentsUpdate }
       if (table === 'stock') return { insert: mockStockInsert }
       return {}
     })
@@ -123,6 +132,60 @@ describe('addComponentToStock', () => {
     const result = await addComponentToStock(input)
     expect(result.error).toBe('stock error')
     expect(result.componentId).toBeNull()
+  })
+
+  it('does not touch storage or update image_url when no imageFile', async () => {
+    await addComponentToStock(input)
+    expect(mockStorageFrom).not.toHaveBeenCalled()
+    expect(mockComponentsUpdate).not.toHaveBeenCalled()
+  })
+
+  it('uploads image to component-images bucket under user/component folder and sets image_url', async () => {
+    const file = new File(['fake'], 'photo.jpg', { type: 'image/jpeg' })
+    const result = await addComponentToStock({ ...input, imageFile: file })
+
+    expect(result.error).toBeNull()
+    expect(result.componentId).toBe('comp-1')
+    expect(mockStorageFrom).toHaveBeenCalledWith('component-images')
+    expect(mockStorageUpload).toHaveBeenCalledTimes(1)
+    const [uploadPath, uploadedFile] = mockStorageUpload.mock.calls[0]
+    expect(typeof uploadPath).toBe('string')
+    expect(uploadPath).toMatch(/^user-1\/comp-1\/.+\.jpg$/)
+    expect(uploadedFile).toBe(file)
+
+    expect(mockComponentsUpdate).toHaveBeenCalledTimes(1)
+    expect(mockComponentsUpdate).toHaveBeenCalledWith({ image_url: uploadPath })
+    expect(mockComponentsUpdateEq).toHaveBeenCalledWith('id', 'comp-1')
+  })
+
+  it('returns error when image upload fails and does not insert stock', async () => {
+    mockStorageUpload.mockResolvedValueOnce({ data: null, error: { message: 'upload failed' } })
+    const file = new File(['fake'], 'photo.jpg', { type: 'image/jpeg' })
+    const result = await addComponentToStock({ ...input, imageFile: file })
+    expect(result.error).toBe('upload failed')
+    expect(result.componentId).toBeNull()
+    expect(mockStockInsert).not.toHaveBeenCalled()
+  })
+
+  it('derives extension from MIME type when filename has no extension', async () => {
+    const file = new File(['fake'], 'photo', { type: 'image/png' })
+    await addComponentToStock({ ...input, imageFile: file })
+    const [uploadPath] = mockStorageUpload.mock.calls[0]
+    expect(uploadPath).toMatch(/\.png$/)
+  })
+
+  it('lowercases the extension when filename uses uppercase', async () => {
+    const file = new File(['fake'], 'PHOTO.JPEG', { type: 'image/jpeg' })
+    await addComponentToStock({ ...input, imageFile: file })
+    const [uploadPath] = mockStorageUpload.mock.calls[0]
+    expect(uploadPath).toMatch(/\.jpeg$/)
+  })
+
+  it('falls back to .bin when filename and MIME type yield no extension', async () => {
+    const file = new File(['fake'], 'photo', { type: 'application/octet-stream' })
+    await addComponentToStock({ ...input, imageFile: file })
+    const [uploadPath] = mockStorageUpload.mock.calls[0]
+    expect(uploadPath).toMatch(/\.bin$/)
   })
 })
 

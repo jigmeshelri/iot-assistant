@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from './supabase'
+import { COMPONENT_IMAGES_BUCKET } from './componentImage'
 
 export interface AddComponentInput {
   sku: string
@@ -11,7 +12,27 @@ export interface AddComponentInput {
   quantity: number
   notes: string | null
   location_id: string | null
+  imageFile?: File | null
 }
+
+const MIME_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg':  'jpg',
+  'image/png':  'png',
+  'image/webp': 'webp',
+  'image/gif':  'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+}
+
+function extensionFor(file: File): string {
+  const dot = file.name.lastIndexOf('.')
+  if (dot > 0 && dot < file.name.length - 1) {
+    return file.name.slice(dot + 1).toLowerCase()
+  }
+  return MIME_EXTENSIONS[file.type] ?? 'bin'
+}
+
 
 export async function addComponentToStock(
   input: AddComponentInput,
@@ -34,6 +55,26 @@ export async function addComponentToStock(
     .select()
     .single()
   if (compErr) return { componentId: null, error: compErr.message }
+
+  if (input.imageFile) {
+    const ext = extensionFor(input.imageFile)
+    const path = `${user.id}/${component.id}/${crypto.randomUUID()}.${ext}`
+    const { error: uploadErr } = await supabase.storage
+      .from(COMPONENT_IMAGES_BUCKET)
+      .upload(path, input.imageFile, { upsert: false, contentType: input.imageFile.type || undefined })
+    if (uploadErr) {
+      // Upsert may have created a brand-new component row with no image and no
+      // stock. The next retry of the same SKU is idempotent (upsert), so the
+      // orphan is recoverable, but we surface the error to the user.
+      return { componentId: null, error: uploadErr.message }
+    }
+
+    const { error: imgErr } = await supabase
+      .from('components')
+      .update({ image_url: path })
+      .eq('id', component.id)
+    if (imgErr) return { componentId: null, error: imgErr.message }
+  }
 
   const { error: stockErr } = await supabase
     .from('stock')

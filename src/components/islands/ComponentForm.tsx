@@ -18,9 +18,10 @@ interface ComponentFormProps {
     connectivity_caps?: Record<string, boolean>
     location_id?: string
   }
+  imageFile?: File | null
 }
 
-export default function ComponentForm({ prefill }: ComponentFormProps) {
+export default function ComponentForm({ prefill, imageFile }: ComponentFormProps) {
   const [name, setName] = useState(prefill?.name ?? '')
   const [sku, setSku] = useState(prefill?.sku ?? '')
   const [skuPlaceholder, setSkuPlaceholder] = useState('MCU-001')
@@ -77,6 +78,7 @@ export default function ComponentForm({ prefill }: ComponentFormProps) {
       quantity,
       notes: notes || null,
       location_id: locationId,
+      imageFile: imageFile ?? null,
     })
     setLoading(false)
     if (err) {

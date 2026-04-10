@@ -101,13 +101,11 @@ test.describe('AI Scan — AC-3.2.1 to AC-3.2.4', () => {
 
   // ---------------------------------------------------------------------------
   // AC-3.2.4: Original image stored as reference (image_url set after confirm)
-  //
-  // KNOWN GAP: CameraCapture.tsx sends the image to /ai/recognize but does NOT
-  // upload it to storage or set image_url in the component record.
-  // ComponentForm has no image_url field — the feature is not implemented.
-  // This test documents the gap so it is tracked.
+  // The captured file is uploaded to the `component-images` bucket under
+  // `{user_id}/{component_id}/{uuid}.{ext}` and the path is persisted to
+  // `components.image_url`. Render sites resolve the path to a signed URL.
   // ---------------------------------------------------------------------------
-  test.fail('AC-3.2.4: original image stored as reference after confirming scan', async ({ page }) => {
+  test('AC-3.2.4: original image stored as reference after confirming scan', async ({ page }) => {
     await page.goto('/inventory/new')
     await expect(page.getByText('Fotografiar componente').first()).toBeVisible({ timeout: 10_000 })
 

@@ -3,12 +3,27 @@ import AppLayout from '../../layouts/AppLayout.astro'
 import EmptyState from '../../components/ui/EmptyState.astro'
 import InventorySearch from '../../components/islands/InventorySearch'
 import { createSupabaseServerClient } from '../../lib/supabase'
+import { resolveComponentImageUrl } from '../../lib/componentImage'
 
 const supabase = createSupabaseServerClient(Astro.cookies, Astro.request)
-const { data: stockItems } = await supabase
+const { data: rawStockItems } = await supabase
   .from('stock')
   .select('*, component:components(*), location:locations(name, parent:locations(name))')
   .order('updated_at', { ascending: false })
+
+const stockItems = rawStockItems
+  ? await Promise.all(
+      rawStockItems.map(async item => ({
+        ...item,
+        component: item.component
+          ? {
+              ...item.component,
+              image_url: await resolveComponentImageUrl(supabase, item.component.image_url),
+            }
+          : item.component,
+      })),
+    )
+  : []
 ---
 
 <AppLayout title="Inventario" activeTab="inventory">

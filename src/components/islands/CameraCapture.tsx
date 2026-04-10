@@ -8,6 +8,7 @@ import Spinner from './Spinner'
 
 export default function CameraCapture() {
   const [prefill, setPrefill] = useState<Record<string, unknown> | null>(null)
+  const [capturedFile, setCapturedFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
@@ -17,6 +18,7 @@ export default function CameraCapture() {
     setLoading(true)
     setError('')
     setPreview(URL.createObjectURL(file))
+    setCapturedFile(file)
     try {
       const supabase = createSupabaseBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -81,7 +83,7 @@ export default function CameraCapture() {
         </div>
       )}
 
-      <ComponentForm prefill={prefill ?? undefined} />
+      <ComponentForm prefill={prefill ?? undefined} imageFile={capturedFile} />
     </div>
   )
 }
