@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { recognizeComponent } from '../../lib/api'
 import { getCurrentSession } from '../../lib/auth'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
@@ -13,6 +13,10 @@ export default function CameraCapture() {
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview) }
+  }, [preview])
 
   async function handleFile(file: File) {
     setLoading(true)
