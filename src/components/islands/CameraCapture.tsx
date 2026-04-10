@@ -25,7 +25,7 @@ export default function CameraCapture() {
       if (!session) throw new Error('Not authenticated')
       const result = await recognizeComponent(file, session.access_token)
       const prefix = categoryPrefix(result.category)
-      const autoSku = await nextAvailableSku(prefix, supabase).catch(() => '')
+      const autoSku = await nextAvailableSku(prefix).catch(() => '')
       setPrefill({ ...result, sku: autoSku })
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : String(err)

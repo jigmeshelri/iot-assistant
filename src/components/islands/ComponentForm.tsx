@@ -57,8 +57,7 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
 
   useEffect(() => {
     const prefix = categoryPrefix(category)
-    const supabase = createSupabaseBrowserClient()
-    nextAvailableSku(prefix, supabase).then(setSkuPlaceholder).catch(() => {})
+    nextAvailableSku(prefix).then(setSkuPlaceholder).catch(() => {})
   }, [category])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -83,7 +82,7 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
     setLoading(false)
     if (err) {
       if (err.includes('23505') || err.includes('duplicate key')) {
-        nextAvailableSku(categoryPrefix(category), createSupabaseBrowserClient())
+        nextAvailableSku(categoryPrefix(category))
           .then(suggestion => setSkuConflict(`Este código ya está en uso, sugerencia: ${suggestion}`))
           .catch(() => {})
       }
