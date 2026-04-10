@@ -1,3 +1,4 @@
+import { getCurrentUserId } from './auth'
 import { createSupabaseBrowserClient } from './supabase'
 
 export interface Location {
@@ -23,11 +24,11 @@ export async function fetchLocations(): Promise<Location[]> {
 }
 
 export async function insertLocation(name: string, parentId?: string): Promise<string | null> {
+  const userId = await getCurrentUserId()
+  if (!userId) throw new Error('Not authenticated')
   const supabase = createSupabaseBrowserClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
   const { data } = await supabase.from('locations').insert({
-    user_id: user.id,
+    user_id: userId,
     name: name.trim(),
     ...(parentId ? { parent_id: parentId } : {}),
   }).select()

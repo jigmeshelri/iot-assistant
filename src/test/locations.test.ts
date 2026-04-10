@@ -4,18 +4,21 @@ import { insertLocation, buildTree } from '../lib/locations'
 const mockSelectAfterInsert = vi.fn().mockResolvedValue({ data: [{ id: 'new-loc-id' }], error: null })
 const mockInsert = vi.fn(() => ({ select: mockSelectAfterInsert }))
 const mockFrom = vi.fn(() => ({ insert: mockInsert }))
-const mockGetUser = vi.fn()
+const mockGetCurrentUserId = vi.fn()
 
 vi.mock('../lib/supabase', () => ({
   createSupabaseBrowserClient: () => ({
-    auth: { getUser: mockGetUser },
     from: mockFrom,
   }),
 }))
 
+vi.mock('../lib/auth', () => ({
+  getCurrentUserId: () => mockGetCurrentUserId(),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+  mockGetCurrentUserId.mockResolvedValue('user-1')
   mockSelectAfterInsert.mockResolvedValue({ data: [{ id: 'new-loc-id' }], error: null })
   mockInsert.mockReturnValue({ select: mockSelectAfterInsert })
   mockFrom.mockReturnValue({ insert: mockInsert })
@@ -86,7 +89,7 @@ describe('insertLocation', () => {
   })
 
   it('throws when user is not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetCurrentUserId.mockResolvedValue(null)
     await expect(insertLocation('Test')).rejects.toThrow('Not authenticated')
     expect(mockInsert).not.toHaveBeenCalled()
   })
