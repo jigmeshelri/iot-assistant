@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 import { CATEGORIES, PLATFORMS } from '../../lib/constants'
 import { addComponentToStock } from '../../lib/inventory'

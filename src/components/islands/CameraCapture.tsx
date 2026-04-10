@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { recognizeComponent } from '../../lib/api'
-import { createSupabaseBrowserClient } from '../../lib/supabase'
+import { getCurrentSession } from '../../lib/auth'
 import { categoryPrefix, nextAvailableSku } from '../../lib/skuUtils'
 import { funErrorMessage, logError } from '../../lib/errorLog'
 import ComponentForm from './ComponentForm'
@@ -20,8 +20,7 @@ export default function CameraCapture() {
     setPreview(URL.createObjectURL(file))
     setCapturedFile(file)
     try {
-      const supabase = createSupabaseBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const session = await getCurrentSession()
       if (!session) throw new Error('Not authenticated')
       const result = await recognizeComponent(file, session.access_token)
       const prefix = categoryPrefix(result.category)
