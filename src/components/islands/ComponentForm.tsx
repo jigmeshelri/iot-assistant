@@ -81,12 +81,12 @@ export default function ComponentForm({ prefill, imageFile }: ComponentFormProps
     })
     setLoading(false)
     if (err) {
-      if (err.includes('23505') || err.includes('duplicate key')) {
+      if (err.type === 'sku_conflict') {
         nextAvailableSku(categoryPrefix(category))
           .then(suggestion => setSkuConflict(`Este código ya está en uso, sugerencia: ${suggestion}`))
           .catch(() => {})
       }
-      setError(err)
+      setError(err.message)
       return
     }
     setSuccess(true)

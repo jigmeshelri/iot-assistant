@@ -101,7 +101,7 @@ describe('ComponentForm — auto-generación de SKU', () => {
   it('muestra aviso cuando el SKU escrito ya existe', async () => {
     mockAddComponentToStock.mockResolvedValueOnce({
       componentId: null,
-      error: 'duplicate key value violates unique constraint',
+      error: { type: 'sku_conflict', message: 'duplicate key value violates unique constraint' },
     })
     render(<ComponentForm />)
     await userEvent.type(screen.getByPlaceholderText('ESP32-C6 XIAO'), 'Test')
