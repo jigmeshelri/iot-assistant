@@ -2,11 +2,13 @@
 
 ## Stack
 
-Astro 6 + React 19 (Islands) + Tailwind 4 + Supabase (PostgreSQL + RLS) + Vitest + Playwright
+**Web app** (este repo, deploy a Vercel): Astro 6 + React 19 (Islands) + Tailwind 4 + Supabase (PostgreSQL + RLS) + Vitest + Playwright.
+
+**Servicio auxiliar `api/`** (deploy a Railway): servicio Python que expone el agente conversacional consumido desde la web app para responder preguntas sobre el inventario y los proyectos del usuario.
 
 ## Documentación Clave
 
-- `FUNCTIONAL_SPEC.md` — PRD con acceptance criteria (45 ACs, priorización MoSCoW)
+- `FUNCTIONAL_SPEC.md` — PRD con acceptance criteria (priorización MoSCoW)
 - `TECHNICAL_SPEC.md` — Schema de DB, arquitectura del sistema, stack completo
 - `supabase/schema.sql` — Source of truth del schema de base de datos
 
@@ -14,17 +16,24 @@ Astro 6 + React 19 (Islands) + Tailwind 4 + Supabase (PostgreSQL + RLS) + Vitest
 
 ```
 src/
-  components/islands/  → React islands (25 componentes interactivos)
-  components/ui/       → Astro components (5 componentes estáticos)
-  lib/                 → Lógica de negocio y acceso a datos (13 módulos)
-  pages/               → Rutas Astro (17 páginas)
-  test/                → Unit tests Vitest (39 archivos)
+  components/islands/  → React islands (interactivos, hidratados con client:*)
+  components/ui/       → Componentes Astro estáticos (sin JS por defecto)
+  lib/                 → Lógica de negocio y acceso a datos (abstracción sobre Supabase)
+  pages/               → Rutas Astro
+  layouts/             → Layouts Astro compartidos
+  styles/              → Tailwind v4 globals (@theme tokens)
+  test/                → Unit tests Vitest
+  middleware.ts        → Astro middleware (auth/session)
 e2e/
-  ui/                  → Playwright specs (29 archivos)
+  ui/                  → Playwright specs
   fixtures/            → Seed data para E2E (seeded-test.ts)
+  helpers/             → Helpers compartidos para specs
 supabase/
   schema.sql           → Schema de DB (source of truth)
   migrations/          → Migraciones SQL
+api/                   → Servicio Python (Railway) — agente conversacional
+mockups/               → Mockups del proyecto, publicados via GitHub Pages
+docs/                  → Proposals activos y archive de planes/specs completados
 ```
 
 ## TDD Estricto
