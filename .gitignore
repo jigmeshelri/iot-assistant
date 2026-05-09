@@ -43,6 +43,12 @@ coverage/
 # Skill scratchpad (local brainstorming notes)
 .superpowers/
 
+# Agent scratch / per-tool registries (local only)
+.atl/
+
+# Gentleman Guardian Angel local config (provider, rules, exclusions)
+.gga
+
 # Playwright visual regression baselines (machine-specific, regenerated locally)
 e2e/ui/*-snapshots/
 
