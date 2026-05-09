@@ -72,6 +72,50 @@ Los commits siguen SRP: cada commit cuenta UNA parte de la historia del trabajo.
 - **Regla para agentes**: al terminar una tarea, hacer commit ANTES de pasar a la siguiente. La historia del repo debe reflejar el progreso paso a paso.
 - Nunca commitear: `.env`, `coverage/`, `node_modules/`, archivos con secretos.
 
+## Branching & Review
+
+El repo usa flujo **gitflow** con dos branches protegidas: `main` (estable, source of truth) y `develop` (integración).
+
+### Reglas de branches
+
+- **Siempre desde branch nueva**: nunca commitear directo a `main` ni a `develop`. Toda tarea (feat, fix, chore, refactor, docs, test) arranca creando una branch nueva desde `develop`.
+- **Naming convention**: `<user>/<type>/<kebab-name>`
+  - `<user>` — `sergio` o `claudio` (en minúscula)
+  - `<type>` — uno de `feat | fix | chore | refactor | docs | test`
+  - `<kebab-name>` — descripción corta en kebab-case, sin fecha (la fecha vive en `git log` y en el PR)
+  - Ejemplos: `sergio/feat/email-notifications`, `claudio/fix/location-picker-render`, `sergio/docs/branching-and-review-policy`
+
+### Flujo de integración
+
+1. Branch de trabajo se corta de `develop`.
+2. PR de la branch de trabajo → `develop`.
+3. Review de SD o CJ — **el autor del PR no puede aprobar su propio PR** (regla built-in de GitHub).
+4. Merge a `develop` cuando hay 1 approval.
+5. Cuando `develop` está lista para release, PR de `develop` → `main` (también requiere 1 approval).
+
+### Branch protection (server-side enforced)
+
+Tanto `main` como `develop` están protegidas via GitHub branch protection con:
+
+- ✅ Required pull request before merging (no se puede push directo)
+- ✅ Required approvals: 1 (no del autor)
+- ✅ Restrict force pushes
+- ✅ Restrict deletions
+- ✅ Include administrators (aplica a todos, sin excepción para admins)
+
+Esto significa que **`git push origin main` directo va a ser rechazado por GitHub**, incluso para SD como admin. La única vía para llegar a `main` o `develop` es via PR aprobado.
+
+### Áreas que merecen review más detenido
+
+Todos los PRs requieren la misma approval, pero estas áreas justifican revisar con más cuidado por su impacto:
+
+| Área | Por qué |
+|---|---|
+| `supabase/migrations/*.sql`, `supabase/schema.sql` | Cambios de DB compartida + RLS |
+| `src/lib/auth*`, `src/lib/supabase.ts` | Auth y session management |
+| `src/lib/inventory.ts`, `src/lib/locations.ts`, `src/lib/projects.ts` | Lógica de negocio core |
+| `CLAUDE.md`, `FUNCTIONAL_SPEC.md`, `TECHNICAL_SPEC.md` | Convenciones y specs canónicos |
+
 ## Task Intake
 
 Antes de empezar una tarea, verificar que el prompt incluye estos elementos. Si falta alguno, PREGUNTAR antes de escribir código:
