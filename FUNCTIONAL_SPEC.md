@@ -249,7 +249,160 @@ Tabla canónica de priorización del v0.5. Refleja las decisiones D1–D17 y los
 
 ### 4.1 Sesión de Workflow
 
-> _Por escribir. Núcleo del producto. Cubre modelo conceptual ("sesión de dos cabezas"), modos (planning / fetching / building / closing), eventos del workflow, ciclo de vida y la mecánica de optimistic UI + event sourcing (D1). Sub-secciones: 4.1.1 modelo, 4.1.2 modos y eventos, 4.1.3 ciclo de vida (incluye D3 y Q6)._
+**Núcleo del producto en v0.5**. La Sesión de Workflow es la entidad central que organiza todo el resto: convierte un proyecto pasivo (datos en una tabla) en un trabajo activo (eventos sucediendo en el tiempo, manifestados en dos pantallas complementarias). Todos los módulos de §4 — inventario, ubicaciones, BOM, bitácora, agente IA — son consumidos por o producen eventos hacia una sesión.
+
+Una sesión existe en el tiempo. Tiene un comienzo (`session_started`), atraviesa modos según lo que el usuario está haciendo, acumula eventos en un log append-only, y termina (`session_closed`). El estado del producto en cualquier momento es **la proyección del log de eventos** sobre las entidades persistentes (inventario, BOM, bitácora) — no un estado mantenido a mano.
+
+#### 4.1.1 Modelo conceptual — sesión de dos cabezas
+
+Una sesión NO es un cliente conectado a un servidor — es **una sola unidad de trabajo manifestada en dos dispositivos complementarios**. Cada dispositivo se renderiza según **su rol**, no según el tamaño de pantalla.
+
+```text
+        ┌──────────────────────────────────┐
+        │ workflow_session (Supabase)      │
+        │ - id, user_id, project_id        │
+        │ - mode, status                   │
+        │ - started_at, closed_at          │
+        └──────────────┬───────────────────┘
+                       │ Supabase Realtime
+            ┌──────────┴──────────┐
+            ▼                     ▼
+    ┌──────────────┐      ┌──────────────┐
+    │ Desktop      │      │ Mobile        │
+    │ "el cerebro" │      │ "sentidos+manos"│
+    │              │      │               │
+    │ Panorama,    │      │ Scanner NFC, │
+    │ BOM editor,  │      │ cámara,      │
+    │ schematic,   │      │ voz,         │
+    │ resumen      │      │ ubicación   │
+    └──────────────┘      └──────────────┘
+```
+
+| Rol | Dispositivo típico | Capacidades primarias |
+|---|---|---|
+| **Cerebro** | Desktop | Visión panorámica del proyecto, edición de BOM, navegación del workflow, resumen narrativo, schematic |
+| **Sentidos y manos** | Mobile (Android v1, iOS sin NFC) | Captura de eventos físicos: escaneo NFC (§4.7), foto, voz, marcado táctil de "encontrado/usado/devuelto", ubicación |
+
+El mismo `workflow_session` se renderiza distinto en cada dispositivo. Lo que une ambas vistas es el **log de eventos** sincronizado en tiempo real (§5.3).
+
+#### 4.1.2 Modos del workflow y eventos
+
+Una sesión está en exactamente un **modo** a la vez. Los modos definen qué acciones tienen sentido, qué vista se muestra en mobile (§4.3) y qué eventos se esperan.
+
+**Modos canónicos**:
+
+| Modo | Propósito | Vista típica en mobile (§4.3) |
+|---|---|---|
+| **`planning`** | Modo inicial. El usuario explora el proyecto, lee el BOM, decide qué hacer. | Resumen del proyecto + botón "Buscar piezas" |
+| **`fetching`** | El usuario está buscando piezas físicamente. Vista guiada activa (pieza N de M). | Scanner + lista de piezas a buscar |
+| **`building`** | El usuario está construyendo (cableando, soldando, programando). | Lista de piezas usadas + entrada rápida a bitácora |
+| **`closing`** | La sesión está terminando. El sistema agrega eventos significativos para generar el resumen narrativo (Escena C). | Resumen propuesto + opción "aprobar/editar" |
+
+**Transiciones válidas**: cualquier modo puede pasar a cualquier otro modo, excepto que `closing` es terminal mientras la sesión está activa (de `closing` se va a `closed`, no a otro modo activo).
+
+**Catálogo canónico de tipos de eventos**:
+
+| Tipo de evento | Emitido por | Payload |
+|---|---|---|
+| `session_started` | Sistema | `{ project_id, initial_mode }` |
+| `session_paused` | Usuario | `{ reason? }` |
+| `session_resumed` | Usuario | `{}` |
+| `session_closed` | Sistema | `{ reason: 'completed' \| 'abandoned' \| 'paused_indefinitely' }` |
+| `mode_changed` | Sistema o usuario | `{ from, to }` |
+| `fetch_started` | Sistema | `{ items: BomItem[] }` |
+| `item_found` | Usuario (mobile) | `{ item_id, location_id, qty_found }` |
+| `item_missing` | Usuario | `{ item_id }` |
+| `item_used` | Usuario | `{ item_id, qty_used, manual?: boolean }` |
+| `item_returned` | Usuario | `{ item_id, qty_returned, references: <item_used_event_id> }` |
+| `location_scanned` | Usuario (mobile, Android NFC) | `{ location_id, scan_method: 'nfc' \| 'manual' }` |
+| `phone_paired` | Sistema | `{ device_id, device_info }` |
+| `phone_unpaired` | Sistema | `{ device_id, reason }` |
+| `journal_entry_added` | Usuario | `{ text, tags, images? }` |
+| `journal_entry_edited` | Usuario | `{ entry_event_id, new_text }` |
+| `journal_entry_hidden` | Usuario | `{ entry_event_id }` |
+
+**Estructura del evento persistido** (referenciada en detalle en §6):
+
+```text
+workflow_events
+├── id            UUID v7 (PK, generado client-side — D2)
+├── session_id    UUID (FK → workflow_session)
+├── device_id     TEXT  (identifica desktop o mobile, único por sesión activa)
+├── seq           INTEGER  (monotónico por device, para orden intra-device)
+├── type          TEXT  (uno del catálogo arriba)
+├── payload       JSONB
+├── created_at    TIMESTAMPTZ  (timestamp server-side, autoritativo para orden global)
+└── applied_at    TIMESTAMPTZ NULL  (cuándo el server procesó el evento)
+```
+
+**Garantías** (referencias a D1):
+
+- **Idempotencia**: cada evento tiene `id` único (UUID v7). Reintentos de la cola IndexedDB no aplican el evento dos veces — el segundo INSERT falla por unique constraint y se ignora.
+- **At-least-once delivery**: la cola IndexedDB garantiza que cada evento llega al server (con reintento exponencial). Política de retención y capacidad: pendiente Q4.
+- **Order preservation**: orden intra-device por `(device_id, seq)`; orden global cross-device por `created_at` server-side (tiebreaker para eventos simultáneos).
+- **Convergencia**: en caso de eventos contradictorios entre dispositivos (raro en esta UX por roles complementarios), el server aplica en orden cronológico y broadcast el resultado. Last-write-wins con notificación visible (§4.8.3, Q5 para UX exacta).
+
+**Criterios de aceptación**:
+
+- **AC-4.1.1**: Una sesión está en exactamente un modo activo a la vez. Cualquier intento de poner la sesión en dos modos simultáneamente es rechazado.
+- **AC-4.1.2**: Las transiciones de modo emiten un evento `mode_changed` con `{ from, to }` antes de cambiar la vista renderizada en cada dispositivo.
+- **AC-4.1.3**: Cada evento se persiste con `id` único, `session_id`, `device_id`, `seq` (monotónico por device), `type` del catálogo, `payload` y `created_at` server-side.
+- **AC-4.1.4**: Un evento con `id` ya persistido se ignora idempotentemente (no se duplica, no falla la operación del cliente).
+- **AC-4.1.5**: La reconstrucción del estado de una sesión a partir del log produce el mismo resultado independientemente del momento de la consulta (proyección determinística).
+
+#### 4.1.3 Ciclo de vida de la sesión
+
+```text
+[D3: Mixto inicio]
+       │
+       ▼                                                    [Q6: ¿reactivar o nueva?]
+(no existe) ──(auto/explícito)──▶ active ──pause──▶ paused                │
+                                     │                │                    ▼
+                                     │                └──resume──▶ active
+                                     │                                     │
+                                     └────────close─────────▶ closing ────┘
+                                                                │
+                                                                ▼
+                                                            closed (terminal)
+```
+
+**Inicio (D3 — inicio mixto)**:
+
+- Si el usuario abre un proyecto y ya existe una `remote_session` activa para su cuenta, se **reactiva automáticamente** la sesión en estado `active` y modo `planning` (o el último modo conocido si estaba `paused`).
+- Si no hay `remote_session` activa, el desktop muestra el botón explícito *"Empezar sesión / Activar Remote Control"*. La sesión arranca en estado `active`, modo `planning`.
+
+**Estados de la sesión**:
+
+| Estado | Descripción |
+|---|---|
+| **`active`** | Sesión en uso. Acepta eventos. Modo cualquiera. |
+| **`paused`** | Sesión en hold. No acepta eventos nuevos (el log persiste). Reactivable. |
+| **`closing`** | Sesión emitiendo eventos de cierre + generando resumen narrativo. Transición corta. |
+| **`closed`** | Terminal. Sesión archivada. La bitácora del proyecto sigue accesible. |
+
+**Reglas**:
+
+- **Una sola sesión `active` por usuario** en v1 (D4). Si el usuario intenta iniciar una nueva sesión y ya hay una `active`, el sistema pide cerrar la anterior primero.
+- **Pausa**: el usuario puede pausar manualmente; o el sistema auto-pausa por inactividad prolongada (umbral pendiente). Pausar emite `session_paused`.
+- **Reanudación**: reabrir el proyecto reactiva una sesión `paused` (transición `session_resumed`).
+- **Cierre**: el cierre emite `session_closed` con `reason`. Antes de cerrar, la sesión pasa por modo `closing` que dispara la generación del resumen narrativo (referencia §4.8.3 / AC-4.8.16).
+- **Reactivación de sesión `closed`**: **Q6 pendiente**. Si el usuario abre un proyecto cuya última sesión está `closed`, ¿se reabre la vieja o se arranca una nueva? Decisión por SD + CJ.
+
+**Audit trail y observabilidad** (referencia Q11):
+
+- Cada evento contiene `device_id` y `created_at` server-side.
+- El log completo es consultable para debug y para reconstrucción del estado.
+- **¿Es UI visible para el usuario o solo backend?** Q11 pendiente.
+
+**Criterios de aceptación**:
+
+- **AC-4.1.6**: Si el usuario abre un proyecto y hay una `remote_session` activa, el sistema reactiva automáticamente la sesión sin requerir input adicional (D3).
+- **AC-4.1.7**: Si no hay `remote_session` activa, el desktop muestra el botón "Empezar sesión" y la sesión arranca solo después del click (D3).
+- **AC-4.1.8**: Un usuario tiene como máximo una sesión en estado `active` a la vez. Intentar iniciar una nueva sesión cuando ya existe una `active` muestra un aviso pidiendo cerrar la primera (D4).
+- **AC-4.1.9**: Pausar la sesión emite `session_paused`; la sesión deja de aceptar eventos nuevos hasta `session_resumed`.
+- **AC-4.1.10**: Cerrar la sesión transiciona por el modo `closing`, dispara la generación del resumen narrativo (§4.8.3), espera la aprobación del usuario, y emite `session_closed` con `reason`.
+- **AC-4.1.11**: **[PENDIENTE Q6]** Si el usuario abre un proyecto cuya última sesión está `closed`, el sistema reacciona según la decisión de Q6 — opciones a evaluar: (a) crear sesión nueva siempre, (b) reabrir la cerrada si el cierre fue por `paused_indefinitely`, (c) ofrecer elección al usuario.
+- **AC-4.1.12**: **[PENDIENTE Q11]** El audit trail de la sesión se expone según la decisión de Q11 — opciones a evaluar: (a) UI visible para el usuario en la vista del proyecto, (b) backend-only para debug.
 
 ### 4.2 Cross-device Pairing
 
