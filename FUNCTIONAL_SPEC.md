@@ -883,4 +883,32 @@ Funcionalidades diferidas a post-MVP. Sin AC en v0.5. Se reevalúan cuando haya 
 
 ## 9. Glosario
 
-> _Por escribir. Mantiene los términos de v0.4 (componente, ubicación, BOM, RLS, QR, platform_family, connectivity_caps, tipo de proyecto, incompatible, refinamiento guiado) y agrega los nuevos: workflow_session, remote_session, workflow_event, modo (planning/fetching/building/closing), partner del workflow, sesión de dos cabezas, optimistic UI, event sourcing, cola de eventos._
+Términos canónicos del v0.5. Los términos marcados con (v0.4) se mantienen sin cambio conceptual respecto al PRD anterior.
+
+| Término | Definición |
+|---|---|
+| **Componente** (v0.4) | Pieza electrónica individual catalogada en el inventario (ej. resistencia, microcontrolador). |
+| **Ubicación** (v0.4) | Contenedor físico donde se almacenan componentes (mueble, cajón, maleta, caja). En v0.5 puede tener un tag NFC vinculado (§4.5, §4.7). |
+| **BOM** (v0.4, redefinido) | *Bill of Materials* — lista de materiales necesarios para construir un proyecto. En v0.5 el BOM es **input ejecutable** al modo `fetching` del workflow (§4.8.2). |
+| **RLS** (v0.4) | *Row Level Security* — política de PostgreSQL que restringe el acceso a filas por usuario. |
+| **platform_family** (v0.4) | Familia de plataforma de un componente: `esp32`, `arduino`, `rpi`, `generic`. Determina el ecosistema de herramientas aplicables. |
+| **connectivity_caps** (v0.4) | Capacidades de conectividad detectadas en un componente (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet). Usadas para validar compatibilidad con los requisitos de un proyecto. |
+| **Tipo de proyecto** (v0.4) | Nivel de complejidad declarado al crear un proyecto: DIY, Prototipo o Profesional. Determina defaults de código, entorno y visibilidad (§4.8.1). |
+| **Incompatible** (v0.4) | Estado de un componente de la BOM que está en inventario pero no cumple un requisito del proyecto. Se distingue de "Faltante" (§4.8.2). |
+| **Refinamiento guiado** (v0.4) | Segunda etapa del flujo de planificación (§4.9.2) donde el usuario ajusta la propuesta inicial del agente IA mediante controles estructurados. |
+| **Partner del workflow** | Caracterización central del producto v0.5. El producto no es un cuaderno donde el usuario registra — es un partner que acompaña, conduce y observa el proyecto. |
+| **Sesión de dos cabezas** | Modelo conceptual de §4.1.1: una `workflow_session` se manifiesta simultáneamente en dos dispositivos complementarios (desktop como cerebro, mobile como sentidos y manos), no como dos clientes independientes. |
+| **workflow_session** | Entidad central de v0.5 (§4.1). Representa una unidad de trabajo activo del usuario sobre un proyecto. Tiene modo, estado, log de eventos asociado. |
+| **workflow_event** | Evento atómico del log append-only de una sesión. Generado client-side con UUID v7, persistido en Supabase, propagado via Realtime (§4.1.2). |
+| **Modo (del workflow)** | Estado del workflow dentro de una sesión activa: `planning`, `fetching`, `building`, `closing` (§4.1.2). Determina vista en mobile y eventos esperados. |
+| **remote_session** | Entidad de pairing persistente (§4.2.1). Permite que el teléfono del usuario se conecte automáticamente a la sesión del desktop sin escanear QR cada vez. TTL configurable. |
+| **Escena wuaw** | Las tres escenas canónicas que capturan la promesa del producto (§1.2): arranque, falta de pieza, cierre. Si la experiencia se siente como en estas escenas, el producto cumple su visión. |
+| **Optimistic UI** | Patrón de UX donde el cliente aplica el cambio localmente de forma instantánea (sin esperar al servidor) y sincroniza en background. Componente central de D1. |
+| **Event sourcing** | Patrón arquitectónico donde el estado del sistema se deriva de un log append-only de eventos. En v0.5, el estado de la sesión y la bitácora son proyecciones de `workflow_events` (D1, D5). |
+| **Cola IndexedDB** | Cola local en el cliente que mantiene los eventos pendientes de sincronizar con el server. Garantiza at-least-once delivery con reintento exponencial. Política de retención: Q4. |
+| **NFC tag** | Etiqueta física con chip NFC (típicamente NTAG213/215/216) que codifica un payload NDEF. En v0.5 se programa con un payload que identifica una ubicación (§4.7). |
+| **NDEF** | *NFC Data Exchange Format* — formato estándar del payload de un tag NFC. El payload concreto a usar en v0.5 está pendiente Q14. |
+| **Web NFC API** | API W3C que permite a una PWA leer/escribir tags NFC. Soportada en Chrome para Android; **no soportada en iOS Safari** (D17). |
+| **Core NFC** | API nativa de iOS para acceso a NFC. Accesible desde una app nativa o un wrapper Capacitor (D18), no desde una PWA. |
+| **Capacitor** | Framework de Ionic que envuelve una PWA en una app nativa iOS/Android exponiendo APIs nativas. Ruta técnica elegida para D18 y para futuras apps nativas (§7.3). |
+| **Agente IA contextual** | El agente IA del producto (§4.10), refactorizado en v0.5 para recibir contexto rico al ser invocado: proyecto activo, BOM con specs completas, inventario, sesión de workflow en curso (D6). Reemplaza el chat genérico del v0.4. |
