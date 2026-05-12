@@ -574,13 +574,50 @@ Cuando una `workflow_session` cierra, el sistema agrega los eventos significativ
 
 ### 4.9 Inteligencia de Proyectos (Could Have)
 
+**Objetivo del módulo**: convertir el inventario en un punto de partida para la creación de proyectos, conectando las piezas disponibles con proyectos realizables (Descubrimiento) y, a la inversa, identificando qué falta para ejecutar un proyecto deseado (Planificación). Ambas capacidades viven sobre el **agente IA contextual** (§4.10) — comparten infraestructura.
+
+**Degradado a Could Have** respecto a v0.4 (era Should Have): la visión v0.5 se centra en el workflow de proyectos ya iniciados, no en el descubrimiento. La inteligencia de proyectos es valiosa pero no bloquea el MVP.
+
 #### 4.9.1 Descubrimiento ("¿qué puedo construir?")
 
-> _Por escribir. Base de v0.4 §3.5.1. Degradado a Could Have — no es central a la visión nueva pero sigue siendo valioso._
+**Flujo**:
+
+1. El usuario abre la sección *"Explorar Proyectos"*.
+2. La app envía el inventario actual (componentes con specs, plataforma y conectividad) al agente IA.
+3. El agente sugiere proyectos ordenados por viabilidad (porcentaje de piezas disponibles y compatibles).
+4. Cada sugerencia incluye: título, descripción breve, BOM con el estado por ítem (reutiliza los estados definidos en §4.8.2: Disponible/Parcial/Faltante/Incompatible), nivel de dificultad estimado, recursos externos opcionales.
+
+**Criterios de aceptación**:
+
+- **AC-4.9.1**: El usuario abre *"Explorar Proyectos"* → el agente IA recibe el inventario completo y devuelve sugerencias ordenadas por viabilidad con título, descripción, dificultad y BOM.
+- **AC-4.9.2**: Cada item de la BOM sugerida muestra su estado con el color correspondiente (§4.8.2). El layout se adapta al dispositivo (D14).
+- **AC-4.9.3**: El usuario guarda una sugerencia → se crea un proyecto en estado `Guardado` con la BOM asociada y `source = 'ai_discovery'`.
 
 #### 4.9.2 Planificación ("quiero construir X, ¿qué necesito?")
 
-> _Por escribir. Base de v0.4 §3.5.2. Mismo status._
+**Flujo**:
+
+1. El usuario describe el proyecto en **texto libre** (ej. *"estación meteorológica solar con WiFi y pantalla OLED"*).
+2. El agente IA genera una propuesta inicial: título, descripción, BOM sugerida, dificultad.
+3. El sistema presenta controles de **refinamiento guiado** opcionales:
+   - **Controlador preferido** — MCU del inventario o uno deseado. Si es incompatible con los requisitos, el agente sugiere alternativas (sujeto a Q9).
+   - **Nivel de dificultad** — Principiante / Intermedio / Avanzado.
+   - **Restricciones** — sin soldadura, bajo consumo, presupuesto máximo, etc.
+4. El usuario acepta o ajusta la propuesta.
+5. El sistema cruza la BOM final con el inventario y clasifica cada ítem (§4.8.2).
+6. El usuario guarda la propuesta como nuevo proyecto en estado `Guardado` con `source = 'ai_plan'`.
+
+**Criterios de aceptación**:
+
+- **AC-4.9.4**: El usuario describe un proyecto en texto libre → el agente IA genera una propuesta con título, descripción, BOM y dificultad.
+- **AC-4.9.5**: El usuario aplica refinamiento guiado (controlador, dificultad, restricciones) → la propuesta se actualiza con los nuevos parámetros.
+- **AC-4.9.6**: El usuario guarda la propuesta → se crea un proyecto en estado `Guardado` con `source = 'ai_plan'` y BOM cruzada contra inventario.
+
+**Consideraciones comunes a 4.9.1 y 4.9.2**:
+
+- Las sugerencias del agente son orientativas; el usuario puede guardar, descartar o ajustar.
+- El módulo NO gestiona compras ni se integra con tiendas en v1 (Won't Have — §8).
+- Al guardar, el proyecto sigue el ciclo de vida normal de §4.8.1.
 
 ### 4.10 Agente IA Contextual
 
