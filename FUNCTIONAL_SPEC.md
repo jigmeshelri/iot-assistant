@@ -830,7 +830,37 @@ Cuando una `workflow_session` cierra, el sistema agrega los eventos significativ
 
 ## 7. Roadmap Comercial y Plataformas
 
-> _Por escribir. Base de v0.4 §7. Sin cambios estructurales — PWA como contrato hasta validar criterios para apps nativas._
+### 7.1 Fases de producto
+
+| Fase | Objetivo | Plataforma | Criterio de salida |
+|---|---|---|---|
+| **v0.5 — MVP** | Validar el partner cross-device del workflow físico con los dos usuarios validadores actuales (SD + CJ) | PWA (Astro + React + Supabase) en Android (NFC primary — D17) e iOS (sin NFC, fallback manual) | Las tres escenas wuaw (§1.2) se ejecutan end-to-end con ambos usuarios sin fricción mayor en >80% de los intentos |
+| **v0.6 — Tracción** | Iterar sobre feedback real, sumar early adopters, evaluar disparadores de §7.2 | PWA + Capacitor wrapper iOS (D18) si Q15 se cierra con timing v0.6 | > 5 usuarios activos sosteniendo workflows reales durante 4+ semanas |
+| **v1.0 — Comercial** | Comunidad de proyectos (§8 reevaluada), escala, features Could Have promovidas | PWA + apps nativas (Capacitor) si algún criterio de §7.2 está activo | KPIs aspiracionales de §1.5 alcanzados (WAU 50+, retención > 40%) |
+
+### 7.2 ¿Cuándo vale el esfuerzo de apps nativas?
+
+Las apps nativas implican mantener un wrapper adicional, ciclos de review en App Store/Google Play y costos de distribución. El esfuerzo se justifica **únicamente** si se cumple al menos uno de estos criterios:
+
+| Criterio | Señal concreta que lo activa |
+|---|---|
+| **Capacidades de hardware** | iOS NFC se vuelve bloqueante real de adopción (cierra Q15 con timing v0.6). En ese momento se ejecuta D18 — wrapper Capacitor con Core NFC. |
+| **Canal de adquisición** | Descubrimiento orgánico en App Store / Google Play es fuente relevante de nuevos usuarios y la PWA no aparece en esos resultados. |
+| **Fricción documentada en mobile** | Métricas o entrevistas muestran que la experiencia PWA en mobile es bloqueador real de adopción o retención. |
+| **Requisito de cliente enterprise** | Un cliente B2B exige distribución via MDM corporativo o presencia en tienda como condición de contrato. |
+
+Mientras ninguno esté activo, la PWA cubre la mayoría del caso de uso (cámara, NFC en Android, instalación en home screen) con un único codebase y sin fricción de distribución.
+
+### 7.3 Ruta técnica si se llega a apps nativas
+
+La ruta elegida es **Capacitor** (no React Native, no Swift/Kotlin puros). Razones:
+
+- **Reutiliza el codebase Astro+React de la PWA directamente.** Capacitor envuelve la app existente, no se reimplementa — el código de la PWA es el mismo en web, iOS y Android.
+- **Acceso a APIs nativas** (Core NFC, Bluetooth, cámara avanzada, notificaciones push) sin abandonar TypeScript.
+- **Compatible con D18**: el wrapper Capacitor para iOS NFC es el primer caso concreto. Cuando otros criterios de §7.2 se activen, la infraestructura ya está montada.
+- **Tiempo de go-to-market nativo significativamente menor** que mantener dos codebases separados (Swift + Kotlin) o que migrar a otro framework.
+
+Se descarta React Native: requiere reescribir la UI en componentes nativos (no reutiliza Astro), aumenta el costo de mantenimiento de un codebase paralelo. Capacitor mantiene una sola fuente de verdad: la PWA.
 
 ---
 
