@@ -426,7 +426,37 @@ El módulo no agrega tablas nuevas. La vinculación tag→ubicación vive en el 
 
 #### 4.8.1 Ciclo de vida y tipo
 
-> _Por escribir. Base sigue de v0.4 §3.6.1: tipos DIY/Prototipo/Profesional, estados Guardado→En curso→Pausado→Completado/Abandonado. Sin cambios estructurales._
+Al crear o guardar un proyecto, el usuario declara su **tipo**, que determina el nivel de detalle técnico esperado y los defaults de visibilidad. El ciclo de vida es independiente del tipo.
+
+**Tipos de proyecto**:
+
+| Tipo | Descripción | Visibilidad por defecto |
+|---|---|---|
+| **DIY** | Proyecto personal o de hobby; código simple (Arduino, ESPHome, MicroPython). | Pública si el usuario lo publica (sin efecto práctico en v1: Comunidad diferida — §8) |
+| **Prototipo** | Funcional pero no optimizado; punto intermedio entre exploración y producción. | Idem DIY |
+| **Profesional** | Orientado a producción: C/C++/Rust, eficiencia energética, manejo robusto de errores, código modular. | Privada por defecto |
+
+**Estados del proyecto**:
+
+```text
+Guardado → En curso → Pausado → Completado
+                              ↘ Abandonado
+```
+
+| Estado | Descripción |
+|---|---|
+| **Guardado** | El proyecto fue creado manualmente o guardado desde Inteligencia de Proyectos (§4.9), pero aún no se inició. |
+| **En curso** | El usuario inició el proyecto activamente. Una sesión de workflow (§4.1) puede arrancarse desde este estado. |
+| **Pausado** | Trabajo interrumpido temporalmente; conserva el historial completo de eventos. |
+| **Completado** | El proyecto fue terminado. |
+| **Abandonado** | Se descartó; el historial queda disponible para referencia. |
+
+**Criterios de aceptación**:
+
+- **AC-4.8.1**: El usuario crea un proyecto manual con título, tipo (DIY/Prototipo/Profesional) y dificultad → aparece en la lista en estado "Guardado".
+- **AC-4.8.2**: El usuario cambia el estado del proyecto siguiendo las transiciones válidas: Guardado → En curso → Pausado/Completado/Abandonado. Las transiciones inválidas no están disponibles en la UI.
+- **AC-4.8.3**: El usuario edita título y descripción del proyecto inline → los cambios persisten al recargar.
+- **AC-4.8.4**: La transición a "En curso" habilita el botón para iniciar una sesión de workflow (§4.1). En cualquier otro estado, ese botón está deshabilitado con tooltip explicativo.
 
 #### 4.8.2 BOM como workflow ejecutable
 
