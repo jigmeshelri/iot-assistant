@@ -239,7 +239,49 @@ Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la
 
 ### 4.4 Inventario
 
-> _Por escribir. Base sigue de v0.4 §3.1 con cambios menores: los componentes son datos consumidos por el workflow, no destinos. CRUD, búsqueda, detalle, datos por componente (sku, name, category, platform_family, connectivity_caps, quantity, technical_specs, image_url, datasheet_url, location_id) — todo se mantiene. ACs se rescriben con D13 (interacción consistente) y D14 (layouts escalables) como principios._
+**Objetivo**: mantener un registro preciso del catálogo de componentes del usuario y de su asignación a ubicaciones físicas. En v0.5 los componentes son **datos consumidos por el workflow** (BOM, búsqueda guiada, fetching) — no destinos en sí mismos. La calidad del inventario determina la calidad de todas las experiencias del producto downstream.
+
+**User stories**:
+
+- **US-4.4.1**: Como maker, quiero registrar un componente con sus specs técnicas para saber exactamente qué tengo disponible sin revisar cajas físicamente.
+- **US-4.4.2**: Como estudiante, quiero buscar en mi inventario por nombre o categoría para encontrar rápido la pieza que necesito.
+- **US-4.4.3**: Como freelancer, quiero ver el detalle completo de un componente (specs, datasheet, cantidad, ubicación) para cotizar un proyecto sin abrir cajones.
+
+**Funcionalidades**:
+
+- **Alta manual** — el usuario ingresa nombre, categoría, cantidad, especificaciones técnicas y ubicación.
+- **Alta por fotografía** — flujo alternativo via Scan IA (§4.6) que pre-rellena los campos.
+- **Edición y baja** — actualización de cantidad, notas, specs y ubicación. Baja lógica con historial.
+- **Búsqueda y filtrado** — por nombre, categoría, especificación técnica, plataforma, conectividad y ubicación.
+- **Vista de detalle** — ficha completa: imagen, datasheet vinculado, specs normalizadas, capacidades de conectividad, cantidad disponible, ubicación y enlaces a proyectos que lo usan.
+
+**Datos por componente**:
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `UUID` (UUIDv4 — D2) | PK |
+| `sku` | `TEXT` | Identificador interno (ej. `MCU-001`) |
+| `name` | `TEXT` | Nombre técnico (ej. "ESP32-C6 XIAO") |
+| `category` | `ENUM` | Microcontrolador, Sensor, Actuador, Alimentación, Módulo, Pasivo |
+| `platform_family` | `ENUM` | Familia: `esp32`, `arduino`, `rpi`, `generic` |
+| `connectivity_caps` | `JSONB` | Capacidades: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc. |
+| `quantity` | `INTEGER` | Unidades disponibles ≥ 0 |
+| `technical_specs` | `JSONB` | Specs flexibles: voltaje, corriente, protocolo, encapsulado, etc. |
+| `image_url` | `TEXT` | Foto tomada por el usuario o asignada por el scan IA |
+| `datasheet_url` | `TEXT` | Enlace al datasheet oficial |
+| `location_id` | `UUID` | FK a `locations` (§4.5) |
+
+**Criterios de aceptación** (D13 y D14 aplican a todos los ACs de este módulo sin excepción):
+
+- **AC-4.4.1**: El usuario crea un componente manual ingresando nombre, categoría y cantidad → el componente aparece en la lista del inventario con los datos correctos.
+- **AC-4.4.2**: El usuario escribe texto en el buscador → la lista filtra en tiempo real por nombre, SKU y ubicación, case-insensitive. El comportamiento del buscador es **idéntico en mobile y desktop** (D13).
+- **AC-4.4.3**: El usuario abre el detalle de un componente → ve imagen (o placeholder), SKU, categoría, plataforma, conectividad, especificaciones técnicas, ubicación, cantidad y enlace a datasheet. El layout se adapta al dispositivo (D14): mobile usa stacked vertical para specs con valores largos; desktop usa grid 2-col. **Ningún valor se trunca silenciosamente** — los datos de lectura siempre escalan al contenido o se expanden con tap/click explícito.
+- **AC-4.4.4**: El usuario edita campos de un componente existente (nombre, categoría, plataforma, conectividad, specs, ubicación) → los cambios persisten al recargar.
+- **AC-4.4.5**: El usuario elimina un componente de su inventario → desaparece de la lista; si el componente fue contribuido al catálogo compartido (§4.2 de NFRs), la entrada del catálogo se mantiene.
+- **AC-4.4.6**: El usuario selecciona un chip de categoría (MCU, Sensor, etc.) → la lista muestra solo componentes de esa categoría. El chip se ve y se comporta **idéntico en mobile y desktop** (D13).
+- **AC-4.4.7**: En la lista del inventario, el target de click para "ver/editar componente" es la **fila completa**, idéntico en mobile y desktop (D13). No hay divergencia donde una plataforma reduzca el target a un ícono pequeño.
+- **AC-4.4.8**: El usuario asigna una ubicación a un componente → el componente aparece en la vista de esa ubicación (§4.5) y su tarjeta muestra la ruta de ubicación (breadcrumb) en la lista del inventario.
+- **AC-4.4.9**: El usuario ajusta la cantidad con controles +/− → el stock se actualiza inmediatamente. Los controles se diseñan por dispositivo (D14): touch targets adecuados en mobile, click targets adecuados en desktop.
 
 ### 4.5 Ubicaciones
 
