@@ -488,7 +488,35 @@ Guardado → En curso → Pausado → Completado
 
 #### 4.8.3 Bitácora generada por eventos
 
-> _Por escribir. D5 desarrollada. La bitácora es una proyección del log de `workflow_events`. Tipos de eventos visibles, eventos editables, política de Q10._
+**Decisión clave** (D5 desarrollada): la bitácora **NO es una entidad separada** con entries propias. Es una **proyección filtrada del log de `workflow_events`**. Las entries visibles se generan a partir de dos fuentes que conviven en el mismo log:
+
+1. **Eventos del sistema** — generados automáticamente por la actividad del workflow: `session_started`, `mode_changed`, `item_found`, `item_used`, `item_returned`, `item_missing`, `location_scanned`, `session_closed`.
+2. **Eventos manuales del usuario** — de tipo `journal_entry_added` con payload `{ text, tags, images }`. El usuario escribe explícitamente.
+
+La UI muestra ambos **mezclados en orden cronológico**, una sola línea de tiempo. El usuario ve una bitácora, no dos.
+
+**Tags disponibles en entries manuales**: `avance`, `problema`, `solución`, `aprendizaje`, `código`. Los eventos del sistema tienen su tag implícito según el tipo de evento.
+
+**Edición y supresión de entries**:
+
+- Las entries manuales se editan generando un evento `journal_entry_edited` (la UI muestra solo la última versión; el historial queda en el log).
+- Las entries auto-generadas se pueden **ocultar** (no borrar) generando `journal_entry_hidden`. El evento original sigue en el log para audit.
+- **Política de reproyección retroactiva** al agregar tipos de evento nuevos en futuro: **Q10 pendiente**.
+
+**Conflicts cross-device**: si dos dispositivos editan la misma entry al mismo tiempo, la resolución es last-write-wins con notificación visible al usuario afectado. UX exacta del aviso: **Q5 pendiente**.
+
+**Resumen automático al cerrar sesión** (Escena C):
+
+Cuando una `workflow_session` cierra, el sistema agrega los eventos significativos de esa sesión y genera un **resumen narrativo automático** que se presenta al usuario como una entry tipo `session_summary` editable. El usuario aprueba el resumen tal cual, lo edita, o lo descarta antes de que se persista como entry visible en la bitácora.
+
+**Criterios de aceptación**:
+
+- **AC-4.8.11**: La bitácora muestra eventos del sistema y entries manuales mezclados en orden cronológico, identificados visualmente por su origen (icono + tag).
+- **AC-4.8.12**: El usuario agrega una entry manual con texto + tags → se emite `journal_entry_added` y la entry aparece en la bitácora.
+- **AC-4.8.13**: El usuario edita una entry manual → se emite `journal_entry_edited`; la versión anterior queda en el log pero la UI muestra solo la última.
+- **AC-4.8.14**: El usuario oculta una entry auto-generada → se emite `journal_entry_hidden`; la UI deja de mostrarla; el evento original queda en el log.
+- **AC-4.8.15**: La bitácora se adapta al dispositivo (D14): mobile usa cards verticales con timeline lateral; desktop usa lista densa con columna de tiempo.
+- **AC-4.8.16**: Al cerrar una sesión de workflow, el sistema genera un resumen narrativo automático de los eventos de esa sesión. El usuario puede editar, aprobar o descartar el resumen antes de que se persista como entry tipo `session_summary`.
 
 #### 4.8.4 Consumo via eventos
 
