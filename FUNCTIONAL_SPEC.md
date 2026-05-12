@@ -213,7 +213,35 @@ Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la
 
 ## 3. Priorización (MoSCoW)
 
-> _Por escribir. Refleja las decisiones D1–D14. Tabla revisada respecto a v0.4: workflow session, pairing remote control, realtime sync e identidad pasan a Must Have; comunidad sale; code generation degrada a Could Have._
+Tabla canónica de priorización del v0.5. Refleja las decisiones D1–D17 y los módulos definidos en §4. Los items marcados con (Q*) dependen de open questions cuya resolución puede moverlos entre columnas.
+
+**Cambios estructurales respecto a v0.4**:
+
+- Pasan a **Must Have** (nuevos o promovidos): Sesión de Workflow, Cross-device Pairing (Remote Control), Vista Guiada, Realtime + Sync, Identidad del producto, Agente IA Contextual.
+- **Degrada** a Could Have: Generación de código (era Should Have).
+- **Sale completa** (a §8 Won't Have v1): Comunidad de proyectos.
+
+| Prioridad | Módulo / Capacidad | Sección | Justificación |
+|---|---|---|---|
+| **Must Have** | Auth + RLS + PWA | §5.1, §5.2 | Base técnica de multi-usuario y mobile. Sin esto no hay producto. |
+| **Must Have** | Identidad del producto (voz, microcopy, D13, D14) | §2 | Diferenciador que evita el "cuaderno tonto". Sin identidad coherente, v0.5 = v0.4 con eventos. |
+| **Must Have** | Inventario (CRUD, búsqueda, detalle) | §4.4 | Core loop. Datos consumidos por el workflow. |
+| **Must Have** | Ubicaciones (jerarquía) | §4.5 | Diferenciador vs planilla; input al modo `fetching`. |
+| **Must Have** | Sesión de Workflow (núcleo) | §4.1 | Centro de gravedad de v0.5. Sin sesión, no hay partner del workflow. |
+| **Must Have** | Cross-device Pairing — Remote Control mode | §4.2.1 | La promesa cross-device de la Escena A no funciona sin esto. |
+| **Must Have** | Vista Guiada Cross-device | §4.3 | Manifestación de la sesión en dos pantallas complementarias. |
+| **Must Have** | Realtime + Sync (optimistic UI + cola de eventos) | §5.3 | Tecnología subyacente que habilita el cross-device fluido (D1). |
+| **Must Have** | Proyectos (ciclo de vida + BOM ejecutable + bitácora por eventos + consumo) | §4.8 | El BOM dispara el workflow; la bitácora cierra la Escena C. |
+| **Must Have** | Agente IA Contextual (invocación + contexto rico) | §4.10.1 | Reemplaza el chat genérico actual (D6). Habilita Scan IA y futuros casos. |
+| **Should Have** | Scan IA (alta por fotografía) | §4.6 | Reduce fricción de alta — pero el alta manual ya funciona como fallback. |
+| **Should Have** | Etiquetas NFC para Ubicaciones (Android v1 — D17) | §4.7 | Diferenciador físico-digital. Asignación manual de ubicación queda como fallback en iOS. |
+| **Could Have** | Inteligencia de Proyectos — Descubrimiento + Planificación | §4.9 | Alto valor potencial pero depende de inventario y proyectos maduros. Costoso en tokens IA. |
+| **Could Have (Q8)** | Generación de código contextual desde el agente | §4.10.2 | Si Q8 difiere → pasa a Won't Have v1 (§8). |
+| **Could Have (Q9)** | Escena B — el agente sugiere alternativas del inventario cuando falta una pieza | §4.10 | Si Q9 difiere → pasa a Won't Have v1. Caso de uso valioso de la visión. |
+| **Could Have (Q7)** | Pairing in-situ (QR efímero) | §4.2.2 | Si Q7 difiere → pasa a Won't Have v1. Útil solo en dispositivos prestados / demos. |
+| **Won't Have v1** | Todo lo de §8 Diferidos | §8 | Comunidad, análisis de código standalone, RasPi completo, QR de ubicaciones, NFC iOS, telemetría real-time, integración con tiendas. |
+
+> **MVP mínimo absoluto (v0.5.0-alpha)**: Auth + Inventario + Ubicaciones + Sesión de Workflow + Remote Control + Vista Guiada + Realtime. Con esto se puede ejecutar la Escena A completa con un proyecto manual. Las Escenas B y C requieren agente contextual y bitácora por eventos respectivamente.
 
 ---
 
