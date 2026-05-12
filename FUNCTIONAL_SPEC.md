@@ -520,7 +520,29 @@ Cuando una `workflow_session` cierra, el sistema agrega los eventos significativ
 
 #### 4.8.4 Consumo via eventos
 
-> _Por escribir. Cambio respecto a v0.4 §3.6.3: el consumo deja de ser marcado manual primario y pasa a derivarse de eventos del workflow (`item_used`, `item_returned`). El marcado manual queda como fallback explícito._
+**Cambio respecto a v0.4 §3.6.3**: el consumo de componentes deja de ser un marcado manual primario y pasa a **derivarse de eventos del workflow** durante una sesión activa. El marcado manual queda como fallback explícito para escenarios fuera de sesión.
+
+**Fuentes de consumo**:
+
+| Fuente | Trigger | Evento emitido | Efecto |
+|---|---|---|---|
+| **Workflow activo** (primario) | El usuario marca un item como "usado" en la vista guiada (§4.3) durante una sesión `fetching`/`building` | `item_used` (sin flag manual) | Decrementa `components.quantity` |
+| **Devolución** | El usuario devuelve un item al inventario, durante o después de la sesión | `item_returned` (referencia el `item_used` original) | Restaura `components.quantity` |
+| **Marcado manual** (fallback) | El usuario marca un item del BOM como consumido fuera de una sesión activa | `item_used` con `payload.manual: true` | Mismo efecto sobre stock |
+
+**Reglas de stock**:
+
+- Si la cantidad cae a 0 o queda en nivel insuficiente para otros proyectos que dependen del componente, la vista del proyecto muestra una alerta visible y la lista de inventario marca el componente como agotado o casi agotado.
+- El usuario puede revertir un consumo individual desde la entry correspondiente de la bitácora (botón "deshacer") — se emite `item_returned` referenciando el `item_used` original.
+- El stock se ajusta al **persistir** el evento en el log (parte del flujo de event sourcing — D1). El cliente aplica el cambio en optimistic UI, la cola sincroniza, y si el server rechaza el evento (caso límite raro), el cliente hace rollback con toast.
+
+**Criterios de aceptación**:
+
+- **AC-4.8.17**: Durante una sesión de workflow, el usuario marca un item como "usado" → se emite `item_used` → `components.quantity` del componente correspondiente se decrementa al persistir el evento.
+- **AC-4.8.18**: El usuario marca un item como devuelto (durante o después de la sesión) → se emite `item_returned` referenciando el `item_used` original → `components.quantity` se restaura.
+- **AC-4.8.19**: Fuera de una sesión activa, el usuario puede marcar manualmente un item del BOM como consumido → se emite `item_used` con `payload.manual: true` → mismo efecto sobre stock que el flujo del workflow.
+- **AC-4.8.20**: Si la cantidad disponible cae a 0 o muy baja → la vista del proyecto muestra una alerta visible. El componente en la lista de inventario refleja el estado de stock bajo (badge o color).
+- **AC-4.8.21**: El usuario puede revertir un consumo individual desde la entry correspondiente de la bitácora → se emite `item_returned` referenciando el evento original. La UI confirma con animación de rollback.
 
 ### 4.9 Inteligencia de Proyectos (Could Have)
 
