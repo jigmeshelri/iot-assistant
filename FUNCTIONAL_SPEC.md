@@ -37,6 +37,8 @@ Listado canónico de las decisiones de arquitectura y producto cerradas durante 
 | D12 | Idioma del documento                    | Español rioplatense — audiencia primaria humana (SD + CJ). Términos técnicos y nombres de archivos/funciones conservan su forma natural (inglés cuando corresponde).                                                                                                                              | (este header)               |
 | D13 | Patrones de interacción consistentes entre módulos y entre dispositivos | Los listados, formularios y navegación siguen los mismos patrones **(a) entre módulos y (b) entre dispositivos**. Una decisión que se toma una vez (por ej. "toda la fila del listado es clickeable") se aplica idéntica en inventario, ubicaciones, proyectos y BOM, y se respeta tanto en mobile como en desktop. Sin divergencias responsive: si en mobile la fila es clickeable, en desktop también — no se reduce a un botón pequeño.                  | §2.1 + módulos              |
 | D14 | Cada vista se diseña por dispositivo, no se porta | Mobile NO es desktop reducido. Cada vista se piensa desde cero para el dispositivo en uso (touch targets, jerarquía visual, densidad de información, layout stacked vs grid). Los layouts soportan contenido variable (specs largas, descripciones extensas, nombres compuestos) sin desbordamiento del viewport ni truncamiento silencioso de datos de lectura. Si hay que ocultar contenido por espacio, es con interacción explícita (tap/click-to-expand), no con ellipsis muda. | §2 + §5.4                   |
+| D15 | NFC como mecanismo primario de identificación física de ubicaciones | Las etiquetas físicas de ubicaciones en v1 son **tags NFC**, no códigos QR. Razones: hardware muy barato (~USD 0.10–0.30 por tag), lectura instantánea sin necesidad de alinear cámara, mejor UX en mobile, y evita el problema histórico de v0.4 donde generar el QR no equivalía a poder imprimirlo bien. El QR se difiere a v2 con pipeline completo de impresión. | §4.7, §8                    |
+| D16 | Features se entregan end-to-end al resultado del usuario | Una feature no es "el output técnico correcto" — es "el usuario logra lo que vino a hacer". Si generamos un QR para etiquetar una ubicación, acompañamos hasta tenerlo impreso correctamente (templates de hojas, dimensiones recomendadas, múltiples por hoja). Si una feature no llega al resultado físico/funcional, NO se entrega. Aplicable a impresión, exportación, descargas y cualquier flujo que cruce el borde digital→físico. | §2 + módulos                |
 
 ---
 
@@ -57,6 +59,9 @@ Issues abiertos de definición. **No bloquean el avance general del documento**,
 | Q9  | Escena B de la visión (agente sugiere alternativas del inventario cuando falta una pieza): ¿v1 o difiere?       | §4.10                | AC del agente                                            | SD + CJ             |
 | Q10 | Política de reproyección de la bitácora si en el futuro se agregan tipos de evento nuevos: ¿retroactiva o no?   | §4.8.3               | No bloquea v1 — política de evolución a largo plazo      | SD (técnica)        |
 | Q11 | Audit trail de conexiones cross-device: ¿es UI visible para el usuario o queda solo en backend?                 | §4.2.1               | AC del remote control mode                               | SD (UX)             |
+| Q12 | Hardware NFC para v1: ¿qué writer USB compran SD y CJ y qué tags (NTAG213/215/216, dimensiones, autoadhesivos)? | §4.7                 | Pilot del módulo                                         | SD + CJ             |
+| Q13 | **Web NFC API no es soportada en iOS Safari** (solo en Chrome para Android). ¿v1 entrega NFC solo en Android (CJ)? ¿Fallback en iOS via Camera + deep link? ¿Se difiere NFC hasta soporte iOS? Blocker técnico real si SD usa iPhone. | §4.7, §5.2, §5.3     | AC del módulo en iOS                                     | SD + CJ (técnica)   |
+| Q14 | Estándar NDEF y formato del payload del tag: ¿URL `https://app/loc/<uuid>`? ¿Deep link `iota://loc/<uuid>`? ¿UUID puro? | §4.7                 | AC del módulo                                            | SD (técnica)        |
 
 ---
 
@@ -244,9 +249,9 @@ Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la
 
 > _Por escribir. Base sigue de v0.4 §3.2. Se mantiene como Should Have. El refactor del agente IA (D6) puede simplificar la implementación porque comparte infraestructura de contexto rico._
 
-### 4.7 QR de Etiqueta Física
+### 4.7 Etiquetas NFC para Ubicaciones
 
-> _Por escribir. Base sigue de v0.4 §3.4. Se distingue explícitamente del pairing in-situ (§4.2.2, si entra en v1): un QR es etiqueta de ubicación física permanente, el otro es token efímero de sesión._
+> _Por escribir. Reemplaza el módulo "QR de Etiqueta Física" de v0.4. Mecanismo primario para identificación física de ubicaciones según D15. Cubre: programación del tag en el alta de la ubicación (vinculado al UUID), lectura desde mobile (Web NFC API en Android; fallback iOS pendiente Q13), formato NDEF del payload (Q14), hardware recomendado (Q12), distinción explícita respecto al pairing in-situ §4.2.2 — el tag NFC es etiqueta de ubicación física permanente, el QR del pairing in-situ (si Q7 lo aprueba) es token efímero de sesión cross-device. El QR para ubicaciones se difiere a v2 (§8)._
 
 ### 4.8 Proyectos
 
@@ -348,6 +353,7 @@ Funcionalidades diferidas a post-MVP. Sin AC en v0.5. Se reevalúan cuando haya 
 - **Telemetría en tiempo real de dispositivos IoT** (reservado para fase 2).
 - **Control de versiones de esquemáticos o código de firmware.**
 - **Integración con tiendas o estimación de costos de componentes faltantes.**
+- **QR para ubicaciones (diferido a v2)**. Razón: la generación de imagen sola no es suficiente — requiere pipeline completo de impresión que acompañe al usuario al resultado físico (templates de hojas A4 con múltiples QRs por hoja, dimensiones recomendadas para etiquetas autoadhesivas estándar, layouts consistentes con el papel que usa el usuario). Sin ese pipeline, la feature genera fricción en lugar de utilidad — el aprendizaje que motivó D16. En v1 se reemplaza por NFC (D15). Se reevalúa en v2 cuando haya capacidad de diseño para entregar el pipeline completo end-to-end.
 
 ---
 
