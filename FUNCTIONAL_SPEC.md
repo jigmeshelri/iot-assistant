@@ -369,7 +369,58 @@ locations
 
 ### 4.7 Etiquetas NFC para Ubicaciones
 
-> _Por escribir. Reemplaza el módulo "QR de Etiqueta Física" de v0.4. Mecanismo primario para identificación física de ubicaciones según D15. **v1 Android-only (D17)**. Cubre: programación del tag en el alta de la ubicación (vinculado al UUID), lectura desde mobile via Web NFC API en Android, formato NDEF del payload (Q14), hardware recomendado (Q12), distinción explícita respecto al pairing in-situ §4.2.2 — el tag NFC es etiqueta de ubicación física permanente, el QR del pairing in-situ (si Q7 lo aprueba) es token efímero de sesión cross-device. El QR para ubicaciones se difiere a v2 (§8)._
+**Objetivo**: vincular el mundo físico con el inventario digital mediante etiquetas NFC pegadas en cajones, estantes y contenedores. Al acercar el teléfono a la etiqueta, el sistema abre la ficha de esa ubicación o emite un evento del workflow si hay una sesión activa. Reemplaza al QR del v0.4 (D15) por hardware barato, lectura instantánea y mejor UX en mobile.
+
+**Distinción importante**: el tag NFC de §4.7 es una **etiqueta de ubicación física permanente**. Si Q7 aprueba el pairing in-situ por QR efímero, ese QR (en §4.2.2) es un **token efímero de sesión cross-device** — son dos mecanismos distintos para problemas distintos, no se confunden.
+
+**Restricción de plataforma** (D17): v1 entrega NFC **solo en Android** (Chrome via Web NFC API). En iOS Safari el módulo de lectura NFC está desactivado; los usuarios iOS usan el resto del producto normalmente y asignan ubicación a componentes via selección manual en el formulario. El soporte iOS se aborda post-MVP.
+
+**User stories**:
+
+- **US-4.7.1**: Como maker, quiero programar un tag NFC para cada ubicación física para que escanearla me muestre qué tiene adentro sin abrirla.
+- **US-4.7.2**: Como usuario (Android), quiero acercar el teléfono a una etiqueta NFC y ver qué componentes hay en esa ubicación, sin abrir el cajón.
+- **US-4.7.3**: Durante una sesión de `fetching`, quiero que escanear el tag de una ubicación me confirme que estoy en el lugar correcto y haga avanzar el workflow.
+
+**Hardware** (Q12 pendiente):
+
+El módulo asume un **writer NFC USB conectado al desktop** para la programación inicial, y **tags NTAG213/215/216 autoadhesivos** colocados físicamente en las ubicaciones. La marca y el modelo concretos quedan abiertos hasta cerrar Q12.
+
+**Flujo de programación** (acompañado end-to-end — D16):
+
+1. El usuario abre una ubicación existente y selecciona *"Vincular tag NFC"*.
+2. El sistema inicia un wizard paso a paso:
+   1. *"Conectá tu writer NFC USB al desktop"* — el sistema detecta el dispositivo y confirma.
+   2. *"Generando el payload..."* — el sistema prepara el NDEF record con el contenido definido (formato pendiente Q14, tentativo `https://app/loc/<uuid>`).
+   3. *"Acercá un tag virgen al writer"* — el writer escribe el NDEF al tag.
+   4. *"Listo. Pegá la etiqueta en la ubicación física"* — el sistema marca el tag como vinculado guardando el UID del tag en `locations.nfc_tag_uid`.
+3. El usuario puede desvincular y reprogramar un tag desde la vista de la ubicación.
+
+**Flujo de lectura** (Android only en v1):
+
+1. El usuario abre la PWA en Android y toca el botón *"Escanear NFC"* (o, si hay una sesión de workflow activa, la PWA escucha NFC automáticamente).
+2. El usuario acerca el teléfono a la etiqueta.
+3. La PWA lee el tag via Web NFC API, extrae el UUID de la ubicación.
+4. La PWA navega a la ficha de la ubicación, o emite un evento del workflow (`location_scanned`) si hay una sesión activa que lo está esperando.
+
+**Comportamiento en iOS** (v1):
+
+- El botón *"Escanear NFC"* y el escuchado automático en sesiones están **deshabilitados**.
+- En las pantallas afectadas, el sistema muestra una nota corta: *"El escaneo NFC todavía no está disponible en iOS. Asigná la ubicación manualmente."*
+- La asignación de componente a ubicación, la navegación a una ubicación, y el avance del workflow funcionan normalmente via selección manual / botones.
+
+**Modelo de datos**:
+
+El módulo no agrega tablas nuevas. La vinculación tag→ubicación vive en el campo `locations.nfc_tag_uid` definido en §4.5. El UID hardcoded del tag físico (NTAG UID, 7 bytes hex) es identificador suficiente — no hay metadata adicional del tag.
+
+**Criterios de aceptación**:
+
+- **AC-4.7.1**: El usuario inicia el wizard de programación → el sistema lo guía paso a paso hasta que el tag está escrito y vinculado a la ubicación. Cada paso muestra el estado del hardware y bloquea hasta el OK.
+- **AC-4.7.2**: El sistema confirma el éxito de la escritura **solo después** de que el writer reportó el OK del hardware. Si el writer falla, el wizard explica el error y permite reintentar.
+- **AC-4.7.3**: Un tag programado no puede vincularse a una segunda ubicación sin desvincularse explícitamente primero (UNIQUE constraint en `locations.nfc_tag_uid`).
+- **AC-4.7.4**: En Android, el usuario acerca el teléfono a una etiqueta vinculada → la PWA abre la ficha de la ubicación si no hay sesión activa, o emite el evento `location_scanned` si la hay.
+- **AC-4.7.5**: En iOS (v1), el módulo de lectura NFC está desactivado. El resto del producto funciona normalmente. Las pantallas afectadas muestran una nota explicando que la asignación se hace manualmente.
+- **AC-4.7.6**: El usuario puede desvincular un tag desde la vista de la ubicación → el `nfc_tag_uid` se limpia y el tag físico queda *sin asignar* (puede reprogramarse y reutilizarse en otra ubicación).
+- **AC-4.7.7**: La vista de ubicación (§4.5) muestra un indicador claro del estado del tag (*"Vinculado"* / *"Sin vincular"*) con el botón correspondiente para programar o desvincular.
 
 ### 4.8 Proyectos
 
