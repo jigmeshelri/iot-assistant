@@ -627,6 +627,10 @@ Funcionalidades diferidas a post-MVP. Sin AC en v0.5. Se reevalúan cuando haya 
 - **Control de versiones de esquemáticos o código de firmware.**
 - **Integración con tiendas o estimación de costos de componentes faltantes.**
 - **QR para ubicaciones (diferido a v2)**. Razón: la generación de imagen sola no es suficiente — requiere pipeline completo de impresión que acompañe al usuario al resultado físico (templates de hojas A4 con múltiples QRs por hoja, dimensiones recomendadas para etiquetas autoadhesivas estándar, layouts consistentes con el papel que usa el usuario). Sin ese pipeline, la feature genera fricción en lugar de utilidad — el aprendizaje que motivó D16. En v1 se reemplaza por NFC (D15). Se reevalúa en v2 cuando haya capacidad de diseño para entregar el pipeline completo end-to-end.
+- **NFC en iOS (diferido post-MVP — relacionado con D17)**. Web NFC API no es soportada en iOS Safari. En v1 los usuarios iOS asignan ubicación al componente manualmente. Tres caminos de implementación a considerar cuando se aborde:
+  - **Camino A — Esperar soporte nativo de Web NFC en iOS Safari.** Es el más limpio: una sola codebase PWA, paridad de UX con Android. Riesgo: Apple no ha anunciado planes públicos. No hay fecha realista — puede que no llegue nunca.
+  - **Camino B — Camera + NDEF URI con deep link a la PWA.** El usuario escanea el tag NFC con la cámara nativa de iOS (que sí lee NDEF URI records desde iOS 14+). El URI dispara la apertura de la PWA en Safari con el deep link `https://app/loc/<uuid>`. Flujo más burocrático que Android (salir de la PWA, abrir Camera, volver), pero viable sin app nativa y compatible con el mismo formato NDEF que se decida en Q14. Recomendado como primer intento de soporte iOS.
+  - **Camino C — App nativa wrapper (Capacitor, Tauri, similar).** Una app iOS que envuelve la PWA y expone Core NFC API nativamente. Da paridad de UX completa con Android pero rompe la decisión de PWA-only de v1, agrega ciclos de revisión de App Store y un codebase adicional a mantener. Considerar solo si la fricción del Camino B se vuelve un bloqueador real de adopción.
 
 ---
 
