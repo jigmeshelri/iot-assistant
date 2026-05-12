@@ -62,31 +62,147 @@ Issues abiertos de definición. **No bloquean el avance general del documento**,
 
 ## 1. Visión del Producto
 
-> _Por escribir. Base: `.remember/vision-producto.md` §1. Cubre la frase central ("el producto te acompaña a hacer el proyecto"), la emoción objetivo (calma + competencia + complicidad), las tres escenas wuaw (A arranque, B falta pieza, C cierre), la tabla "cuaderno tonto → partner del workflow", los usuarios objetivo y las métricas (con D7 incluida)._
-
 ### 1.1 Una frase y emoción objetivo
+
+> **El producto te acompaña a hacer el proyecto. No te pide que lo registres.**
+
+La emoción objetivo es **calma + competencia + complicidad**. Como tener un colega senior al lado que ya leyó todo, sabe dónde está cada pieza y conduce con confianza tranquila. No interroga. No llena de forms. No hace pensar en él.
+
+**Anti-emociones** (lo que el producto NO debe transmitir):
+
+- Burocrático ("llená este campo, ahora este otro")
+- Pasivo ("anotá vos que yo solo guardo")
+- Ansioso ("¡cargá tu inventario completo antes de empezar!")
+- Genérico ("plantilla de admin con CRUD que vimos 1.000 veces")
+
+**Emociones objetivo**:
+
+- **Conducción** ("acá estás, esto es lo que sigue")
+- **Anticipación** ("ya te tengo preparado lo que vas a necesitar")
+- **Continuidad** ("lo que pasaste hace 30 segundos en el teléfono ya está acá en el escritorio")
+- **Confianza tranquila** ("sé qué hago, vos enfocate en el proyecto")
 
 ### 1.2 Tres escenas wuaw
 
+Tres escenas que capturan la promesa del producto. Si la experiencia se siente como en estas escenas, ganamos. Cada escena origina ACs detallados en los módulos correspondientes.
+
+**Escena A — Arranque de un proyecto** (origina ACs en §4.1, §4.2.1, §4.3)
+
+El usuario abre un proyecto en el desktop. El sistema le muestra el BOM y le dice: *"Tenés 4 piezas a buscar. Están en 3 ubicaciones distintas. ¿Las traemos?"* El usuario confirma. El desktop muestra un indicador *"remote control activo — escaneá con el teléfono"*. El usuario toma el teléfono, abre la app y encuentra automáticamente la sesión: *"Conectar a sesión remota: proyecto X"*. Tap. El teléfono se transforma en una vista de búsqueda guiada (pieza 1 de 4, ubicación caja-3-estante-B). El usuario camina, escanea el QR de la pieza, suena un clic suave en ambas pantallas al mismo tiempo. La pieza se tacha en ambas pantallas en tiempo real. *"3 piezas restantes, próxima en cajón-A-2."* Cuando vuelve al escritorio con las 4 piezas, el desktop ya cambió de modo: *"Listo. Vamos al schematic."*
+
+**Escena B — Falta una pieza** (origina ACs en §4.10, sujeta a Q9)
+
+A mitad del proyecto, el usuario descubre que necesita un capacitor que no tenía planeado. En vez de abrir un buscador, le dice al agente: *"necesito un capacitor cerámico 100nF."* El sistema responde en el desktop: *"Tenés 8 unidades en cajón-B-1. ¿Querés que te guíe?"* Si el usuario confirma, el teléfono entra automáticamente en modo búsqueda dirigida — sin cambiar de app, ni de modo, ni de contexto.
+
+**Escena C — Cierre de sesión** (origina ACs en §4.8.3, §4.8.4)
+
+El usuario termina la sesión. No hay un botón "guardar todo". El sistema ya registró: qué piezas usó, cuáles devolvió a inventario, cuáles quedaron en el proyecto. Le muestra un resumen: *"Hoy avanzaste el proyecto X. Usaste 3 piezas, devolviste 1, te quedaste con 1 prestada para mañana. ¿Querés agregar una nota?"* La bitácora ya no es un cuaderno tonto — es un **resumen narrativo de lo que pasó**, generado por el sistema a partir de eventos, que el usuario edita o aprueba en 10 segundos.
+
 ### 1.3 Lo que el producto deja de ser
+
+| Antes (v0.4 — cuaderno tonto) | Después (v0.5 — partner del workflow) |
+|---|---|
+| Sistema de registro pasivo | Conductor activo del proyecto |
+| Forms y CRUD como interfaz primaria | Conversación + acción guiada |
+| Mobile y desktop son apps separadas que comparten datos | Mobile y desktop son **una sesión en dos pantallas** |
+| Bitácora = lo que escribís | Bitácora = lo que el sistema observó + tus comentarios |
+| BOM = lista de materiales | BOM = workflow ejecutable que dispara la sesión de fetching |
 
 ### 1.4 Usuarios objetivo
 
-### 1.5 Métricas de éxito
+| Perfil | Descripción |
+|---|---|
+| **Maker / Hobbyist** | Acumula componentes de distintas fuentes y necesita saber qué tiene y dónde está. |
+| **Estudiante de electrónica** | Gestiona un kit de laboratorio y quiere explorar proyectos con sus piezas actuales. |
+| **Profesional / Freelancer** | Requiere trazabilidad de stock para cotizar proyectos y evitar compras duplicadas. |
+
+En la fase actual del producto, los usuarios concretos validando v0.5 son **SD y CJ**. La sección Comunidad (forks, feed público, comentarios) se difiere hasta tener tracción real de uso de los módulos core con estos dos usuarios (ver §8).
+
+### 1.5 Métricas de éxito (KPIs)
+
+**Métricas de producto (MVP)**:
+
+| Métrica | Objetivo v1 | Cómo se mide |
+|---|---|---|
+| Usuarios activos semanales (WAU) | 50+ | Supabase Auth sessions activas en 7 días |
+| Retención semanal | > 40 % | WAU semana N / WAU semana N-1 |
+| Componentes registrados por usuario | > 15 promedio | `COUNT(user_stock)` / `COUNT(DISTINCT user_id)` |
+| % componentes con ubicación asignada | > 60 % | Señal de que el módulo de ubicaciones aporta valor real |
+| Tasa de adopción de scan IA | > 30 % de altas | Altas via scan / total altas — valida si la IA reduce fricción |
+| Proyectos creados por usuario activo | > 0.5 / mes | Señal de engagement más allá del inventario |
+| **Sesiones cross-device exitosas (D7)** | > 50 % | % de sesiones de `fetching` iniciadas en desktop que se continúan en mobile dentro de 1 hora y cierran en estado `building` o `closing` |
+
+**Métricas de calidad**:
+
+| Métrica | Objetivo | Notas |
+|---|---|---|
+| Latencia evento mobile→desktop (p95) | < 500 ms | Desde tap en mobile hasta render del cambio en desktop |
+| Errores de RLS | 0 | Un usuario nunca debe ver datos de otro — monitoreado en logs |
+| Reintentos exitosos de cola offline | > 99 % | Eventos que terminan sincronizando tras reintento exponencial |
+| Precisión del scan IA | > 70 % sin corrección | % de scans donde el usuario acepta la sugerencia sin editar |
+| Latencia scan IA (p95) | < 10 s | Desde envío de imagen hasta respuesta completa |
 
 ---
 
 ## 2. Identidad del Producto
 
-> _Por escribir. Base: `.remember/vision-producto.md` §2. Sección nueva que no existía en v0.4. Cubre voz, personalidad en 5 ejes, referencias visuales (Linear, Raycast, Arc, Things 3, Granola, Continuity Camera; anti-referencias Stripe, Notion, ChatGPT) y microcopy antes/después. D13 y D14 viven acá como principios transversales._
+Sección nueva respecto a v0.4. Define cómo se comporta y se siente el producto cuando aparece frente al usuario. **D13** (consistencia entre módulos y dispositivos) y **D14** (cada vista se diseña por dispositivo, no se porta) son los principios transversales de esta sección — se aplican en cada módulo de §4 sin excepción.
 
 ### 2.1 Voz y microcopy
 
+**Cómo habla el producto**:
+
+- **Segunda persona, directo, breve.** *"Listo, vamos al schematic"* — no *"Su workflow ha sido actualizado exitosamente"*.
+- **Asume contexto.** *"Próxima pieza"* — no *"La siguiente pieza del Bill Of Materials que usted está procesando"*.
+- **Confirma con calma.** *"Listo."* / *"Anotado."* / *"Ya está."* — no *"¡Operación completada con éxito!"*.
+
+**Cómo NO habla**:
+
+- ❌ Corporativo ("Bienvenido a su panel de control")
+- ❌ Animadito falso ("¡Genial! 🎉 Has completado tu primer item")
+- ❌ Burocrático ("El sistema requiere que...")
+- ❌ Ansioso ("¡No olvides actualizar tu inventario!")
+
+Estos principios se aplican a **todos los strings del producto** — labels de botones, mensajes de toast, empty states, tooltips, errores. Los strings se revisan contra este check en review de PR.
+
 ### 2.2 Personalidad en 5 ejes
+
+| Eje | Posición | Implicancia concreta |
+|---|---|---|
+| Serio ↔ Lúdico | **Más serio que lúdico, pero con calidez** | Sin emojis decorativos en UI; humor sutil permitido en empty states |
+| Pasivo ↔ Proactivo | **Proactivo** | El sistema sugiere el próximo paso, no espera que el usuario lo descubra |
+| Verbose ↔ Conciso | **Conciso al extremo** | Máximo ~12 palabras por mensaje principal; los detalles son opcionales (tap/click-to-expand) |
+| Genérico ↔ Específico | **Específico** | Sabe de inventario y proyectos físicos — no es un admin genérico de CRUD |
+| Frío ↔ Cálido | **Cálido sin sentimentalismo** | Como un buen mentor — presente, no efusivo |
 
 ### 2.3 Referencias visuales y de UX
 
+**A robar** (productos cuya experiencia capturamos en parte):
+
+- **Linear** — densidad informativa, keyboard-first, cero adornos, transiciones magistrales.
+- **Raycast** — comando rápido, contexto persistente, sensación de "te lee la mente".
+- **Arc** — invierte la jerarquía clásica de browser, trae lo importante adelante.
+- **Things 3** — calma absoluta, tipografía respira, decisiones de diseño coherentes.
+- **Granola.ai** — asiste sin estorbar; presente sin ser intrusivo.
+- **Apple Continuity Camera** — el patrón cross-device perfecto que inspira la Escena A.
+
+**A NO imitar**:
+
+- ❌ **Stripe Dashboard moderno** — excelente pero NO conduce; es un panel de control que espera input. Nosotros conducimos.
+- ❌ **Notion** — todo es maleable, no hay opinión. Nosotros tenemos una opinión clara sobre cómo se hace un proyecto físico.
+- ❌ **ChatGPT genérico** — chat puro sin contexto físico ni acción del workflow.
+
 ### 2.4 Microcopy antes/después
+
+Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la referencia para que el resto del producto se escriba con el mismo criterio.
+
+| Antes (v0.4 / placeholder estándar) | Después (v0.5) |
+|---|---|
+| *"¿Está seguro que desea eliminar este item?"* | *"Borrar pieza. ¿Sí?"* |
+| *"Inventario actualizado correctamente."* | *"Listo."* |
+| *"No hay items en este proyecto. Agregue uno para comenzar."* | *"Proyecto vacío. ¿Arrancamos por el BOM?"* |
+| *"Su sesión ha expirado por inactividad. Por favor inicie sesión nuevamente."* | *"Te desconecté por inactividad. ¿Volvemos?"* |
+| *"Error: no se pudo conectar al servidor."* | *"Sin conexión. Lo guardé local, sincronizo cuando vuelvas."* |
 
 ---
 
