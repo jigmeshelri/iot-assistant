@@ -460,7 +460,31 @@ Guardado → En curso → Pausado → Completado
 
 #### 4.8.2 BOM como workflow ejecutable
 
-> _Por escribir. Cambio respecto a v0.4: el BOM no es solo una lista de materiales — es input al modo `fetching` del workflow. Al activar "buscar piezas", cada item del BOM se convierte en un objetivo de la sesión._
+**Cambio conceptual clave respecto a v0.4**: el BOM no es solo una lista de materiales — es **input al modo `fetching` del workflow** (§4.1). Al activar *"buscar piezas"* desde un proyecto En curso, cada item del BOM se convierte en un objetivo de la sesión que la vista guiada (§4.3) cumple paso a paso.
+
+**Estados de cada item en el BOM** (cruzados con el inventario actual del usuario en tiempo real):
+
+| Estado | Color | Descripción |
+|---|---|---|
+| **Disponible** | Verde | El usuario tiene cantidad suficiente y el componente es compatible con los requisitos del proyecto. |
+| **Parcial** | Ámbar | Tiene el componente pero en cantidad insuficiente. |
+| **Faltante** | Rojo | No está en inventario; debe adquirirse antes de ejecutar el proyecto. |
+| **Incompatible** | Naranja | Está en inventario pero no cumple un requisito del proyecto (ej. falta WiFi). La app sugiere alternativas — sujeto a Q9. |
+
+**Funcionalidades**:
+
+- Agregar / editar / eliminar items del BOM.
+- Visualización del estado de cada item recalculada al cambiar cantidad o stock.
+- Botón **"Iniciar fetching"** que arranca una sesión del workflow (§4.1) con el BOM como objetivo. Solo disponible si el proyecto está En curso (§4.8.1).
+
+**Criterios de aceptación**:
+
+- **AC-4.8.5**: El usuario agrega un componente a la BOM del proyecto con nombre y cantidad → aparece en la tabla con su estado calculado contra el inventario actual.
+- **AC-4.8.6**: El usuario edita la cantidad de un item de BOM → el estado se recalcula (puede pasar de Disponible a Parcial si la nueva cantidad supera el stock).
+- **AC-4.8.7**: El usuario elimina un item de BOM → desaparece de la tabla.
+- **AC-4.8.8**: La BOM muestra el estado de cada item con el color correspondiente, **idéntico en mobile y desktop** (D13).
+- **AC-4.8.9**: Cuando el proyecto está En curso, el usuario clickea "Iniciar fetching" → se crea una `workflow_session` en modo `fetching` con el BOM como input. La sesión queda lista para conectarse desde mobile (§4.2.1, remote control).
+- **AC-4.8.10**: La vista del BOM se adapta al dispositivo (D14): mobile usa filas stacked con el estado prominente; desktop usa tabla compacta con columnas.
 
 #### 4.8.3 Bitácora generada por eventos
 
