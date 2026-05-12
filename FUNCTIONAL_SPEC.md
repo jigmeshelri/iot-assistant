@@ -285,7 +285,44 @@ Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la
 
 ### 4.5 Ubicaciones
 
-> _Por escribir. Base sigue de v0.4 §3.3 sin cambios estructurales. Jerarquía, asignación, vista de ubicación, ACs._
+**Objetivo**: organizar los componentes en una jerarquía de ubicaciones físicas (habitación → mueble/maleta → cajón/compartimento) y permitir localizar piezas rápidamente. En v0.5 las ubicaciones son **input al modo `fetching` del workflow** (§4.1): cuando el usuario activa "buscar piezas", el sistema sabe a qué ubicaciones ir y en qué orden.
+
+**User stories**:
+
+- **US-4.5.1**: Como maker, quiero organizar mis componentes en una jerarquía (rack → bandeja → caja) para encontrar físicamente cualquier pieza en segundos.
+- **US-4.5.2**: Como usuario, quiero ver qué componentes hay en una ubicación específica para saber qué tengo en cada caja sin abrirla.
+
+**Funcionalidades**:
+
+- **Creación de ubicaciones** — nombre descriptivo (ej. "Maletín Azul", "Cajón 3 — Escritorio") con padre opcional.
+- **Jerarquía flexible** — hasta N niveles, sin profundidad fija (ej. `Rack > Bandeja > Caja chica`).
+- **Asignación de componentes** — al crear o editar un componente, el usuario selecciona ubicación desde un árbol o buscador.
+- **Vista de ubicación** — al abrir una ubicación, se lista los componentes propios y los de sub-ubicaciones.
+- **Vinculación a tag NFC** (§4.7, v1 Android-only) — opcional, se hace después de crear la ubicación.
+
+**Modelo de datos**:
+
+```text
+locations
+├── id              UUID v4 (PK)
+├── user_id         UUID (FK → auth.users)
+├── parent_id       UUID (FK → locations, nullable)
+├── name            TEXT
+└── nfc_tag_uid     TEXT UNIQUE NULL    -- UID del tag NFC programado; null hasta vincular
+```
+
+> El campo `nfc_tag_uid` reemplaza al `qr_code` que existía en v0.4. Es nullable porque vincular un tag es opcional y se hace post-creación.
+
+**Criterios de aceptación**:
+
+- **AC-4.5.1**: El usuario crea una ubicación raíz con nombre descriptivo → aparece en el árbol de ubicaciones.
+- **AC-4.5.2**: El usuario crea una sub-ubicación bajo una existente → aparece anidada bajo su padre.
+- **AC-4.5.3**: El usuario abre el detalle de una ubicación → ve nombre, breadcrumb de jerarquía, sub-ubicaciones y lista de componentes (propios + descendientes) con nombre, cantidad y categoría. El layout sigue D14 (diseñado por dispositivo).
+- **AC-4.5.4**: El usuario edita el nombre de una ubicación → el cambio persiste al recargar.
+- **AC-4.5.5**: El usuario elimina una ubicación con componentes asignados → el sistema advierte antes de eliminar. Si el usuario confirma, los componentes quedan **sin ubicación** (no se eliminan); pueden reasignarse después.
+- **AC-4.5.6**: Cada nodo del árbol muestra el conteo de componentes (propios + descendientes acumulados).
+- **AC-4.5.7**: En el listado/árbol de ubicaciones, el target de click para "ver ubicación" es la **fila completa**, idéntico en mobile y desktop (D13).
+- **AC-4.5.8**: La vista de una ubicación con tag NFC vinculado muestra un indicador del estado del tag (vinculado/sin vincular) y un botón para programar o desvincular (§4.7).
 
 ### 4.6 Scan IA
 
