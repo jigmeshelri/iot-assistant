@@ -324,9 +324,48 @@ locations
 - **AC-4.5.7**: En el listado/árbol de ubicaciones, el target de click para "ver ubicación" es la **fila completa**, idéntico en mobile y desktop (D13).
 - **AC-4.5.8**: La vista de una ubicación con tag NFC vinculado muestra un indicador del estado del tag (vinculado/sin vincular) y un botón para programar o desvincular (§4.7).
 
-### 4.6 Scan IA
+### 4.6 Scan IA (alta de componentes por fotografía)
 
-> _Por escribir. Base sigue de v0.4 §3.2. Se mantiene como Should Have. El refactor del agente IA (D6) puede simplificar la implementación porque comparte infraestructura de contexto rico._
+**Objetivo**: reducir la fricción del alta de inventario permitiendo fotografiar una pieza y que el sistema la identifique automáticamente, extrayendo nombre, categoría, plataforma, conectividad y especificaciones técnicas. En v0.5 el scan IA es **un caso de uso del agente IA contextual** (§4.10) — comparte el mismo backend y el mismo principio de "contexto rico al modelo".
+
+**User stories**:
+
+- **US-4.6.1**: Como maker, quiero fotografiar un componente desconocido para que el sistema lo identifique sin tener que buscar el datasheet manualmente.
+- **US-4.6.2**: Como usuario, quiero revisar y corregir la sugerencia de la IA antes de guardar, para asegurarme de que los datos son correctos.
+
+**Flujo**:
+
+1. El usuario abre el flujo de alta de componente y selecciona *"Escanear con cámara"*.
+2. La aplicación captura o permite subir una imagen del componente.
+3. La imagen se envía al agente IA (§4.10), que consulta un modelo de visión (ej. Claude Vision / GPT-4o).
+4. El modelo retorna:
+   - Nombre probable del componente
+   - Categoría sugerida
+   - `platform_family` (esp32, arduino, rpi, generic)
+   - `connectivity_caps` (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc.)
+   - `technical_specs` inferidas (voltaje de operación, interfaz, encapsulado)
+   - Referencia al datasheet cuando es identificable
+5. **Disambiguación**: si el modelo detecta 2 o más componentes posibles con confianza similar (ej. ESP32-S2 vs ESP32-S3), presenta las opciones al usuario para que elija.
+6. El sistema presenta los datos en un formulario pre-rellenado para **revisión y confirmación** antes de guardar.
+7. El usuario puede corregir cualquier campo antes de confirmar el alta.
+
+**Consideraciones**:
+
+- El resultado de la IA es **siempre una sugerencia** — nunca se guarda sin confirmación explícita del usuario.
+- La detección aplica a todos los tipos de componentes, no solo MCUs. Un módulo LoRa SX1276, por ejemplo, también registra su conectividad.
+- La imagen original se almacena como referencia visual del componente en el inventario.
+- Identificaciones de **baja confianza** muestran un aviso explícito pidiendo confirmación.
+- El módulo respeta D6: el agente IA tiene acceso al inventario actual del usuario y puede sugerir *"esto se parece a un componente que ya tenés (ESP32-C6 XIAO, cajón-A-2). ¿Es el mismo o uno nuevo?"* para evitar duplicados.
+
+**Criterios de aceptación**:
+
+- **AC-4.6.1**: El usuario sube una foto de un componente → la IA retorna nombre, categoría, plataforma, conectividad y specs → los datos aparecen en un formulario pre-rellenado para revisión.
+- **AC-4.6.2**: Si la IA identifica con baja confianza → el sistema muestra un aviso explícito pidiendo confirmación antes de guardar.
+- **AC-4.6.3**: Si la IA detecta múltiples candidatos con confianza similar → presenta las opciones para que el usuario elija manualmente.
+- **AC-4.6.4**: El usuario puede corregir cualquier campo sugerido por la IA antes de confirmar el alta.
+- **AC-4.6.5**: La imagen original queda almacenada y vinculada al componente como referencia visual.
+- **AC-4.6.6**: El formulario de revisión se adapta al dispositivo (D14): mobile usa stacked vertical con la foto arriba; desktop usa layout side-by-side con la foto a la izquierda y los campos a la derecha.
+- **AC-4.6.7**: Antes de guardar, si el agente detecta que el componente sugerido se parece a uno existente en el inventario del usuario, presenta la posibilidad de actualizar cantidad en lugar de crear nuevo.
 
 ### 4.7 Etiquetas NFC para Ubicaciones
 
