@@ -1,637 +1,914 @@
 # Especificación Funcional — IoT Assistant
 
-**Versión:** 0.4
-**Fecha:** 2026-03-25
-**Estado:** Borrador — PRD con criterios de aceptación
+**Versión**: 0.5
+**Fecha**: 2026-05-11
+**Estado**: Borrador en construcción — rewrite desde la visión cross-device
+**Predecesor**: v0.4 (2026-03-25). El contenido anterior queda accesible vía `git show` sobre la historia previa del archivo.
+
+---
+
+## 0. Cambio de paradigma respecto a v0.4
+
+La v0.4 describía el producto como un **catálogo de componentes + bitácora de proyectos con CRUD**: módulos independientes (inventario, ubicaciones, proyectos, comunidad) donde el usuario es el que **registra** todo lo que pasa.
+
+La v0.5 redefine el producto como un **partner cross-device del workflow físico**: una sola sesión de trabajo manifestada en dos pantallas complementarias (desktop como cerebro, mobile como sentidos y manos), donde el sistema **observa y conduce** el proyecto y los datos (inventario, ubicaciones, BOM) son **insumos consumidos por el workflow**, no destinos en sí mismos.
+
+El cambio no es agregar features. Es **mover el centro de gravedad** del producto. La Sesión de Workflow (§4.1) pasa a ser el primer módulo y todo lo demás se ordena alrededor.
+
+---
+
+## 0.1 Decisiones de Diseño Tomadas
+
+Listado canónico de las decisiones de arquitectura y producto cerradas durante el proceso de definición del v0.5. Estas decisiones gobiernan el resto del documento. Para cambiarlas hay que revisar esta sección — no se discuten ad-hoc en módulos individuales.
+
+| #   | Decisión                                | Resumen                                                                                                                                                                                                                                                                                          | Sección donde se detalla    |
+|-----|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
+| D1  | Arquitectura de sincronización          | Optimistic UI + event sourcing con Supabase como árbitro. Los clientes aplican cambios localmente de forma instantánea; una cola local (IndexedDB) sincroniza con el servidor en background; el log de eventos en Supabase es source of truth eventual.                                          | §4.1, §5.3                  |
+| D2  | Estrategia de UUIDs                     | **UUID7** para tablas event-sourced nuevas (`workflow_events`, `workflow_session`, `device_connections`). **UUID4** para `remote_session` y para todas las tablas existentes (`components`, `locations`, `projects`, etc.) — no se migra lo que ya funciona.                                     | §6 Modelo de datos          |
+| D3  | Inicio de sesión de workflow            | Mixto: si hay una `remote_session` activa cuando el usuario abre un proyecto, la sesión se reactiva automáticamente. Si no, hay un botón explícito "Empezar sesión / Activar Remote Control".                                                                                                    | §4.1.3                      |
+| D4  | Sesiones simultáneas en v1              | **Una sola sesión activa por usuario** en v1. Simpleza primero; flexibilidad si el patrón lo justifica más adelante.                                                                                                                                                                             | §4.1                        |
+| D5  | Bitácora como proyección del log        | NO existe "bitácora manual vs bitácora automática". El log de `workflow_events` es la única fuente. Las entradas visibles son una proyección filtrada de ese log: eventos del sistema (`item_found`, `mode_changed`, etc.) + eventos de tipo `journal_entry_added` que escribe el usuario.       | §4.8.3                      |
+| D6  | Agente IA contextual                    | El chat genérico actual (`api/` Railway) se refactorea. El agente pasa a ser **invocable desde cada vista** con **contexto rico pre-cargado**: proyecto activo, BOM completo con specs técnicas, plataforma y conectividad, inventario actual, sesión de workflow en curso. Reemplaza el chat actual. | §4.10                       |
+| D7  | Métrica cross-device                    | KPI nuevo: **"% de sesiones de fetching iniciadas en desktop que se continúan en mobile dentro de 1 hora"**. Mide si la promesa cross-device se cumple en uso real.                                                                                                                              | §1.5                        |
+| D8  | Comunidad diferida                      | El módulo de Comunidad (forks, comentarios, feed público) que figuraba en v0.4 §3.6.4 se difiere completo a post-MVP. Se reevalúa cuando haya tracción real de uso de los módulos core. No tiene AC en v0.5.                                                                                       | §8                          |
+| D9  | Generación de código degradada          | La generación de código desde el contexto del proyecto pasa de Should Have (v0.4) a **Could Have** (v0.5). Disponible solo desde el agente IA contextual, no como flujo independiente.                                                                                                           | §4.10.2                     |
+| D10 | Análisis de código standalone diferido  | Mantiene el estado Won't Have v1 que ya tenía en v0.4. Sin cambios.                                                                                                                                                                                                                              | §8                          |
+| D11 | Estrategia de rewrite                   | v0.5 reemplaza v0.4 entero. v0.4 queda accesible vía git history. No hay coexistencia de specs.                                                                                                                                                                                                  | (este header)               |
+| D12 | Idioma del documento                    | Español rioplatense — audiencia primaria humana (SD + CJ). Términos técnicos y nombres de archivos/funciones conservan su forma natural (inglés cuando corresponde).                                                                                                                              | (este header)               |
+| D13 | Patrones de interacción consistentes entre módulos y entre dispositivos | Los listados, formularios y navegación siguen los mismos patrones **(a) entre módulos y (b) entre dispositivos**. Una decisión que se toma una vez (por ej. "toda la fila del listado es clickeable") se aplica idéntica en inventario, ubicaciones, proyectos y BOM, y se respeta tanto en mobile como en desktop. Sin divergencias responsive: si en mobile la fila es clickeable, en desktop también — no se reduce a un botón pequeño.                  | §2.1 + módulos              |
+| D14 | Cada vista se diseña por dispositivo, no se porta | Mobile NO es desktop reducido. Cada vista se piensa desde cero para el dispositivo en uso (touch targets, jerarquía visual, densidad de información, layout stacked vs grid). Los layouts soportan contenido variable (specs largas, descripciones extensas, nombres compuestos) sin desbordamiento del viewport ni truncamiento silencioso de datos de lectura. Si hay que ocultar contenido por espacio, es con interacción explícita (tap/click-to-expand), no con ellipsis muda. | §2 + §5.4                   |
+| D15 | NFC como mecanismo primario de identificación física de ubicaciones | Las etiquetas físicas de ubicaciones en v1 son **tags NFC**, no códigos QR. Razones: hardware muy barato (~USD 0.10–0.30 por tag), lectura instantánea sin necesidad de alinear cámara, mejor UX en mobile, y evita el problema histórico de v0.4 donde generar el QR no equivalía a poder imprimirlo bien. El QR se difiere a v2 con pipeline completo de impresión. | §4.7, §8                    |
+| D16 | Features se entregan end-to-end al resultado del usuario | Una feature no es "el output técnico correcto" — es "el usuario logra lo que vino a hacer". Si generamos un QR para etiquetar una ubicación, acompañamos hasta tenerlo impreso correctamente (templates de hojas, dimensiones recomendadas, múltiples por hoja). Si una feature no llega al resultado físico/funcional, NO se entrega. Aplicable a impresión, exportación, descargas y cualquier flujo que cruce el borde digital→físico. | §2 + módulos                |
+| D17 | NFC en v1 Android-only; iOS diferido | Web NFC API no está soportada en iOS Safari. En v1 la PWA en iOS funciona normalmente para todo el producto **excepto** la lectura de tags NFC, que queda desactivada. Los usuarios iOS asignan ubicación a componentes via selección manual en el formulario. El soporte iOS de NFC se aborda post-MVP via D18. | §4.7, §5.2                  |
+| D18 | NFC en iOS se implementará via app wrapper Capacitor | Cuando se aborde el soporte iOS de NFC post-MVP, el camino técnico es un **wrapper Capacitor** que envuelve la PWA y expone Core NFC API a través del bridge nativo. Razón: WebKit (motor de iOS Safari) no implementa Web NFC y Apple no tiene roadmap público para hacerlo — Capacitor es la única forma de tener Web NFC-equivalente en iOS porque accede a Core NFC API esquivando WebKit. Trade-off aceptado: rompe la decisión de PWA-only y agrega ciclos de revisión de App Store, pero da paridad de UX con Android. Caminos alternativos descartados: esperar Web NFC nativo (sin fecha realista) y Camera+NDEF URI (genera fricción burocrática al salir/volver de la PWA). Timing de implementación: pendiente Q15. | §4.7, §7, §8                |
+
+---
+
+## 0.2 Open Questions (Decisiones Pendientes)
+
+Issues abiertos de definición. **No bloquean el avance general del documento**, pero deben resolverse antes de implementar las secciones marcadas. Se trackean acá hasta cerrarse — al cerrarse, pasan a §0.1 con su número de decisión.
+
+| #   | Pregunta abierta                                                                                                | Sección afectada     | ¿Bloquea?                                                | Quién decide        |
+|-----|-----------------------------------------------------------------------------------------------------------------|----------------------|----------------------------------------------------------|---------------------|
+| Q1  | ¿La instancia Supabase del proyecto está en Postgres 17+ (para `uuidv7()` nativo) o necesitamos extension?      | §6 Modelo de datos   | Implementación del event sourcing                        | SD (verificar)      |
+| Q2  | TTL del `remote_session`: ¿cuál es el default y es configurable por usuario en v1?                              | §4.2.1               | AC del remote control                                    | SD + CJ             |
+| Q3  | ¿Renombrar el producto? "IoT Assistant" describe la categoría, no la promesa de partner del workflow.           | §1                   | No bloquea — cosmético/branding                          | SD + CJ             |
+| Q4  | Política de retención y capacidad máxima de la cola IndexedDB local (¿cuántos eventos sin sync se aceptan?)     | §5.7                 | AC del modo offline                                      | SD (técnica)        |
+| Q5  | UX de conflictos en bitácora compartida: ¿cómo se muestra el toast "tu compañero editó esto al mismo tiempo"?   | §4.8.3               | AC de bitácora                                           | SD (UX)             |
+| Q6  | Reactivación de sesión cerrada: si una sesión está en `closing` y se reabre el proyecto, ¿se retoma o nueva?    | §4.1.3               | AC del ciclo de vida del workflow                        | SD + CJ             |
+| Q7  | ¿Pairing in-situ (QR efímero) entra en v1, o se difiere a post-MVP y queda solo el remote control mode?         | §4.2.2 o §8          | Define si §4.2.2 existe en v1                            | SD + CJ             |
+| Q8  | ¿La generación de código (Could Have) se entrega en v1 dentro del agente, o se difiere?                          | §4.10.2 o §8         | AC del agente                                            | SD + CJ             |
+| Q9  | Escena B de la visión (agente sugiere alternativas del inventario cuando falta una pieza): ¿v1 o difiere?       | §4.10                | AC del agente                                            | SD + CJ             |
+| Q10 | Política de reproyección de la bitácora si en el futuro se agregan tipos de evento nuevos: ¿retroactiva o no?   | §4.8.3               | No bloquea v1 — política de evolución a largo plazo      | SD (técnica)        |
+| Q11 | Audit trail de conexiones cross-device: ¿es UI visible para el usuario o queda solo en backend?                 | §4.2.1               | AC del remote control mode                               | SD (UX)             |
+| Q12 | Hardware NFC para v1: ¿qué writer USB compran SD y CJ y qué tags (NTAG213/215/216, dimensiones, autoadhesivos)? | §4.7                 | Pilot del módulo                                         | SD + CJ             |
+| Q14 | Estándar NDEF y formato del payload del tag: ¿URL `https://app/loc/<uuid>`? ¿Deep link `iota://loc/<uuid>`? ¿UUID puro? | §4.7                 | AC del módulo                                            | SD (técnica)        |
+| Q15 | ¿Cuándo se implementa el wrapper Capacitor para iOS NFC (D18)? Depende de bandwidth del equipo y tracción de adopción en iOS. | §4.7 (D18), §7       | Plan de implementación post-MVP                          | SD + CJ             |
 
 ---
 
 ## 1. Visión del Producto
 
-### 1.1 Problema
+### 1.1 Una frase y emoción objetivo
 
-Los makers, estudiantes y profesionales de electrónica acumulan componentes de múltiples fuentes — compras, kits, proyectos anteriores, donaciones — sin un sistema de registro que escale más allá de una planilla o la memoria. Las consecuencias son concretas:
+> **El producto te acompaña a hacer el proyecto. No te pide que lo registres.**
 
-- **Componentes duplicados:** se compran piezas que ya se tienen porque no se sabe qué hay en stock ni dónde está.
-- **Proyectos bloqueados:** se abandona o posterga un proyecto porque no se sabe si se tienen las piezas necesarias, o se descubre a mitad de camino que falta un componente crítico.
-- **Conocimiento perdido:** la experiencia de un proyecto terminado queda en la cabeza del maker, sin registro que permita replicarlo o compartirlo.
-- **Inventario inerte:** una colección grande de componentes es un activo potencial, pero sin catálogo consultable es solo una caja de piezas sin contexto.
+La emoción objetivo es **calma + competencia + complicidad**. Como tener un colega senior al lado que ya leyó todo, sabe dónde está cada pieza y conduce con confianza tranquila. No interroga. No llena de forms. No hace pensar en él.
 
-### 1.2 Oportunidad
+**Anti-emociones** (lo que el producto NO debe transmitir):
 
-No existe una herramienta que integre inventario de componentes electrónicos con inteligencia de proyectos. Las soluciones actuales son planillas manuales, apps genéricas de inventario (sin entender qué es un ESP32) o plataformas de proyectos IoT que no gestionan stock físico. IoT Assistant conecta ambos mundos.
+- Burocrático ("llená este campo, ahora este otro")
+- Pasivo ("anotá vos que yo solo guardo")
+- Ansioso ("¡cargá tu inventario completo antes de empezar!")
+- Genérico ("plantilla de admin con CRUD que vimos 1.000 veces")
 
-### 1.3 Visión
+**Emociones objetivo**:
 
-IoT Assistant es una aplicación web progresiva (PWA) orientada a makers, estudiantes y profesionales de electrónica que necesitan gestionar su inventario de componentes de manera eficiente. A través de reconocimiento visual por IA, organización física con códigos QR e inteligencia de proyectos, la aplicación transforma una colección desordenada de piezas en un activo consultable y accionable.
+- **Conducción** ("acá estás, esto es lo que sigue")
+- **Anticipación** ("ya te tengo preparado lo que vas a necesitar")
+- **Continuidad** ("lo que pasaste hace 30 segundos en el teléfono ya está acá en el escritorio")
+- **Confianza tranquila** ("sé qué hago, vos enfocate en el proyecto")
 
-### 1.4 Métricas de Éxito (KPIs)
+### 1.2 Tres escenas wuaw
 
-**Métricas de producto (MVP):**
+Tres escenas que capturan la promesa del producto. Si la experiencia se siente como en estas escenas, ganamos. Cada escena origina ACs detallados en los módulos correspondientes.
+
+**Escena A — Arranque de un proyecto** (origina ACs en §4.1, §4.2.1, §4.3)
+
+El usuario abre un proyecto en el desktop. El sistema le muestra el BOM y le dice: *"Tenés 4 piezas a buscar. Están en 3 ubicaciones distintas. ¿Las traemos?"* El usuario confirma. El desktop muestra un indicador *"remote control activo — escaneá con el teléfono"*. El usuario toma el teléfono, abre la app y encuentra automáticamente la sesión: *"Conectar a sesión remota: proyecto X"*. Tap. El teléfono se transforma en una vista de búsqueda guiada (pieza 1 de 4, ubicación caja-3-estante-B). El usuario camina, escanea el QR de la pieza, suena un clic suave en ambas pantallas al mismo tiempo. La pieza se tacha en ambas pantallas en tiempo real. *"3 piezas restantes, próxima en cajón-A-2."* Cuando vuelve al escritorio con las 4 piezas, el desktop ya cambió de modo: *"Listo. Vamos al schematic."*
+
+**Escena B — Falta una pieza** (origina ACs en §4.10, sujeta a Q9)
+
+A mitad del proyecto, el usuario descubre que necesita un capacitor que no tenía planeado. En vez de abrir un buscador, le dice al agente: *"necesito un capacitor cerámico 100nF."* El sistema responde en el desktop: *"Tenés 8 unidades en cajón-B-1. ¿Querés que te guíe?"* Si el usuario confirma, el teléfono entra automáticamente en modo búsqueda dirigida — sin cambiar de app, ni de modo, ni de contexto.
+
+**Escena C — Cierre de sesión** (origina ACs en §4.8.3, §4.8.4)
+
+El usuario termina la sesión. No hay un botón "guardar todo". El sistema ya registró: qué piezas usó, cuáles devolvió a inventario, cuáles quedaron en el proyecto. Le muestra un resumen: *"Hoy avanzaste el proyecto X. Usaste 3 piezas, devolviste 1, te quedaste con 1 prestada para mañana. ¿Querés agregar una nota?"* La bitácora ya no es un cuaderno tonto — es un **resumen narrativo de lo que pasó**, generado por el sistema a partir de eventos, que el usuario edita o aprueba en 10 segundos.
+
+### 1.3 Lo que el producto deja de ser
+
+| Antes (v0.4 — cuaderno tonto) | Después (v0.5 — partner del workflow) |
+|---|---|
+| Sistema de registro pasivo | Conductor activo del proyecto |
+| Forms y CRUD como interfaz primaria | Conversación + acción guiada |
+| Mobile y desktop son apps separadas que comparten datos | Mobile y desktop son **una sesión en dos pantallas** |
+| Bitácora = lo que escribís | Bitácora = lo que el sistema observó + tus comentarios |
+| BOM = lista de materiales | BOM = workflow ejecutable que dispara la sesión de fetching |
+
+### 1.4 Usuarios objetivo
+
+| Perfil | Descripción |
+|---|---|
+| **Maker / Hobbyist** | Acumula componentes de distintas fuentes y necesita saber qué tiene y dónde está. |
+| **Estudiante de electrónica** | Gestiona un kit de laboratorio y quiere explorar proyectos con sus piezas actuales. |
+| **Profesional / Freelancer** | Requiere trazabilidad de stock para cotizar proyectos y evitar compras duplicadas. |
+
+En la fase actual del producto, los usuarios concretos validando v0.5 son **SD y CJ**. La sección Comunidad (forks, feed público, comentarios) se difiere hasta tener tracción real de uso de los módulos core con estos dos usuarios (ver §8).
+
+### 1.5 Métricas de éxito (KPIs)
+
+**Métricas de producto (MVP)**:
 
 | Métrica | Objetivo v1 | Cómo se mide |
-| :--- | :--- | :--- |
+|---|---|---|
 | Usuarios activos semanales (WAU) | 50+ | Supabase Auth sessions activas en 7 días |
 | Retención semanal | > 40 % | WAU semana N / WAU semana N-1 |
 | Componentes registrados por usuario | > 15 promedio | `COUNT(user_stock)` / `COUNT(DISTINCT user_id)` |
 | % componentes con ubicación asignada | > 60 % | Señal de que el módulo de ubicaciones aporta valor real |
 | Tasa de adopción de scan IA | > 30 % de altas | Altas via scan / total altas — valida si la IA reduce fricción |
 | Proyectos creados por usuario activo | > 0.5 / mes | Señal de engagement más allá del inventario |
+| **Sesiones cross-device exitosas (D7)** | > 50 % | % de sesiones de `fetching` iniciadas en desktop que se continúan en mobile dentro de 1 hora y cierran en estado `building` o `closing` |
 
-**Métricas de calidad:**
+**Métricas de calidad**:
 
 | Métrica | Objetivo | Notas |
-| :--- | :--- | :--- |
-| Precisión del scan IA | > 70 % sin corrección | % de scans donde el usuario acepta la sugerencia sin editar nombre ni categoría |
-| Latencia scan IA (p95) | < 10 s | Desde envío de imagen hasta respuesta completa |
+|---|---|---|
+| Latencia evento mobile→desktop (p95) | < 500 ms | Desde tap en mobile hasta render del cambio en desktop |
 | Errores de RLS | 0 | Un usuario nunca debe ver datos de otro — monitoreado en logs |
-
-> **Nota:** Los mockups visuales están en `mockups/index.html`. A medida que se definan flujos adicionales, cada módulo debería vincular a su mockup correspondiente.
-
----
-
-## 2. Usuarios Objetivo
-
-| Perfil | Descripción |
-| :--- | :--- |
-| **Maker / Hobbyist** | Acumula componentes de distintas fuentes y necesita saber qué tiene y dónde está. |
-| **Estudiante de electrónica** | Gestiona un kit de laboratorio y quiere explorar proyectos con sus piezas actuales. |
-| **Profesional / Freelancer** | Requiere trazabilidad de stock para cotizar proyectos y evitar compras duplicadas. |
+| Reintentos exitosos de cola offline | > 99 % | Eventos que terminan sincronizando tras reintento exponencial |
+| Precisión del scan IA | > 70 % sin corrección | % de scans donde el usuario acepta la sugerencia sin editar |
+| Latencia scan IA (p95) | < 10 s | Desde envío de imagen hasta respuesta completa |
 
 ---
 
-## 2b. Priorización (MoSCoW)
+## 2. Identidad del Producto
 
-| Prioridad | Módulo | Justificación |
-| :--- | :--- | :--- |
-| **Must Have** | 3.1 Inventario (CRUD, búsqueda, detalle) | Sin inventario no hay producto. Es el core loop. |
-| **Must Have** | 3.3 Ubicaciones (CRUD, jerarquía) | Diferenciador vs planillas. Responde a "¿dónde está?" |
-| **Must Have** | 4.0 Auth + RLS + PWA | Requisito técnico base para multi-usuario y móvil |
-| **Should Have** | 3.2 Scan IA | Reduce fricción de alta — pero el alta manual ya funciona. Validar adopción post-launch. |
-| **Should Have** | 3.4 QR | Completa la propuesta de ubicaciones. Sin QR, ubicaciones igual funcionan. |
-| **Should Have** | 3.6 Proyectos (ciclo de vida, BOM, bitácora) | Engagement a largo plazo, pero el MVP puede validar sin esto. |
-| **Should Have** | Alta masiva (CSV import) | Reduce barrera de entrada para usuarios con inventarios grandes. No bloquea MVP pero mitiga riesgo de abandono en onboarding (ver S4). |
-| **Could Have** | 3.5 Inteligencia de Proyectos (descubrimiento + planificación IA) | Alto impacto potencial pero depende de 3.1 + 3.6 completos. Costoso en tokens IA. |
-| **Could Have** | 3.6.4 Comunidad (publicación, forks, comentarios) | Requiere masa crítica de usuarios. Prematuro para MVP. |
-| **Should Have** | 3.7.1 Generación de código (DIY/Prototipo) | Parte del flujo natural: Arduino IDE, ESPHome, MicroPython, PlatformIO. Completa el ciclo proyecto → código. |
-| **Won't Have (v1)** | 3.7.1 Generación de código profesional (C++/Rust/ESP-IDF/Zephyr) | Entornos de alto nivel requieren contexto avanzado (memory management, energy optimization). Postergar hasta validar demanda. |
-| **Won't Have (v1)** | 3.7.2 Análisis y mejora de código existente | Requiere pipeline de análisis más sofisticado. Postergar. |
-| **Won't Have (v1)** | Imágenes de proyecto: subir múltiples imágenes a un proyecto y elegir una como portada para el feed de Comunidad | Mejora discoverability del feed comunitario, pero requiere storage de imágenes (Supabase Storage), políticas RLS para acceso público, redimensionamiento, y UI de selección de portada. Postergar hasta validar tracción de Comunidad. |
+Sección nueva respecto a v0.4. Define cómo se comporta y se siente el producto cuando aparece frente al usuario. **D13** (consistencia entre módulos y dispositivos) y **D14** (cada vista se diseña por dispositivo, no se porta) son los principios transversales de esta sección — se aplican en cada módulo de §4 sin excepción.
 
-> **MVP mínimo (v0.1):** Módulos 3.1 + 3.3 + Auth. Un usuario puede registrar componentes, organizarlos por ubicación y buscar su inventario. Esto ya resuelve el dolor principal.
+### 2.1 Voz y microcopy
+
+**Cómo habla el producto**:
+
+- **Segunda persona, directo, breve.** *"Listo, vamos al schematic"* — no *"Su workflow ha sido actualizado exitosamente"*.
+- **Asume contexto.** *"Próxima pieza"* — no *"La siguiente pieza del Bill Of Materials que usted está procesando"*.
+- **Confirma con calma.** *"Listo."* / *"Anotado."* / *"Ya está."* — no *"¡Operación completada con éxito!"*.
+
+**Cómo NO habla**:
+
+- ❌ Corporativo ("Bienvenido a su panel de control")
+- ❌ Animadito falso ("¡Genial! 🎉 Has completado tu primer item")
+- ❌ Burocrático ("El sistema requiere que...")
+- ❌ Ansioso ("¡No olvides actualizar tu inventario!")
+
+Estos principios se aplican a **todos los strings del producto** — labels de botones, mensajes de toast, empty states, tooltips, errores. Los strings se revisan contra este check en review de PR.
+
+### 2.2 Personalidad en 5 ejes
+
+| Eje | Posición | Implicancia concreta |
+|---|---|---|
+| Serio ↔ Lúdico | **Más serio que lúdico, pero con calidez** | Sin emojis decorativos en UI; humor sutil permitido en empty states |
+| Pasivo ↔ Proactivo | **Proactivo** | El sistema sugiere el próximo paso, no espera que el usuario lo descubra |
+| Verbose ↔ Conciso | **Conciso al extremo** | Máximo ~12 palabras por mensaje principal; los detalles son opcionales (tap/click-to-expand) |
+| Genérico ↔ Específico | **Específico** | Sabe de inventario y proyectos físicos — no es un admin genérico de CRUD |
+| Frío ↔ Cálido | **Cálido sin sentimentalismo** | Como un buen mentor — presente, no efusivo |
+
+### 2.3 Referencias visuales y de UX
+
+**A robar** (productos cuya experiencia capturamos en parte):
+
+- **Linear** — densidad informativa, keyboard-first, cero adornos, transiciones magistrales.
+- **Raycast** — comando rápido, contexto persistente, sensación de "te lee la mente".
+- **Arc** — invierte la jerarquía clásica de browser, trae lo importante adelante.
+- **Things 3** — calma absoluta, tipografía respira, decisiones de diseño coherentes.
+- **Granola.ai** — asiste sin estorbar; presente sin ser intrusivo.
+- **Apple Continuity Camera** — el patrón cross-device perfecto que inspira la Escena A.
+
+**A NO imitar**:
+
+- ❌ **Stripe Dashboard moderno** — excelente pero NO conduce; es un panel de control que espera input. Nosotros conducimos.
+- ❌ **Notion** — todo es maleable, no hay opinión. Nosotros tenemos una opinión clara sobre cómo se hace un proyecto físico.
+- ❌ **ChatGPT genérico** — chat puro sin contexto físico ni acción del workflow.
+
+### 2.4 Microcopy antes/después
+
+Ejemplos canónicos que ilustran el tono. NO son una lista exhaustiva — son la referencia para que el resto del producto se escriba con el mismo criterio.
+
+| Antes (v0.4 / placeholder estándar) | Después (v0.5) |
+|---|---|
+| *"¿Está seguro que desea eliminar este item?"* | *"Borrar pieza. ¿Sí?"* |
+| *"Inventario actualizado correctamente."* | *"Listo."* |
+| *"No hay items en este proyecto. Agregue uno para comenzar."* | *"Proyecto vacío. ¿Arrancamos por el BOM?"* |
+| *"Su sesión ha expirado por inactividad. Por favor inicie sesión nuevamente."* | *"Te desconecté por inactividad. ¿Volvemos?"* |
+| *"Error: no se pudo conectar al servidor."* | *"Sin conexión. Lo guardé local, sincronizo cuando vuelvas."* |
 
 ---
 
-## 3. Módulos Funcionales
+## 3. Priorización (MoSCoW)
 
-### 3.1 Gestión de Inventario
+Tabla canónica de priorización del v0.5. Refleja las decisiones D1–D17 y los módulos definidos en §4. Los items marcados con (Q*) dependen de open questions cuya resolución puede moverlos entre columnas.
 
-**Objetivo:** Mantener un registro preciso y actualizado de todos los componentes electrónicos que el usuario posee.
+**Cambios estructurales respecto a v0.4**:
 
-**User Stories:**
+- Pasan a **Must Have** (nuevos o promovidos): Sesión de Workflow, Cross-device Pairing (Remote Control), Vista Guiada, Realtime + Sync, Identidad del producto, Agente IA Contextual.
+- **Degrada** a Could Have: Generación de código (era Should Have).
+- **Sale completa** (a §8 Won't Have v1): Comunidad de proyectos.
 
-- US-3.1.1: Como maker, quiero registrar un componente con sus specs técnicas para saber exactamente qué tengo disponible sin revisar cajas físicamente.
-- US-3.1.2: Como estudiante, quiero buscar en mi inventario por nombre o categoría para encontrar rápido la pieza que necesito para un ejercicio de laboratorio.
-- US-3.1.3: Como freelancer, quiero ver el detalle completo de un componente (specs, datasheet, cantidad, ubicación) para cotizar un proyecto sin abrir cajones.
+| Prioridad | Módulo / Capacidad | Sección | Justificación |
+|---|---|---|---|
+| **Must Have** | Auth + RLS + PWA | §5.1, §5.2 | Base técnica de multi-usuario y mobile. Sin esto no hay producto. |
+| **Must Have** | Identidad del producto (voz, microcopy, D13, D14) | §2 | Diferenciador que evita el "cuaderno tonto". Sin identidad coherente, v0.5 = v0.4 con eventos. |
+| **Must Have** | Inventario (CRUD, búsqueda, detalle) | §4.4 | Core loop. Datos consumidos por el workflow. |
+| **Must Have** | Ubicaciones (jerarquía) | §4.5 | Diferenciador vs planilla; input al modo `fetching`. |
+| **Must Have** | Sesión de Workflow (núcleo) | §4.1 | Centro de gravedad de v0.5. Sin sesión, no hay partner del workflow. |
+| **Must Have** | Cross-device Pairing — Remote Control mode | §4.2.1 | La promesa cross-device de la Escena A no funciona sin esto. |
+| **Must Have** | Vista Guiada Cross-device | §4.3 | Manifestación de la sesión en dos pantallas complementarias. |
+| **Must Have** | Realtime + Sync (optimistic UI + cola de eventos) | §5.3 | Tecnología subyacente que habilita el cross-device fluido (D1). |
+| **Must Have** | Proyectos (ciclo de vida + BOM ejecutable + bitácora por eventos + consumo) | §4.8 | El BOM dispara el workflow; la bitácora cierra la Escena C. |
+| **Must Have** | Agente IA Contextual (invocación + contexto rico) | §4.10.1 | Reemplaza el chat genérico actual (D6). Habilita Scan IA y futuros casos. |
+| **Should Have** | Scan IA (alta por fotografía) | §4.6 | Reduce fricción de alta — pero el alta manual ya funciona como fallback. |
+| **Should Have** | Etiquetas NFC para Ubicaciones (Android v1 — D17) | §4.7 | Diferenciador físico-digital. Asignación manual de ubicación queda como fallback en iOS. |
+| **Could Have** | Inteligencia de Proyectos — Descubrimiento + Planificación | §4.9 | Alto valor potencial pero depende de inventario y proyectos maduros. Costoso en tokens IA. |
+| **Could Have (Q8)** | Generación de código contextual desde el agente | §4.10.2 | Si Q8 difiere → pasa a Won't Have v1 (§8). |
+| **Could Have (Q9)** | Escena B — el agente sugiere alternativas del inventario cuando falta una pieza | §4.10 | Si Q9 difiere → pasa a Won't Have v1. Caso de uso valioso de la visión. |
+| **Could Have (Q7)** | Pairing in-situ (QR efímero) | §4.2.2 | Si Q7 difiere → pasa a Won't Have v1. Útil solo en dispositivos prestados / demos. |
+| **Won't Have v1** | Todo lo de §8 Diferidos | §8 | Comunidad, análisis de código standalone, RasPi completo, QR de ubicaciones, NFC iOS, telemetría real-time, integración con tiendas. |
 
-**Funcionalidades:**
+> **MVP mínimo absoluto (v0.5.0-alpha)**: Auth + Inventario + Ubicaciones + Sesión de Workflow + Remote Control + Vista Guiada + Realtime. Con esto se puede ejecutar la Escena A completa con un proyecto manual. Las Escenas B y C requieren agente contextual y bitácora por eventos respectivamente.
 
-- **Alta de componente manual** — el usuario ingresa nombre, categoría, cantidad, especificaciones técnicas y ubicación.
-- **Alta de componente por fotografía** (ver módulo 3.2) — flujo alternativo que pre-rellena los campos automáticamente.
-- **Edición y baja** — actualización de cantidad, notas, especificaciones y ubicación. Baja lógica con historial.
-- **Búsqueda y filtrado** — por nombre, categoría, especificación técnica (voltaje, protocolo, encapsulado) y ubicación.
-- **Vista de detalle** — ficha completa del componente: imagen, datasheet vinculado, especificaciones normalizadas, capacidades de conectividad detectadas, cantidad disponible e historial de movimientos.
+---
 
-**Datos por componente:**
+## 4. Módulos Funcionales
+
+### 4.1 Sesión de Workflow
+
+**Núcleo del producto en v0.5**. La Sesión de Workflow es la entidad central que organiza todo el resto: convierte un proyecto pasivo (datos en una tabla) en un trabajo activo (eventos sucediendo en el tiempo, manifestados en dos pantallas complementarias). Todos los módulos de §4 — inventario, ubicaciones, BOM, bitácora, agente IA — son consumidos por o producen eventos hacia una sesión.
+
+Una sesión existe en el tiempo. Tiene un comienzo (`session_started`), atraviesa modos según lo que el usuario está haciendo, acumula eventos en un log append-only, y termina (`session_closed`). El estado del producto en cualquier momento es **la proyección del log de eventos** sobre las entidades persistentes (inventario, BOM, bitácora) — no un estado mantenido a mano.
+
+#### 4.1.1 Modelo conceptual — sesión de dos cabezas
+
+Una sesión NO es un cliente conectado a un servidor — es **una sola unidad de trabajo manifestada en dos dispositivos complementarios**. Cada dispositivo se renderiza según **su rol**, no según el tamaño de pantalla.
+
+```text
+        ┌──────────────────────────────────┐
+        │ workflow_session (Supabase)      │
+        │ - id, user_id, project_id        │
+        │ - mode, status                   │
+        │ - started_at, closed_at          │
+        └──────────────┬───────────────────┘
+                       │ Supabase Realtime
+            ┌──────────┴──────────┐
+            ▼                     ▼
+    ┌──────────────┐      ┌──────────────┐
+    │ Desktop      │      │ Mobile        │
+    │ "el cerebro" │      │ "sentidos+manos"│
+    │              │      │               │
+    │ Panorama,    │      │ Scanner NFC, │
+    │ BOM editor,  │      │ cámara,      │
+    │ schematic,   │      │ voz,         │
+    │ resumen      │      │ ubicación   │
+    └──────────────┘      └──────────────┘
+```
+
+| Rol | Dispositivo típico | Capacidades primarias |
+|---|---|---|
+| **Cerebro** | Desktop | Visión panorámica del proyecto, edición de BOM, navegación del workflow, resumen narrativo, schematic |
+| **Sentidos y manos** | Mobile (Android v1, iOS sin NFC) | Captura de eventos físicos: escaneo NFC (§4.7), foto, voz, marcado táctil de "encontrado/usado/devuelto", ubicación |
+
+El mismo `workflow_session` se renderiza distinto en cada dispositivo. Lo que une ambas vistas es el **log de eventos** sincronizado en tiempo real (§5.3).
+
+#### 4.1.2 Modos del workflow y eventos
+
+Una sesión está en exactamente un **modo** a la vez. Los modos definen qué acciones tienen sentido, qué vista se muestra en mobile (§4.3) y qué eventos se esperan.
+
+**Modos canónicos**:
+
+| Modo | Propósito | Vista típica en mobile (§4.3) |
+|---|---|---|
+| **`planning`** | Modo inicial. El usuario explora el proyecto, lee el BOM, decide qué hacer. | Resumen del proyecto + botón "Buscar piezas" |
+| **`fetching`** | El usuario está buscando piezas físicamente. Vista guiada activa (pieza N de M). | Scanner + lista de piezas a buscar |
+| **`building`** | El usuario está construyendo (cableando, soldando, programando). | Lista de piezas usadas + entrada rápida a bitácora |
+| **`closing`** | La sesión está terminando. El sistema agrega eventos significativos para generar el resumen narrativo (Escena C). | Resumen propuesto + opción "aprobar/editar" |
+
+**Transiciones válidas**: cualquier modo puede pasar a cualquier otro modo, excepto que `closing` es terminal mientras la sesión está activa (de `closing` se va a `closed`, no a otro modo activo).
+
+**Catálogo canónico de tipos de eventos**:
+
+| Tipo de evento | Emitido por | Payload |
+|---|---|---|
+| `session_started` | Sistema | `{ project_id, initial_mode }` |
+| `session_paused` | Usuario | `{ reason? }` |
+| `session_resumed` | Usuario | `{}` |
+| `session_closed` | Sistema | `{ reason: 'completed' \| 'abandoned' \| 'paused_indefinitely' }` |
+| `mode_changed` | Sistema o usuario | `{ from, to }` |
+| `fetch_started` | Sistema | `{ items: BomItem[] }` |
+| `item_found` | Usuario (mobile) | `{ item_id, location_id, qty_found }` |
+| `item_missing` | Usuario | `{ item_id }` |
+| `item_used` | Usuario | `{ item_id, qty_used, manual?: boolean }` |
+| `item_returned` | Usuario | `{ item_id, qty_returned, references: <item_used_event_id> }` |
+| `location_scanned` | Usuario (mobile, Android NFC) | `{ location_id, scan_method: 'nfc' \| 'manual' }` |
+| `phone_paired` | Sistema | `{ device_id, device_info }` |
+| `phone_unpaired` | Sistema | `{ device_id, reason }` |
+| `journal_entry_added` | Usuario | `{ text, tags, images? }` |
+| `journal_entry_edited` | Usuario | `{ entry_event_id, new_text }` |
+| `journal_entry_hidden` | Usuario | `{ entry_event_id }` |
+
+**Estructura del evento persistido** (referenciada en detalle en §6):
+
+```text
+workflow_events
+├── id            UUID v7 (PK, generado client-side — D2)
+├── session_id    UUID (FK → workflow_session)
+├── device_id     TEXT  (identifica desktop o mobile, único por sesión activa)
+├── seq           INTEGER  (monotónico por device, para orden intra-device)
+├── type          TEXT  (uno del catálogo arriba)
+├── payload       JSONB
+├── created_at    TIMESTAMPTZ  (timestamp server-side, autoritativo para orden global)
+└── applied_at    TIMESTAMPTZ NULL  (cuándo el server procesó el evento)
+```
+
+**Garantías** (referencias a D1):
+
+- **Idempotencia**: cada evento tiene `id` único (UUID v7). Reintentos de la cola IndexedDB no aplican el evento dos veces — el segundo INSERT falla por unique constraint y se ignora.
+- **At-least-once delivery**: la cola IndexedDB garantiza que cada evento llega al server (con reintento exponencial). Política de retención y capacidad: pendiente Q4.
+- **Order preservation**: orden intra-device por `(device_id, seq)`; orden global cross-device por `created_at` server-side (tiebreaker para eventos simultáneos).
+- **Convergencia**: en caso de eventos contradictorios entre dispositivos (raro en esta UX por roles complementarios), el server aplica en orden cronológico y broadcast el resultado. Last-write-wins con notificación visible (§4.8.3, Q5 para UX exacta).
+
+**Criterios de aceptación**:
+
+- **AC-4.1.1**: Una sesión está en exactamente un modo activo a la vez. Cualquier intento de poner la sesión en dos modos simultáneamente es rechazado.
+- **AC-4.1.2**: Las transiciones de modo emiten un evento `mode_changed` con `{ from, to }` antes de cambiar la vista renderizada en cada dispositivo.
+- **AC-4.1.3**: Cada evento se persiste con `id` único, `session_id`, `device_id`, `seq` (monotónico por device), `type` del catálogo, `payload` y `created_at` server-side.
+- **AC-4.1.4**: Un evento con `id` ya persistido se ignora idempotentemente (no se duplica, no falla la operación del cliente).
+- **AC-4.1.5**: La reconstrucción del estado de una sesión a partir del log produce el mismo resultado independientemente del momento de la consulta (proyección determinística).
+
+#### 4.1.3 Ciclo de vida de la sesión
+
+```text
+[D3: Mixto inicio]
+       │
+       ▼                                                    [Q6: ¿reactivar o nueva?]
+(no existe) ──(auto/explícito)──▶ active ──pause──▶ paused                │
+                                     │                │                    ▼
+                                     │                └──resume──▶ active
+                                     │                                     │
+                                     └────────close─────────▶ closing ────┘
+                                                                │
+                                                                ▼
+                                                            closed (terminal)
+```
+
+**Inicio (D3 — inicio mixto)**:
+
+- Si el usuario abre un proyecto y ya existe una `remote_session` activa para su cuenta, se **reactiva automáticamente** la sesión en estado `active` y modo `planning` (o el último modo conocido si estaba `paused`).
+- Si no hay `remote_session` activa, el desktop muestra el botón explícito *"Empezar sesión / Activar Remote Control"*. La sesión arranca en estado `active`, modo `planning`.
+
+**Estados de la sesión**:
+
+| Estado | Descripción |
+|---|---|
+| **`active`** | Sesión en uso. Acepta eventos. Modo cualquiera. |
+| **`paused`** | Sesión en hold. No acepta eventos nuevos (el log persiste). Reactivable. |
+| **`closing`** | Sesión emitiendo eventos de cierre + generando resumen narrativo. Transición corta. |
+| **`closed`** | Terminal. Sesión archivada. La bitácora del proyecto sigue accesible. |
+
+**Reglas**:
+
+- **Una sola sesión `active` por usuario** en v1 (D4). Si el usuario intenta iniciar una nueva sesión y ya hay una `active`, el sistema pide cerrar la anterior primero.
+- **Pausa**: el usuario puede pausar manualmente; o el sistema auto-pausa por inactividad prolongada (umbral pendiente). Pausar emite `session_paused`.
+- **Reanudación**: reabrir el proyecto reactiva una sesión `paused` (transición `session_resumed`).
+- **Cierre**: el cierre emite `session_closed` con `reason`. Antes de cerrar, la sesión pasa por modo `closing` que dispara la generación del resumen narrativo (referencia §4.8.3 / AC-4.8.16).
+- **Reactivación de sesión `closed`**: **Q6 pendiente**. Si el usuario abre un proyecto cuya última sesión está `closed`, ¿se reabre la vieja o se arranca una nueva? Decisión por SD + CJ.
+
+**Audit trail y observabilidad** (referencia Q11):
+
+- Cada evento contiene `device_id` y `created_at` server-side.
+- El log completo es consultable para debug y para reconstrucción del estado.
+- **¿Es UI visible para el usuario o solo backend?** Q11 pendiente.
+
+**Criterios de aceptación**:
+
+- **AC-4.1.6**: Si el usuario abre un proyecto y hay una `remote_session` activa, el sistema reactiva automáticamente la sesión sin requerir input adicional (D3).
+- **AC-4.1.7**: Si no hay `remote_session` activa, el desktop muestra el botón "Empezar sesión" y la sesión arranca solo después del click (D3).
+- **AC-4.1.8**: Un usuario tiene como máximo una sesión en estado `active` a la vez. Intentar iniciar una nueva sesión cuando ya existe una `active` muestra un aviso pidiendo cerrar la primera (D4).
+- **AC-4.1.9**: Pausar la sesión emite `session_paused`; la sesión deja de aceptar eventos nuevos hasta `session_resumed`.
+- **AC-4.1.10**: Cerrar la sesión transiciona por el modo `closing`, dispara la generación del resumen narrativo (§4.8.3), espera la aprobación del usuario, y emite `session_closed` con `reason`.
+- **AC-4.1.11**: **[PENDIENTE Q6]** Si el usuario abre un proyecto cuya última sesión está `closed`, el sistema reacciona según la decisión de Q6 — opciones a evaluar: (a) crear sesión nueva siempre, (b) reabrir la cerrada si el cierre fue por `paused_indefinitely`, (c) ofrecer elección al usuario.
+- **AC-4.1.12**: **[PENDIENTE Q11]** El audit trail de la sesión se expone según la decisión de Q11 — opciones a evaluar: (a) UI visible para el usuario en la vista del proyecto, (b) backend-only para debug.
+
+### 4.2 Cross-device Pairing
+
+#### 4.2.1 Remote Control Mode (default, persistente)
+
+> _Por escribir. Cubre flujo de activación, TTL (Q2), indicador "EN VIVO" en desktop, lista de dispositivos conectados, audit trail (Q11), revocación, un-desktop-a-la-vez, auto-pausa por inactividad._
+
+#### 4.2.2 Pairing in-situ (QR efímero) — pendiente Q7
+
+> _Por escribir si Q7 se decide a favor de v1. Si Q7 difiere, esta sub-sección se mueve a §8._
+
+### 4.3 Vista Guiada Cross-device
+
+> _Por escribir. UX específica de la Escena A: desktop como "cerebro" (panorama, BOM, schematic, resumen), mobile como "sentidos y manos" (scanner, cámara, voz, ubicación). Sincronización en vivo (tachado simultáneo, "próxima pieza")._
+
+### 4.4 Inventario
+
+**Objetivo**: mantener un registro preciso del catálogo de componentes del usuario y de su asignación a ubicaciones físicas. En v0.5 los componentes son **datos consumidos por el workflow** (BOM, búsqueda guiada, fetching) — no destinos en sí mismos. La calidad del inventario determina la calidad de todas las experiencias del producto downstream.
+
+**User stories**:
+
+- **US-4.4.1**: Como maker, quiero registrar un componente con sus specs técnicas para saber exactamente qué tengo disponible sin revisar cajas físicamente.
+- **US-4.4.2**: Como estudiante, quiero buscar en mi inventario por nombre o categoría para encontrar rápido la pieza que necesito.
+- **US-4.4.3**: Como freelancer, quiero ver el detalle completo de un componente (specs, datasheet, cantidad, ubicación) para cotizar un proyecto sin abrir cajones.
+
+**Funcionalidades**:
+
+- **Alta manual** — el usuario ingresa nombre, categoría, cantidad, especificaciones técnicas y ubicación.
+- **Alta por fotografía** — flujo alternativo via Scan IA (§4.6) que pre-rellena los campos.
+- **Edición y baja** — actualización de cantidad, notas, specs y ubicación. Baja lógica con historial.
+- **Búsqueda y filtrado** — por nombre, categoría, especificación técnica, plataforma, conectividad y ubicación.
+- **Vista de detalle** — ficha completa: imagen, datasheet vinculado, specs normalizadas, capacidades de conectividad, cantidad disponible, ubicación y enlaces a proyectos que lo usan.
+
+**Datos por componente**:
 
 | Campo | Tipo | Notas |
-| :--- | :--- | :--- |
-| `sku` | `TEXT` | Identificador único interno (ej. `MCU-001`) |
+|---|---|---|
+| `id` | `UUID` (UUIDv4 — D2) | PK |
+| `sku` | `TEXT` | Identificador interno (ej. `MCU-001`) |
 | `name` | `TEXT` | Nombre técnico (ej. "ESP32-C6 XIAO") |
 | `category` | `ENUM` | Microcontrolador, Sensor, Actuador, Alimentación, Módulo, Pasivo |
-| `platform_family` | `ENUM` | Familia de plataforma: `esp32`, `arduino`, `rpi`, `generic` |
-| `connectivity_caps` | `JSONB` | Capacidades de conectividad detectadas: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc. |
+| `platform_family` | `ENUM` | Familia: `esp32`, `arduino`, `rpi`, `generic` |
+| `connectivity_caps` | `JSONB` | Capacidades: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc. |
 | `quantity` | `INTEGER` | Unidades disponibles ≥ 0 |
 | `technical_specs` | `JSONB` | Specs flexibles: voltaje, corriente, protocolo, encapsulado, etc. |
-| `image_url` | `TEXT` | Foto tomada por el usuario |
+| `image_url` | `TEXT` | Foto tomada por el usuario o asignada por el scan IA |
 | `datasheet_url` | `TEXT` | Enlace al datasheet oficial |
-| `location_id` | `UUID` | FK a la ubicación física (módulo 3.3) |
+| `location_id` | `UUID` | FK a `locations` (§4.5) |
 
-**Criterios de aceptación:**
+**Criterios de aceptación** (D13 y D14 aplican a todos los ACs de este módulo sin excepción):
 
-- **AC-3.1.1**: El usuario crea un componente manual ingresando nombre, categoría y cantidad → el componente aparece en la lista de inventario con los datos correctos.
-- **AC-3.1.2**: El usuario escribe texto en el buscador → la lista filtra en tiempo real por nombre, SKU y ubicación (case-insensitive).
-- **AC-3.1.3**: El usuario abre el detalle de un componente → ve imagen (o placeholder), SKU, categoría, plataforma, conectividad, especificaciones técnicas, ubicación, cantidad y enlace a datasheet.
-- **AC-3.1.4**: El usuario edita campos de un componente existente (nombre, categoría, plataforma, conectividad, specs, ubicación) → los cambios persisten al recargar la página.
-- **AC-3.1.5**: El usuario elimina un componente de su inventario → desaparece de la lista; el componente sigue existiendo en el catálogo compartido.
-- **AC-3.1.6**: El usuario selecciona un chip de categoría (MCU, Sensor, etc.) → la lista muestra solo componentes de esa categoría.
-- **AC-3.1.7**: El usuario asigna una ubicación a un componente → el componente aparece en la vista de esa ubicación y muestra la ruta de ubicación en su tarjeta de inventario.
-- **AC-3.1.8**: El usuario ajusta la cantidad con botones +/− → el stock se actualiza inmediatamente en la base de datos.
+- **AC-4.4.1**: El usuario crea un componente manual ingresando nombre, categoría y cantidad → el componente aparece en la lista del inventario con los datos correctos.
+- **AC-4.4.2**: El usuario escribe texto en el buscador → la lista filtra en tiempo real por nombre, SKU y ubicación, case-insensitive. El comportamiento del buscador es **idéntico en mobile y desktop** (D13).
+- **AC-4.4.3**: El usuario abre el detalle de un componente → ve imagen (o placeholder), SKU, categoría, plataforma, conectividad, especificaciones técnicas, ubicación, cantidad y enlace a datasheet. El layout se adapta al dispositivo (D14): mobile usa stacked vertical para specs con valores largos; desktop usa grid 2-col. **Ningún valor se trunca silenciosamente** — los datos de lectura siempre escalan al contenido o se expanden con tap/click explícito.
+- **AC-4.4.4**: El usuario edita campos de un componente existente (nombre, categoría, plataforma, conectividad, specs, ubicación) → los cambios persisten al recargar.
+- **AC-4.4.5**: El usuario elimina un componente de su inventario → desaparece de la lista; si el componente fue contribuido al catálogo compartido (§4.2 de NFRs), la entrada del catálogo se mantiene.
+- **AC-4.4.6**: El usuario selecciona un chip de categoría (MCU, Sensor, etc.) → la lista muestra solo componentes de esa categoría. El chip se ve y se comporta **idéntico en mobile y desktop** (D13).
+- **AC-4.4.7**: En la lista del inventario, el target de click para "ver/editar componente" es la **fila completa**, idéntico en mobile y desktop (D13). No hay divergencia donde una plataforma reduzca el target a un ícono pequeño.
+- **AC-4.4.8**: El usuario asigna una ubicación a un componente → el componente aparece en la vista de esa ubicación (§4.5) y su tarjeta muestra la ruta de ubicación (breadcrumb) en la lista del inventario.
+- **AC-4.4.9**: El usuario ajusta la cantidad con controles +/− → el stock se actualiza inmediatamente. Los controles se diseñan por dispositivo (D14): touch targets adecuados en mobile, click targets adecuados en desktop.
 
----
+### 4.5 Ubicaciones
 
-### 3.2 Reconocimiento de Componentes por IA
+**Objetivo**: organizar los componentes en una jerarquía de ubicaciones físicas (habitación → mueble/maleta → cajón/compartimento) y permitir localizar piezas rápidamente. En v0.5 las ubicaciones son **input al modo `fetching` del workflow** (§4.1): cuando el usuario activa "buscar piezas", el sistema sabe a qué ubicaciones ir y en qué orden.
 
-**Objetivo:** Reducir la fricción del alta de inventario permitiendo que el usuario fotografíe una pieza y el sistema la identifique automáticamente, extrayendo además sus capacidades técnicas y de conectividad.
+**User stories**:
 
-**User Stories:**
+- **US-4.5.1**: Como maker, quiero organizar mis componentes en una jerarquía (rack → bandeja → caja) para encontrar físicamente cualquier pieza en segundos.
+- **US-4.5.2**: Como usuario, quiero ver qué componentes hay en una ubicación específica para saber qué tengo en cada caja sin abrirla.
 
-- US-3.2.1: Como maker, quiero fotografiar un componente desconocido para que el sistema lo identifique sin tener que buscar el datasheet manualmente.
-- US-3.2.2: Como usuario, quiero revisar y corregir la sugerencia de la IA antes de guardar, para asegurarme de que los datos son correctos.
+**Funcionalidades**:
 
-**Flujo:**
+- **Creación de ubicaciones** — nombre descriptivo (ej. "Maletín Azul", "Cajón 3 — Escritorio") con padre opcional.
+- **Jerarquía flexible** — hasta N niveles, sin profundidad fija (ej. `Rack > Bandeja > Caja chica`).
+- **Asignación de componentes** — al crear o editar un componente, el usuario selecciona ubicación desde un árbol o buscador.
+- **Vista de ubicación** — al abrir una ubicación, se lista los componentes propios y los de sub-ubicaciones.
+- **Vinculación a tag NFC** (§4.7, v1 Android-only) — opcional, se hace después de crear la ubicación.
 
-1. El usuario abre el flujo de alta y selecciona la opción **"Escanear con cámara"**.
+**Modelo de datos**:
+
+```text
+locations
+├── id              UUID v4 (PK)
+├── user_id         UUID (FK → auth.users)
+├── parent_id       UUID (FK → locations, nullable)
+├── name            TEXT
+└── nfc_tag_uid     TEXT UNIQUE NULL    -- UID del tag NFC programado; null hasta vincular
+```
+
+> El campo `nfc_tag_uid` reemplaza al `qr_code` que existía en v0.4. Es nullable porque vincular un tag es opcional y se hace post-creación.
+
+**Criterios de aceptación**:
+
+- **AC-4.5.1**: El usuario crea una ubicación raíz con nombre descriptivo → aparece en el árbol de ubicaciones.
+- **AC-4.5.2**: El usuario crea una sub-ubicación bajo una existente → aparece anidada bajo su padre.
+- **AC-4.5.3**: El usuario abre el detalle de una ubicación → ve nombre, breadcrumb de jerarquía, sub-ubicaciones y lista de componentes (propios + descendientes) con nombre, cantidad y categoría. El layout sigue D14 (diseñado por dispositivo).
+- **AC-4.5.4**: El usuario edita el nombre de una ubicación → el cambio persiste al recargar.
+- **AC-4.5.5**: El usuario elimina una ubicación con componentes asignados → el sistema advierte antes de eliminar. Si el usuario confirma, los componentes quedan **sin ubicación** (no se eliminan); pueden reasignarse después.
+- **AC-4.5.6**: Cada nodo del árbol muestra el conteo de componentes (propios + descendientes acumulados).
+- **AC-4.5.7**: En el listado/árbol de ubicaciones, el target de click para "ver ubicación" es la **fila completa**, idéntico en mobile y desktop (D13).
+- **AC-4.5.8**: La vista de una ubicación con tag NFC vinculado muestra un indicador del estado del tag (vinculado/sin vincular) y un botón para programar o desvincular (§4.7).
+
+### 4.6 Scan IA (alta de componentes por fotografía)
+
+**Objetivo**: reducir la fricción del alta de inventario permitiendo fotografiar una pieza y que el sistema la identifique automáticamente, extrayendo nombre, categoría, plataforma, conectividad y especificaciones técnicas. En v0.5 el scan IA es **un caso de uso del agente IA contextual** (§4.10) — comparte el mismo backend y el mismo principio de "contexto rico al modelo".
+
+**User stories**:
+
+- **US-4.6.1**: Como maker, quiero fotografiar un componente desconocido para que el sistema lo identifique sin tener que buscar el datasheet manualmente.
+- **US-4.6.2**: Como usuario, quiero revisar y corregir la sugerencia de la IA antes de guardar, para asegurarme de que los datos son correctos.
+
+**Flujo**:
+
+1. El usuario abre el flujo de alta de componente y selecciona *"Escanear con cámara"*.
 2. La aplicación captura o permite subir una imagen del componente.
-3. La imagen se envía al microservicio FastAPI, que consulta un modelo de visión (ej. Claude Vision / GPT-4o).
+3. La imagen se envía al agente IA (§4.10), que consulta un modelo de visión (ej. Claude Vision / GPT-4o).
 4. El modelo retorna:
    - Nombre probable del componente
    - Categoría sugerida
-   - Familia de plataforma (`platform_family`: esp32, arduino, rpi, generic)
-   - Capacidades de conectividad detectadas (`connectivity_caps`: WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc.)
-   - Especificaciones técnicas inferidas (voltaje de operación, interfaz, encapsulado)
-   - Enlace o referencia al datasheet cuando sea identificable
-5. **Disambiguación:** si el sistema detecta dos o más componentes posibles con especificaciones similares y no puede determinar el correcto con suficiente confianza, presenta al usuario las opciones para que elija manualmente. Esto aplica especialmente a variantes de la misma familia (ej. ESP32-S2 vs ESP32-S3).
-6. El sistema presenta los datos al usuario en un formulario pre-rellenado para **revisión y confirmación** antes de guardar.
+   - `platform_family` (esp32, arduino, rpi, generic)
+   - `connectivity_caps` (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet, etc.)
+   - `technical_specs` inferidas (voltaje de operación, interfaz, encapsulado)
+   - Referencia al datasheet cuando es identificable
+5. **Disambiguación**: si el modelo detecta 2 o más componentes posibles con confianza similar (ej. ESP32-S2 vs ESP32-S3), presenta las opciones al usuario para que elija.
+6. El sistema presenta los datos en un formulario pre-rellenado para **revisión y confirmación** antes de guardar.
 7. El usuario puede corregir cualquier campo antes de confirmar el alta.
 
-**Consideraciones:**
-- El resultado de la IA es una sugerencia, nunca se guarda sin confirmación del usuario.
-- La detección de capacidades aplica a todos los tipos de componentes, no solo MCUs. Un módulo LoRa SX1276, por ejemplo, también registra su conectividad.
-- La imagen original se almacena como referencia visual del componente en inventario.
-- El sistema debe manejar identificaciones de baja confianza mostrando un aviso y solicitando confirmación explícita.
+**Consideraciones**:
 
-**Criterios de aceptación:**
+- El resultado de la IA es **siempre una sugerencia** — nunca se guarda sin confirmación explícita del usuario.
+- La detección aplica a todos los tipos de componentes, no solo MCUs. Un módulo LoRa SX1276, por ejemplo, también registra su conectividad.
+- La imagen original se almacena como referencia visual del componente en el inventario.
+- Identificaciones de **baja confianza** muestran un aviso explícito pidiendo confirmación.
+- El módulo respeta D6: el agente IA tiene acceso al inventario actual del usuario y puede sugerir *"esto se parece a un componente que ya tenés (ESP32-C6 XIAO, cajón-A-2). ¿Es el mismo o uno nuevo?"* para evitar duplicados.
 
-- **AC-3.2.1**: El usuario sube una foto de un componente → la IA retorna nombre, categoría, plataforma, conectividad y specs → los datos aparecen en un formulario pre-rellenado para revisión.
-- **AC-3.2.2**: Si la IA identifica el componente con baja confianza → el sistema muestra un aviso explícito pidiendo confirmación antes de guardar.
-- **AC-3.2.3**: El usuario puede corregir cualquier campo sugerido por la IA antes de confirmar el alta.
-- **AC-3.2.4**: La imagen original se almacena como referencia visual del componente en el inventario.
+**Criterios de aceptación**:
 
----
+- **AC-4.6.1**: El usuario sube una foto de un componente → la IA retorna nombre, categoría, plataforma, conectividad y specs → los datos aparecen en un formulario pre-rellenado para revisión.
+- **AC-4.6.2**: Si la IA identifica con baja confianza → el sistema muestra un aviso explícito pidiendo confirmación antes de guardar.
+- **AC-4.6.3**: Si la IA detecta múltiples candidatos con confianza similar → presenta las opciones para que el usuario elija manualmente.
+- **AC-4.6.4**: El usuario puede corregir cualquier campo sugerido por la IA antes de confirmar el alta.
+- **AC-4.6.5**: La imagen original queda almacenada y vinculada al componente como referencia visual.
+- **AC-4.6.6**: El formulario de revisión se adapta al dispositivo (D14): mobile usa stacked vertical con la foto arriba; desktop usa layout side-by-side con la foto a la izquierda y los campos a la derecha.
+- **AC-4.6.7**: Antes de guardar, si el agente detecta que el componente sugerido se parece a uno existente en el inventario del usuario, presenta la posibilidad de actualizar cantidad en lugar de crear nuevo.
 
-### 3.3 Gestión de Ubicaciones Físicas
+### 4.7 Etiquetas NFC para Ubicaciones
 
-**Objetivo:** Permitir al usuario organizar sus componentes en una jerarquía de ubicaciones físicas (habitación → mueble / maleta → cajón / compartimento) y localizar piezas rápidamente.
+**Objetivo**: vincular el mundo físico con el inventario digital mediante etiquetas NFC pegadas en cajones, estantes y contenedores. Al acercar el teléfono a la etiqueta, el sistema abre la ficha de esa ubicación o emite un evento del workflow si hay una sesión activa. Reemplaza al QR del v0.4 (D15) por hardware barato, lectura instantánea y mejor UX en mobile.
 
-**User Stories:**
+**Distinción importante**: el tag NFC de §4.7 es una **etiqueta de ubicación física permanente**. Si Q7 aprueba el pairing in-situ por QR efímero, ese QR (en §4.2.2) es un **token efímero de sesión cross-device** — son dos mecanismos distintos para problemas distintos, no se confunden.
 
-- US-3.3.1: Como maker, quiero organizar mis componentes en una jerarquía de ubicaciones (rack → bandeja → caja) para encontrar físicamente cualquier pieza en segundos.
-- US-3.3.2: Como usuario, quiero ver qué componentes hay en una ubicación específica para saber qué tengo en cada caja sin abrirla.
+**Restricción de plataforma** (D17): v1 entrega NFC **solo en Android** (Chrome via Web NFC API). En iOS Safari el módulo de lectura NFC está desactivado; los usuarios iOS usan el resto del producto normalmente y asignan ubicación a componentes via selección manual en el formulario. El soporte iOS se aborda post-MVP.
 
-**Funcionalidades:**
+**User stories**:
 
-- **Creación de ubicaciones** — el usuario define un nombre descriptivo (ej. "Maletín Azul", "Cajón 3 — Escritorio") y opcionalmente la anida bajo otra ubicación padre.
-- **Jerarquía flexible** — hasta N niveles (ej. `Rack > Bandeja > Caja chica`). Sin límite fijo de profundidad.
-- **Asignación de componentes** — al crear o editar un componente, el usuario selecciona su ubicación desde un árbol o buscador.
-- **Vista de ubicación** — al seleccionar una ubicación, la aplicación lista todos los componentes almacenados en ella y en sus sub-ubicaciones.
-- **Generación de código QR** (ver módulo 3.4).
+- **US-4.7.1**: Como maker, quiero programar un tag NFC para cada ubicación física para que escanearla me muestre qué tiene adentro sin abrirla.
+- **US-4.7.2**: Como usuario (Android), quiero acercar el teléfono a una etiqueta NFC y ver qué componentes hay en esa ubicación, sin abrir el cajón.
+- **US-4.7.3**: Durante una sesión de `fetching`, quiero que escanear el tag de una ubicación me confirme que estoy en el lugar correcto y haga avanzar el workflow.
 
-**Modelo de datos:**
+**Hardware** (Q12 pendiente):
 
-```
-locations
-├── id          UUID (PK)
-├── user_id     UUID (FK → auth.users)
-├── parent_id   UUID (FK → locations, nullable)
-├── name        TEXT
-└── qr_code     TEXT (único, generado automáticamente)
-```
+El módulo asume un **writer NFC USB conectado al desktop** para la programación inicial, y **tags NTAG213/215/216 autoadhesivos** colocados físicamente en las ubicaciones. La marca y el modelo concretos quedan abiertos hasta cerrar Q12.
 
-**Criterios de aceptación:**
+**Flujo de programación** (acompañado end-to-end — D16):
 
-- **AC-3.3.1**: El usuario crea una ubicación raíz con nombre descriptivo → aparece en el árbol de ubicaciones.
-- **AC-3.3.2**: El usuario crea una sub-ubicación bajo una ubicación existente → aparece anidada bajo su padre en el árbol.
-- **AC-3.3.3**: El usuario abre el detalle de una ubicación → ve el nombre, jerarquía (breadcrumb), sub-ubicaciones y lista de componentes almacenados con nombre, cantidad y categoría.
-- **AC-3.3.4**: El usuario edita el nombre de una ubicación → el cambio persiste al recargar.
-- **AC-3.3.5**: El usuario elimina una ubicación → los componentes asignados a ella quedan sin ubicación (no se eliminan). Si la ubicación tiene componentes, el sistema advierte antes de eliminar.
-- **AC-3.3.6**: Cada nodo del árbol muestra el conteo de componentes almacenados en esa ubicación.
+1. El usuario abre una ubicación existente y selecciona *"Vincular tag NFC"*.
+2. El sistema inicia un wizard paso a paso:
+   1. *"Conectá tu writer NFC USB al desktop"* — el sistema detecta el dispositivo y confirma.
+   2. *"Generando el payload..."* — el sistema prepara el NDEF record con el contenido definido (formato pendiente Q14, tentativo `https://app/loc/<uuid>`).
+   3. *"Acercá un tag virgen al writer"* — el writer escribe el NDEF al tag.
+   4. *"Listo. Pegá la etiqueta en la ubicación física"* — el sistema marca el tag como vinculado guardando el UID del tag en `locations.nfc_tag_uid`.
+3. El usuario puede desvincular y reprogramar un tag desde la vista de la ubicación.
 
----
+**Flujo de lectura** (Android only en v1):
 
-### 3.4 Códigos QR para Ubicaciones
+1. El usuario abre la PWA en Android y toca el botón *"Escanear NFC"* (o, si hay una sesión de workflow activa, la PWA escucha NFC automáticamente).
+2. El usuario acerca el teléfono a la etiqueta.
+3. La PWA lee el tag via Web NFC API, extrae el UUID de la ubicación.
+4. La PWA navega a la ficha de la ubicación, o emite un evento del workflow (`location_scanned`) si hay una sesión activa que lo está esperando.
 
-**Objetivo:** Vincular el mundo físico con el inventario digital mediante etiquetas QR imprimibles que, al ser escaneadas, muestran el contenido de esa ubicación.
+**Comportamiento en iOS** (v1):
 
-**Flujo de generación:**
+- El botón *"Escanear NFC"* y el escuchado automático en sesiones están **deshabilitados**.
+- En las pantallas afectadas, el sistema muestra una nota corta: *"El escaneo NFC todavía no está disponible en iOS. Asigná la ubicación manualmente."*
+- La asignación de componente a ubicación, la navegación a una ubicación, y el avance del workflow funcionan normalmente via selección manual / botones.
 
-1. El usuario accede a una ubicación y selecciona **"Generar QR"**.
-2. El sistema produce un código QR que codifica una URL del tipo `app.ejemplo.com/location/{qr_code}`.
-3. La aplicación ofrece opciones de descarga (PNG) e impresión directa con formato de etiqueta (nombre de la ubicación + QR).
+**Modelo de datos**:
 
-**Flujo de escaneo:**
+El módulo no agrega tablas nuevas. La vinculación tag→ubicación vive en el campo `locations.nfc_tag_uid` definido en §4.5. El UID hardcoded del tag físico (NTAG UID, 7 bytes hex) es identificador suficiente — no hay metadata adicional del tag.
 
-1. El usuario escanea el QR con la cámara del dispositivo (cámara nativa o desde la PWA).
-2. La aplicación resuelve la URL y muestra la ficha de la ubicación:
-   - Nombre y jerarquía de la ubicación.
-   - Lista de componentes almacenados con nombre, cantidad e imagen miniatura.
-   - Acceso rápido para ajustar cantidades o reasignar componentes.
+**Criterios de aceptación**:
 
-**Consideraciones:**
-- El `qr_code` es inmutable una vez generado para garantizar que las etiquetas físicas impresas siempre sean válidas.
-- El acceso a la vista de ubicación por QR requiere autenticación del usuario propietario.
+- **AC-4.7.1**: El usuario inicia el wizard de programación → el sistema lo guía paso a paso hasta que el tag está escrito y vinculado a la ubicación. Cada paso muestra el estado del hardware y bloquea hasta el OK.
+- **AC-4.7.2**: El sistema confirma el éxito de la escritura **solo después** de que el writer reportó el OK del hardware. Si el writer falla, el wizard explica el error y permite reintentar.
+- **AC-4.7.3**: Un tag programado no puede vincularse a una segunda ubicación sin desvincularse explícitamente primero (UNIQUE constraint en `locations.nfc_tag_uid`).
+- **AC-4.7.4**: En Android, el usuario acerca el teléfono a una etiqueta vinculada → la PWA abre la ficha de la ubicación si no hay sesión activa, o emite el evento `location_scanned` si la hay.
+- **AC-4.7.5**: En iOS (v1), el módulo de lectura NFC está desactivado. El resto del producto funciona normalmente. Las pantallas afectadas muestran una nota explicando que la asignación se hace manualmente.
+- **AC-4.7.6**: El usuario puede desvincular un tag desde la vista de la ubicación → el `nfc_tag_uid` se limpia y el tag físico queda *sin asignar* (puede reprogramarse y reutilizarse en otra ubicación).
+- **AC-4.7.7**: La vista de ubicación (§4.5) muestra un indicador claro del estado del tag (*"Vinculado"* / *"Sin vincular"*) con el botón correspondiente para programar o desvincular.
 
-**Criterios de aceptación:**
+### 4.8 Proyectos
 
-- **AC-3.4.1**: El usuario genera un QR para una ubicación → ve la imagen del QR con nombre y botones para descargar PNG e imprimir.
-- **AC-3.4.2**: Un usuario escanea (o navega) la URL del QR → el sistema redirige a la vista de detalle de esa ubicación con la lista de componentes.
+#### 4.8.1 Ciclo de vida y tipo
 
----
+Al crear o guardar un proyecto, el usuario declara su **tipo**, que determina el nivel de detalle técnico esperado y los defaults de visibilidad. El ciclo de vida es independiente del tipo.
 
-### 3.5 Inteligencia de Proyectos
-
-**User Stories:**
-
-- US-3.5.1: Como maker con muchos componentes, quiero que el sistema me sugiera qué puedo construir con lo que ya tengo, para darle uso a piezas que están juntando polvo.
-- US-3.5.2: Como estudiante, quiero describir un proyecto que me interesa y saber qué me falta comprar, para planificar antes de empezar.
-
-**Objetivo:** Convertir el inventario en un punto de partida para la creación, conectando las piezas disponibles con proyectos realizables y, a la inversa, identificando qué falta para ejecutar un proyecto deseado.
-
-#### 3.5.1 Descubrimiento: "¿Qué puedo construir?"
-
-**Flujo:**
-
-1. El usuario abre la sección **"Explorar Proyectos"**.
-2. La aplicación envía el inventario actual (lista de componentes, categorías, specs y capacidades de conectividad) al modelo de IA.
-3. El modelo sugiere proyectos ordenados por viabilidad (porcentaje de piezas disponibles y compatibles).
-4. Cada sugerencia incluye:
-   - Título y descripción breve del proyecto.
-   - Lista de componentes requeridos con su estado por ítem (ver tabla de estados abajo).
-   - Nivel de dificultad estimado.
-   - Recursos externos opcionales (tutoriales, esquemáticos).
-
-**Estados de componente en la BOM sugerida:**
-
-| Estado | Descripción |
-| :--- | :--- |
-| **Disponible** | El usuario tiene cantidad suficiente y el componente es compatible. |
-| **Parcial** | Tiene el componente pero en cantidad insuficiente. |
-| **Faltante** | No está en inventario; debe adquirirse. |
-| **Incompatible** | Está en inventario pero no cumple el requisito del proyecto (ej. falta WiFi). La app sugiere: (a) un componente alternativo del inventario que sí cumple, o (b) un módulo externo que cubra la función faltante. |
-
-#### 3.5.2 Planificación: "Quiero construir X, ¿qué necesito?"
-
-**Flujo:**
-
-1. El usuario describe el proyecto en **texto libre** (ej. "estación meteorológica solar con WiFi y pantalla OLED").
-2. La IA genera una propuesta inicial: título, descripción, BOM sugerida y nivel de dificultad.
-3. El sistema presenta la propuesta y ofrece controles de **refinamiento guiado** opcionales:
-   - **Controlador preferido** — el usuario puede indicar un MCU de su inventario o uno que desea comprar. Si el controlador elegido es incompatible con los requisitos, la app avisa y sugiere: (a) un MCU alternativo del inventario, o (b) un módulo externo que cubra la función faltante.
-   - **Nivel de dificultad** — Principiante / Intermedio / Avanzado.
-   - **Restricciones** — por ejemplo: "sin soldadura", "bajo consumo", "menor a $20 USD en componentes faltantes".
-4. El usuario acepta o ajusta la propuesta.
-5. El sistema cruza la BOM final con el inventario y clasifica cada ítem según los mismos estados definidos en 3.5.1 (Disponible, Parcial, Faltante, Incompatible).
-6. El usuario puede **guardar la propuesta directamente como nuevo proyecto** con su BOM generada, pasando al módulo 3.6 en estado `Guardado`.
-
-**Consideraciones comunes a 3.5.1 y 3.5.2:**
-- Las sugerencias de la IA son orientativas; el usuario puede guardar, descartar o compartir los resultados.
-- El módulo no gestiona compras ni se integra con tiendas en esta versión. La estimación de costos y búsqueda de proveedores queda para una fase posterior.
-- Al guardar un proyecto sugerido se crea automáticamente una entrada en el módulo 3.6.
-
-**Criterios de aceptación (3.5.1 Descubrimiento):**
-
-- **AC-3.5.1**: El usuario abre "Explorar Proyectos" → el sistema envía su inventario a la IA y muestra sugerencias ordenadas por viabilidad (%) con título, descripción, dificultad y BOM.
-- **AC-3.5.2**: Cada item de la BOM sugerida muestra su estado: Disponible (verde), Parcial (ámbar), Faltante (rojo) o Incompatible (naranja con sugerencia de alternativa).
-- **AC-3.5.3**: El usuario guarda una sugerencia → se crea un proyecto en estado "Guardado" con la BOM asociada.
-
-**Criterios de aceptación (3.5.2 Planificación):**
-
-- **AC-3.5.4**: El usuario describe un proyecto en texto libre → la IA genera una propuesta con título, descripción, BOM y dificultad.
-- **AC-3.5.5**: El usuario aplica refinamiento guiado (controlador preferido, dificultad, restricciones) → la propuesta se actualiza con los nuevos parámetros.
-- **AC-3.5.6**: El usuario guarda la propuesta → se crea un proyecto en estado "Guardado" con source "ai_plan".
-
----
-
-### 3.6 Seguimiento y Comunidad de Proyectos
-
-**Objetivo:** Una vez que el usuario decide ejecutar un proyecto — ya sea descubierto por IA (3.5.1) o planificado desde una idea (3.5.2) — permitirle llevar un registro vivo del avance, documentar sus experiencias y, opcionalmente, compartirlo con otros usuarios de la plataforma.
-
-#### 3.6.1 Tipo y Ciclo de Vida del Proyecto
-
-Al crear o guardar un proyecto, el usuario declara su **tipo**, que determina el nivel de detalle técnico esperado y los defaults de visibilidad:
+**Tipos de proyecto**:
 
 | Tipo | Descripción | Visibilidad por defecto |
-| :--- | :--- | :--- |
-| **DIY** | Proyecto personal o de hobby; código simple (Arduino, ESPHome, MicroPython). | Pública si el usuario lo publica |
-| **Prototipo** | Funcional pero no optimizado; punto intermedio entre exploración y producción. | Pública si el usuario lo publica |
-| **Profesional** | Orientado a producción: C/C++/Rust, eficiencia energética, manejo robusto de errores, código modular. | **Privada por defecto**; el usuario debe habilitarla explícitamente |
+|---|---|---|
+| **DIY** | Proyecto personal o de hobby; código simple (Arduino, ESPHome, MicroPython). | Pública si el usuario lo publica (sin efecto práctico en v1: Comunidad diferida — §8) |
+| **Prototipo** | Funcional pero no optimizado; punto intermedio entre exploración y producción. | Idem DIY |
+| **Profesional** | Orientado a producción: C/C++/Rust, eficiencia energética, manejo robusto de errores, código modular. | Privada por defecto |
 
-Un proyecto activo atraviesa los siguientes estados:
+**Estados del proyecto**:
 
-```
+```text
 Guardado → En curso → Pausado → Completado
                               ↘ Abandonado
 ```
 
 | Estado | Descripción |
-| :--- | :--- |
-| **Guardado** | El proyecto fue seleccionado desde 3.5.1 / 3.5.2 pero aún no se comenzó. |
-| **En curso** | El usuario inició el proyecto activamente. |
-| **Pausado** | Trabajo interrumpido temporalmente; conserva todo el historial. |
-| **Completado** | El proyecto fue terminado. Candidato para publicar en la comunidad. |
+|---|---|
+| **Guardado** | El proyecto fue creado manualmente o guardado desde Inteligencia de Proyectos (§4.9), pero aún no se inició. |
+| **En curso** | El usuario inició el proyecto activamente. Una sesión de workflow (§4.1) puede arrancarse desde este estado. |
+| **Pausado** | Trabajo interrumpido temporalmente; conserva el historial completo de eventos. |
+| **Completado** | El proyecto fue terminado. |
 | **Abandonado** | Se descartó; el historial queda disponible para referencia. |
 
-#### 3.6.2 Bitácora de Avance
+**Criterios de aceptación**:
 
-El usuario puede registrar entradas de bitácora en cualquier momento del ciclo de vida. Cada entrada contiene:
+- **AC-4.8.1**: El usuario crea un proyecto manual con título, tipo (DIY/Prototipo/Profesional) y dificultad → aparece en la lista en estado "Guardado".
+- **AC-4.8.2**: El usuario cambia el estado del proyecto siguiendo las transiciones válidas: Guardado → En curso → Pausado/Completado/Abandonado. Las transiciones inválidas no están disponibles en la UI.
+- **AC-4.8.3**: El usuario edita título y descripción del proyecto inline → los cambios persisten al recargar.
+- **AC-4.8.4**: La transición a "En curso" habilita el botón para iniciar una sesión de workflow (§4.1). En cualquier otro estado, ese botón está deshabilitado con tooltip explicativo.
 
-- **Fecha y hora** — registradas automáticamente.
-- **Texto libre** — descripción de lo realizado, problemas encontrados, decisiones tomadas.
-- **Imágenes adjuntas** — fotos del progreso físico del proyecto (protoboard, cableado, armado final).
-- **Etiquetas de estado** — el usuario puede marcar la entrada como: `avance`, `problema`, `solución`, `aprendizaje`, `código`.
-- **Recurso de código** (opcional) — una entrada de tipo `código` puede incluir un bloque de código fuente con su lenguaje y entorno de destino (ver módulo 3.7). El usuario decide si adjunta código; no es obligatorio en ningún tipo de proyecto.
+#### 4.8.2 BOM como workflow ejecutable
 
-El conjunto de entradas forma una línea de tiempo cronológica del proyecto.
+**Cambio conceptual clave respecto a v0.4**: el BOM no es solo una lista de materiales — es **input al modo `fetching` del workflow** (§4.1). Al activar *"buscar piezas"* desde un proyecto En curso, cada item del BOM se convierte en un objetivo de la sesión que la vista guiada (§4.3) cumple paso a paso.
 
-**Criterios de aceptación (3.6.1 Ciclo de vida):**
+**Estados de cada item en el BOM** (cruzados con el inventario actual del usuario en tiempo real):
 
-- **AC-3.6.1**: El usuario crea un proyecto manual con título, tipo (DIY/Prototipo/Profesional) y dificultad → aparece en la lista en estado "Guardado".
-- **AC-3.6.2**: El usuario cambia el estado del proyecto siguiendo las transiciones válidas: Guardado → En curso → Pausado/Completado/Abandonado. Las transiciones inválidas no están disponibles.
-- **AC-3.6.3**: El usuario edita título y descripción del proyecto inline → los cambios persisten al recargar.
+| Estado | Color | Descripción |
+|---|---|---|
+| **Disponible** | Verde | El usuario tiene cantidad suficiente y el componente es compatible con los requisitos del proyecto. |
+| **Parcial** | Ámbar | Tiene el componente pero en cantidad insuficiente. |
+| **Faltante** | Rojo | No está en inventario; debe adquirirse antes de ejecutar el proyecto. |
+| **Incompatible** | Naranja | Está en inventario pero no cumple un requisito del proyecto (ej. falta WiFi). La app sugiere alternativas — sujeto a Q9. |
 
-**Criterios de aceptación (3.6.2 Bitácora):**
+**Funcionalidades**:
 
-- **AC-3.6.4**: El usuario añade una entrada de bitácora con contenido de texto y etiqueta (avance/problema/solución/aprendizaje/código) → aparece en la línea de tiempo del proyecto ordenada cronológicamente.
-- **AC-3.6.5**: El usuario marca una entrada como pública → queda disponible si el proyecto se publica.
+- Agregar / editar / eliminar items del BOM.
+- Visualización del estado de cada item recalculada al cambiar cantidad o stock.
+- Botón **"Iniciar fetching"** que arranca una sesión del workflow (§4.1) con el BOM como objetivo. Solo disponible si el proyecto está En curso (§4.8.1).
 
-**Criterios de aceptación (3.6 BOM):**
+**Criterios de aceptación**:
 
-- **AC-3.6.6**: El usuario agrega un componente a la BOM del proyecto con nombre y cantidad → aparece en la tabla de materiales.
-- **AC-3.6.7**: El usuario edita la cantidad de un item de BOM → el cambio persiste.
-- **AC-3.6.8**: El usuario elimina un item de BOM → desaparece de la tabla.
+- **AC-4.8.5**: El usuario agrega un componente a la BOM del proyecto con nombre y cantidad → aparece en la tabla con su estado calculado contra el inventario actual.
+- **AC-4.8.6**: El usuario edita la cantidad de un item de BOM → el estado se recalcula (puede pasar de Disponible a Parcial si la nueva cantidad supera el stock).
+- **AC-4.8.7**: El usuario elimina un item de BOM → desaparece de la tabla.
+- **AC-4.8.8**: La BOM muestra el estado de cada item con el color correspondiente, **idéntico en mobile y desktop** (D13).
+- **AC-4.8.9**: Cuando el proyecto está En curso, el usuario clickea "Iniciar fetching" → se crea una `workflow_session` en modo `fetching` con el BOM como input. La sesión queda lista para conectarse desde mobile (§4.2.1, remote control).
+- **AC-4.8.10**: La vista del BOM se adapta al dispositivo (D14): mobile usa filas stacked con el estado prominente; desktop usa tabla compacta con columnas.
 
-#### 3.6.3 Control de Componentes Consumidos
+#### 4.8.3 Bitácora generada por eventos
 
-Durante la ejecución del proyecto el usuario puede marcar componentes de la BOM como utilizados. Esto descuenta automáticamente las unidades del inventario personal, manteniendo el stock sincronizado con el trabajo físico real.
+**Decisión clave** (D5 desarrollada): la bitácora **NO es una entidad separada** con entries propias. Es una **proyección filtrada del log de `workflow_events`**. Las entries visibles se generan a partir de dos fuentes que conviven en el mismo log:
 
-- Si la cantidad disponible cae a cero o a un nivel insuficiente, la aplicación muestra una alerta en la vista del proyecto.
-- El usuario puede revertir el descuento si cometió un error.
+1. **Eventos del sistema** — generados automáticamente por la actividad del workflow: `session_started`, `mode_changed`, `item_found`, `item_used`, `item_returned`, `item_missing`, `location_scanned`, `session_closed`.
+2. **Eventos manuales del usuario** — de tipo `journal_entry_added` con payload `{ text, tags, images }`. El usuario escribe explícitamente.
 
-**Criterios de aceptación (3.6.3 Consumo):**
+La UI muestra ambos **mezclados en orden cronológico**, una sola línea de tiempo. El usuario ve una bitácora, no dos.
 
-- **AC-3.6.9**: El usuario marca un componente de la BOM como utilizado → la cantidad se descuenta del stock del inventario personal.
-- **AC-3.6.10**: Si el componente no está en inventario → se muestra badge "Falta" y el botón de consumo está deshabilitado.
-- **AC-3.6.11**: El usuario revierte un consumo → la cantidad se restaura en el stock.
+**Tags disponibles en entries manuales**: `avance`, `problema`, `solución`, `aprendizaje`, `código`. Los eventos del sistema tienen su tag implícito según el tipo de evento.
 
-#### 3.6.4 Publicación y Comunidad
+**Edición y supresión de entries**:
 
-Cuando el usuario considera que su proyecto tiene valor para compartir puede publicarlo. Un proyecto publicado se vuelve visible para todos los usuarios de la plataforma.
+- Las entries manuales se editan generando un evento `journal_entry_edited` (la UI muestra solo la última versión; el historial queda en el log).
+- Las entries auto-generadas se pueden **ocultar** (no borrar) generando `journal_entry_hidden`. El evento original sigue en el log para audit.
+- **Política de reproyección retroactiva** al agregar tipos de evento nuevos en futuro: **Q10 pendiente**.
 
-**Contenido del proyecto publicado:**
+**Conflicts cross-device**: si dos dispositivos editan la misma entry al mismo tiempo, la resolución es last-write-wins con notificación visible al usuario afectado. UX exacta del aviso: **Q5 pendiente**.
 
-| Elemento | Descripción |
-| :--- | :--- |
-| **Título y descripción** | Editables antes de publicar; independientes del nombre interno. |
-| **BOM pública** | Lista de componentes usados, sin exponer datos de stock privado. |
-| **Bitácora seleccionada** | El usuario elige qué entradas de la bitácora incluir en la versión pública. |
-| **Galería de imágenes** | Fotos del proceso y resultado final seleccionadas por el usuario. |
-| **Nivel de dificultad** | Autoevaluado por el autor (Principiante / Intermedio / Avanzado). |
-| **Etiquetas** | Categorías libres para facilitar el descubrimiento (ej. `WiFi`, `sensor`, `automatización`). |
+**Resumen automático al cerrar sesión** (Escena C):
 
-**Interacciones sociales:**
+Cuando una `workflow_session` cierra, el sistema agrega los eventos significativos de esa sesión y genera un **resumen narrativo automático** que se presenta al usuario como una entry tipo `session_summary` editable. El usuario aprueba el resumen tal cual, lo edita, o lo descarta antes de que se persista como entry visible en la bitácora.
 
-- **Me gusta y Fork** — dar "Me gusta" a un proyecto ajeno y guardarlo son una sola acción: al presionar el botón el proyecto queda en la lista personal del usuario (estado `Guardado`) listo para ejecutarse. Esto es equivalente a un fork: se crea una instancia propia a partir del proyecto original, sin copiar la bitácora.
-- **Contador de forks con dos niveles** — cada proyecto publicado muestra:
-  - `Forks directos` — usuarios que forkearon específicamente este proyecto.
-  - `Forks en el árbol` — total acumulado de forks en toda la genealogía descendiente (forks de forks incluidos). Este número refleja el impacto real de la idea original sin atribuirle al autor crédito por el trabajo de quienes la evolucionaron.
-- **Trazabilidad de origen** — cada fork registra únicamente su padre directo. La cadena completa de origen es navegable proyecto a proyecto (ej. `C → B → A`), pero C aparece listado solo como fork directo de B, no de A.
-- **Comentarios** — hilo de comentarios por proyecto para preguntas y retroalimentación entre usuarios.
+**Criterios de aceptación**:
 
-**Consideraciones de privacidad:**
-- La publicación es siempre una acción explícita del usuario; ningún proyecto se comparte sin su consentimiento.
-- Los datos de inventario personal (cantidades, ubicaciones) nunca son visibles en la versión pública.
-- El usuario puede despublicar un proyecto en cualquier momento; los comentarios existentes se eliminan junto con él.
+- **AC-4.8.11**: La bitácora muestra eventos del sistema y entries manuales mezclados en orden cronológico, identificados visualmente por su origen (icono + tag).
+- **AC-4.8.12**: El usuario agrega una entry manual con texto + tags → se emite `journal_entry_added` y la entry aparece en la bitácora.
+- **AC-4.8.13**: El usuario edita una entry manual → se emite `journal_entry_edited`; la versión anterior queda en el log pero la UI muestra solo la última.
+- **AC-4.8.14**: El usuario oculta una entry auto-generada → se emite `journal_entry_hidden`; la UI deja de mostrarla; el evento original queda en el log.
+- **AC-4.8.15**: La bitácora se adapta al dispositivo (D14): mobile usa cards verticales con timeline lateral; desktop usa lista densa con columna de tiempo.
+- **AC-4.8.16**: Al cerrar una sesión de workflow, el sistema genera un resumen narrativo automático de los eventos de esa sesión. El usuario puede editar, aprobar o descartar el resumen antes de que se persista como entry tipo `session_summary`.
 
-**Criterios de aceptación (3.6.4 Publicación y Comunidad):**
+#### 4.8.4 Consumo via eventos
 
-- **AC-3.6.12**: El usuario publica un proyecto completado → el proyecto aparece en el feed de la comunidad con título, descripción, BOM pública, dificultad y tags.
-- **AC-3.6.13**: El usuario selecciona qué entradas de bitácora incluir en la versión pública antes de publicar.
-- **AC-3.6.14**: Un usuario hace fork de un proyecto público → se crea una copia en su lista personal en estado "Guardado" con la BOM pero sin la bitácora. El contador de forks directos del proyecto original se incrementa.
-- **AC-3.6.15**: Un usuario comenta en un proyecto público → el comentario aparece en el hilo del proyecto.
-- **AC-3.6.16**: El autor despublica su proyecto → desaparece del feed de la comunidad.
-- **AC-3.6.17**: Los datos de inventario personal (cantidades, ubicaciones) nunca son visibles en la versión pública del proyecto.
+**Cambio respecto a v0.4 §3.6.3**: el consumo de componentes deja de ser un marcado manual primario y pasa a **derivarse de eventos del workflow** durante una sesión activa. El marcado manual queda como fallback explícito para escenarios fuera de sesión.
 
----
+**Fuentes de consumo**:
 
-### 3.7 Generación y Análisis de Código
+| Fuente | Trigger | Evento emitido | Efecto |
+|---|---|---|---|
+| **Workflow activo** (primario) | El usuario marca un item como "usado" en la vista guiada (§4.3) durante una sesión `fetching`/`building` | `item_used` (sin flag manual) | Decrementa `components.quantity` |
+| **Devolución** | El usuario devuelve un item al inventario, durante o después de la sesión | `item_returned` (referencia el `item_used` original) | Restaura `components.quantity` |
+| **Marcado manual** (fallback) | El usuario marca un item del BOM como consumido fuera de una sesión activa | `item_used` con `payload.manual: true` | Mismo efecto sobre stock |
 
-**Objetivo:** Asistir al usuario en la producción de firmware o código de control para sus proyectos, adaptando el estilo y la complejidad al tipo de proyecto declarado (módulo 3.6.1).
+**Reglas de stock**:
 
-#### 3.7.1 Generación de código desde el proyecto
+- Si la cantidad cae a 0 o queda en nivel insuficiente para otros proyectos que dependen del componente, la vista del proyecto muestra una alerta visible y la lista de inventario marca el componente como agotado o casi agotado.
+- El usuario puede revertir un consumo individual desde la entry correspondiente de la bitácora (botón "deshacer") — se emite `item_returned` referenciando el `item_used` original.
+- El stock se ajusta al **persistir** el evento en el log (parte del flujo de event sourcing — D1). El cliente aplica el cambio en optimistic UI, la cola sincroniza, y si el server rechaza el evento (caso límite raro), el cliente hace rollback con toast.
 
-A partir de la BOM y la descripción del proyecto, la IA puede generar código listo para cargar en el controlador objetivo.
+**Criterios de aceptación**:
 
-**Entornos soportados por tipo de proyecto:**
+- **AC-4.8.17**: Durante una sesión de workflow, el usuario marca un item como "usado" → se emite `item_used` → `components.quantity` del componente correspondiente se decrementa al persistir el evento.
+- **AC-4.8.18**: El usuario marca un item como devuelto (durante o después de la sesión) → se emite `item_returned` referenciando el `item_used` original → `components.quantity` se restaura.
+- **AC-4.8.19**: Fuera de una sesión activa, el usuario puede marcar manualmente un item del BOM como consumido → se emite `item_used` con `payload.manual: true` → mismo efecto sobre stock que el flujo del workflow.
+- **AC-4.8.20**: Si la cantidad disponible cae a 0 o muy baja → la vista del proyecto muestra una alerta visible. El componente en la lista de inventario refleja el estado de stock bajo (badge o color).
+- **AC-4.8.21**: El usuario puede revertir un consumo individual desde la entry correspondiente de la bitácora → se emite `item_returned` referenciando el evento original. La UI confirma con animación de rollback.
 
-| Tipo | Entornos sugeridos |
-| :--- | :--- |
-| **DIY** | Arduino IDE (`.ino`), ESPHome (YAML), MicroPython |
-| **Prototipo** | Arduino IDE, PlatformIO (C++) |
-| **Profesional** | PlatformIO (C/C++), ESP-IDF (C/C++), Zephyr (C), Rust (`embassy`, `esp-hal`) |
+### 4.9 Inteligencia de Proyectos (Could Have)
 
-- La app sugiere el entorno más adecuado según el tipo y los componentes; el usuario puede sobreescribir la selección.
-- El usuario puede solicitar un **esqueleto** (estructura base con comentarios) o **código completo** funcional.
-- El código generado se adjunta opcionalmente como entrada de tipo `código` en la bitácora del proyecto.
+**Objetivo del módulo**: convertir el inventario en un punto de partida para la creación de proyectos, conectando las piezas disponibles con proyectos realizables (Descubrimiento) y, a la inversa, identificando qué falta para ejecutar un proyecto deseado (Planificación). Ambas capacidades viven sobre el **agente IA contextual** (§4.10) — comparten infraestructura.
 
-#### 3.7.2 Análisis y mejora de código existente
+**Degradado a Could Have** respecto a v0.4 (era Should Have): la visión v0.5 se centra en el workflow de proyectos ya iniciados, no en el descubrimiento. La inteligencia de proyectos es valiosa pero no bloquea el MVP.
 
-El usuario puede pegar o subir código propio desde la bitácora de un proyecto activo y solicitar a la IA que lo analice.
+#### 4.9.1 Descubrimiento ("¿qué puedo construir?")
 
-La respuesta incluye:
-1. **Explicación detallada** de cada mejora o cambio sugerido, con el razonamiento técnico.
-2. **Código mejorado** con los cambios aplicados.
-3. **Opción de descarga** del código mejorado como archivo (`.ino`, `.cpp`, `.py`, `.yaml`, etc.).
+**Flujo**:
 
-El análisis puede incluir: refactorización, detección de bugs potenciales, optimización de memoria/energía (especialmente relevante en tipo Profesional) y mejoras de estilo.
+1. El usuario abre la sección *"Explorar Proyectos"*.
+2. La app envía el inventario actual (componentes con specs, plataforma y conectividad) al agente IA.
+3. El agente sugiere proyectos ordenados por viabilidad (porcentaje de piezas disponibles y compatibles).
+4. Cada sugerencia incluye: título, descripción breve, BOM con el estado por ítem (reutiliza los estados definidos en §4.8.2: Disponible/Parcial/Faltante/Incompatible), nivel de dificultad estimado, recursos externos opcionales.
 
-> **Roadmap:** El análisis de código standalone (fuera del contexto de un proyecto) es una funcionalidad planificada para una fase posterior.
+**Criterios de aceptación**:
 
-**Criterios de aceptación (3.7.1 Generación):**
+- **AC-4.9.1**: El usuario abre *"Explorar Proyectos"* → el agente IA recibe el inventario completo y devuelve sugerencias ordenadas por viabilidad con título, descripción, dificultad y BOM.
+- **AC-4.9.2**: Cada item de la BOM sugerida muestra su estado con el color correspondiente (§4.8.2). El layout se adapta al dispositivo (D14).
+- **AC-4.9.3**: El usuario guarda una sugerencia → se crea un proyecto en estado `Guardado` con la BOM asociada y `source = 'ai_discovery'`.
 
-- **AC-3.7.1**: El usuario solicita generar código desde un proyecto → selecciona entorno de destino → la IA genera código funcional o esqueleto según la selección.
-- **AC-3.7.2**: El código generado puede descargarse como archivo con la extensión correcta según el entorno (.ino, .cpp, .py, .yaml).
-- **AC-3.7.3**: El entorno sugerido por defecto corresponde al tipo de proyecto (DIY → Arduino IDE, Profesional → PlatformIO/ESP-IDF).
+#### 4.9.2 Planificación ("quiero construir X, ¿qué necesito?")
 
-**Criterios de aceptación (3.7.2 Análisis):**
+**Flujo**:
 
-- **AC-3.7.4**: El usuario envía código existente para análisis → la IA retorna mejoras sugeridas con explicación y código mejorado.
-- **AC-3.7.5**: Cada mejora indica su tipo (rendimiento, bug potencial, estilo) para que el usuario pueda priorizar.
+1. El usuario describe el proyecto en **texto libre** (ej. *"estación meteorológica solar con WiFi y pantalla OLED"*).
+2. El agente IA genera una propuesta inicial: título, descripción, BOM sugerida, dificultad.
+3. El sistema presenta controles de **refinamiento guiado** opcionales:
+   - **Controlador preferido** — MCU del inventario o uno deseado. Si es incompatible con los requisitos, el agente sugiere alternativas (sujeto a Q9).
+   - **Nivel de dificultad** — Principiante / Intermedio / Avanzado.
+   - **Restricciones** — sin soldadura, bajo consumo, presupuesto máximo, etc.
+4. El usuario acepta o ajusta la propuesta.
+5. El sistema cruza la BOM final con el inventario y clasifica cada ítem (§4.8.2).
+6. El usuario guarda la propuesta como nuevo proyecto en estado `Guardado` con `source = 'ai_plan'`.
 
----
+**Criterios de aceptación**:
 
-## 4. Requisitos No Funcionales
+- **AC-4.9.4**: El usuario describe un proyecto en texto libre → el agente IA genera una propuesta con título, descripción, BOM y dificultad.
+- **AC-4.9.5**: El usuario aplica refinamiento guiado (controlador, dificultad, restricciones) → la propuesta se actualiza con los nuevos parámetros.
+- **AC-4.9.6**: El usuario guarda la propuesta → se crea un proyecto en estado `Guardado` con `source = 'ai_plan'` y BOM cruzada contra inventario.
 
-| Categoría | Requisito |
-| :--- | :--- |
-| **Multi-usuario** | Cada usuario ve y gestiona únicamente su propio inventario (RLS en PostgreSQL). |
-| **PWA** | Instalable en móvil y desktop; flujo de cámara nativo en móvil. |
-| **Rendimiento** | El reconocimiento por IA debe responder en < 10 s en condiciones normales de red. |
-| **Seguridad** | Autenticación vía Supabase Auth (OAuth + magic link). Todas las rutas de API requieren token válido. |
-| **Privacidad** | Las imágenes de componentes se almacenan en el bucket privado del usuario en Supabase Storage. |
-| **Offline parcial** | El inventario en modo lectura debe funcionar sin conexión mediante caché de Service Worker. |
+**Consideraciones comunes a 4.9.1 y 4.9.2**:
 
-### 4.1 Flujo de Autenticación
+- Las sugerencias del agente son orientativas; el usuario puede guardar, descartar o ajustar.
+- El módulo NO gestiona compras ni se integra con tiendas en v1 (Won't Have — §8).
+- Al guardar, el proyecto sigue el ciclo de vida normal de §4.8.1.
 
-1. El usuario accede a cualquier ruta protegida (`/inventory`, `/projects`, `/locations`, `/community`, `/ai/*`).
-2. El middleware de Astro verifica la sesión via `supabase.auth.getUser()`. Si no hay sesión válida, redirige a `/auth/login`.
-3. La página de login ofrece tres opciones:
-   - **OAuth con Google** — redirect flow via Supabase Auth.
-   - **OAuth con GitHub** — redirect flow via Supabase Auth.
-   - **Magic link por email** — el usuario ingresa su email, Supabase envía un link de un solo uso.
-4. Post-login, Supabase Auth emite un JWT que se almacena como cookie HTTP-only.
-5. El middleware de Astro inyecta el `user_id` del JWT en cada request server-side; las políticas RLS de PostgreSQL filtran los datos automáticamente.
-6. **Onboarding post-registro:** en el primer login, la app redirige a `/inventory` con un empty state que guía al usuario a registrar su primer componente.
-7. **Logout:** el usuario puede cerrar sesión desde cualquier página; se invalida la cookie y se redirige a `/auth/login`.
+### 4.10 Agente IA Contextual
 
-### 4.2 Estrategia del Catálogo Maestro
+> _Por escribir. Sección nueva. Reemplaza el chat genérico actual (D6). Cubre cómo se invoca (desde cualquier vista con atajo o botón), qué contexto recibe (proyecto activo, BOM con specs completas, inventario, sesión, modo actual), capacidades (responder, sugerir, ejecutar acciones del workflow). Q9 vive acá._
 
-El catálogo maestro (`components`) es la base compartida de specs técnicas. Se puebla mediante dos mecanismos:
+#### 4.10.1 Invocación contextual
 
-- **Seed inicial:** un dataset curado de ~200 componentes populares (ESP32 variants, Arduino boards, sensores comunes) cargado via migración SQL.
-- **Enriquecimiento por uso:** cada vez que un usuario confirma un alta via scan IA, si el componente no existe en el catálogo maestro, se crea una entrada nueva. Esto convierte a cada usuario en contribuidor implícito del catálogo.
-- **Deduplicación:** antes de crear una entrada nueva, el sistema busca coincidencias por nombre normalizado. Si hay match parcial (>80% similitud), sugiere vincular al componente existente en vez de crear uno nuevo.
+#### 4.10.2 Generación de código (Could Have)
 
-**Criterios de aceptación:**
-
-- **AC-4.1**: Las rutas protegidas (/inventory, /projects, /locations) redirigen a /login si el usuario no está autenticado.
-- **AC-4.2**: Un usuario autenticado no puede ver ni modificar datos de otro usuario (RLS enforced).
-- **AC-4.3**: La página de login ofrece OAuth (Google, GitHub) y magic link por email.
-- **AC-4.4**: El reconocimiento por IA responde en menos de 10 segundos en condiciones normales.
-- **AC-4.5**: En el primer login, el usuario ve un empty state con call-to-action para registrar su primer componente.
-- **AC-4.6**: Al confirmar un scan IA de un componente no catalogado, se crea una entrada en el catálogo maestro compartido.
-
-### 4.3 Estándares de Desarrollo
-
-El proyecto sigue tres principios de ingeniería que aplican a toda contribución (humana o asistida por IA):
-
-#### TDD Estricto (Test-Driven Development)
-
-Todo código nuevo sigue el ciclo Red → Green → Refactor sin excepciones:
-
-1. **Red** — Escribir un test que falle y que describa el comportamiento esperado.
-2. **Green** — Escribir el código MÍNIMO necesario para que el test pase.
-3. **Refactor** — Limpiar sin cambiar comportamiento; los tests deben seguir pasando.
-
-Aplica a: features nuevas, bug fixes, refactors. No se mergea código sin tests que lo respalden. Los tests son la especificación ejecutable del sistema.
-
-- **Unit tests**: Vitest — lógica de negocio, utilidades, stores.
-- **Component tests**: Testing Library — islands React (interacción, renderizado).
-- **E2E tests**: Playwright — flujos completos de usuario.
-
-#### SOLID (enfoque selectivo)
-
-Se priorizan dos principios por su impacto directo en la arquitectura de islands:
-
-- **Single Responsibility (SRP)** — Cada componente, función o módulo tiene UNA razón para cambiar. Un island no mezcla fetching, lógica de negocio y presentación. Si un archivo hace dos cosas, se separa.
-- **Dependency Inversion (DIP)** — Los módulos de alto nivel (islands, pages) no dependen de implementaciones concretas (Supabase client, fetch directo). Dependen de abstracciones (funciones en `src/lib/`). Esto permite testear islands sin necesitar Supabase real y cambiar proveedores sin reescribir componentes.
-
-Los demás principios SOLID (Open/Closed, Liskov, Interface Segregation) se aplican cuando el contexto lo justifica, no como regla universal.
-
-#### KISS (Keep It Simple)
-
-- La solución más simple que funciona es la correcta. No se agregan abstracciones, helpers o capas de indirección hasta que haya una necesidad concreta y demostrada.
-- Tres líneas de código similares son preferibles a una abstracción prematura.
-- No se diseña para requisitos hipotéticos futuros.
+> _Por escribir si Q8 entra en v1. Si difiere, se mueve a §8._
 
 ---
 
-## 5. Fuera de Alcance (v1)
+## 5. Requisitos No Funcionales
 
-- Integración con tiendas o proveedores para compra directa o estimación de costos de componentes faltantes (fase posterior).
-- Gestión de proyectos colaborativos (inventario compartido entre usuarios en tiempo real).
-- Telemetría en tiempo real de dispositivos IoT (reservado para fase 2).
-- Control de versiones de esquemáticos o código de firmware.
-- Análisis de código standalone fuera del contexto de un proyecto (fase posterior).
-- Soporte completo de Raspberry Pi como plataforma de destino — implica lógica distinta (SBC Linux, Python/Node, GPIO diferente, rol hub vs nodo IoT). La arquitectura incluye el campo `platform_family` desde v1 para no bloquear esta extensión futura.
+### 5.1 Multi-usuario + RLS
 
----
+> _Por escribir. Base de v0.4 §4.1. Sin cambios estructurales._
 
-## 5b. Supuestos
+### 5.2 PWA
 
-| # | Supuesto | Impacto si es falso |
-| :--- | :--- | :--- |
-| S1 | El usuario tiene conectividad a internet al escanear componentes con la cámara | El flujo de scan IA no funciona offline; el alta manual sí |
-| S2 | Los componentes electrónicos comunes son visualmente distinguibles por un modelo de visión | Si la precisión es < 50%, el módulo de scan pierde valor y se convierte en fricción |
-| S3 | El catálogo maestro compartido no requiere moderación en v1 | Entradas duplicadas o incorrectas pueden degradar la calidad; monitorear post-launch |
-| S4 | Los makers están dispuestos a registrar componentes uno a uno | Si la barrera de entrada es muy alta, considerar alta masiva (CSV import) |
-| S5 | Supabase Storage es suficiente para imágenes de componentes en v1 | Latencia y límites de almacenamiento gratuito pueden ser un cuello de botella |
-| S6 | Los usuarios interactúan principalmente desde móvil (cámara, QR) | Si el uso es mayoritariamente desktop, repensar la prioridad de PWA y flujos de cámara |
+> _Por escribir. Base de v0.4. PWA sigue siendo el contrato de distribución (no apps nativas en v1)._
 
----
+### 5.3 Realtime + Sync Cross-device
 
-## 5c. Riesgos y Mitigaciones
+> _Por escribir. Sección nueva. D1 desarrollada como NFR. Eventos, channels, garantías (at-least-once con idempotencia), reconciliación, latencia objetivo de roundtrip._
 
-| # | Riesgo | Probabilidad | Impacto | Mitigación |
-| :--- | :--- | :--- | :--- | :--- |
-| R1 | La IA identifica mal >40% de los componentes | Media | Alto — destruye confianza en la feature principal de diferenciación | Lanzar con scan como "beta". Medir precisión real. Si < 60%, priorizar mejora de prompts/modelo antes de push de adopción. Alta manual siempre disponible como fallback. |
-| R2 | Latencia de Supabase Storage inaceptable en móvil para subir fotos | Baja | Medio — degrada UX del flujo de scan | Comprimir imágenes client-side antes de upload. Medir p95 en beta. Evaluar CDN si es necesario. |
-| R3 | Barrera de entrada alta: registrar 50+ componentes uno a uno es tedioso | Alta | Alto — abandono en onboarding | Planificar import CSV como feature Should Have. Priorizar scan IA como acelerador de alta. |
-| R4 | RLS mal configurado expone datos entre usuarios | Baja | Crítico — breach de privacidad | Tests automatizados de RLS en CI. Auditoría manual pre-launch. Zero tolerance: cualquier leak es P0. |
-| R5 | Costos de API de IA escalan con adopción | Media | Medio — márgenes negativos si el scan es muy popular | Implementar rate limiting por usuario (N scans/día en plan free). Monitorear costo por scan. Cachear resultados para componentes ya identificados. |
-| R6 | Comunidad vacía al lanzamiento: nadie publica ni forkea | Alta | Bajo (v1) — la comunidad es Could Have | No lanzar comunidad hasta tener base de proyectos. Considerar seed con proyectos de ejemplo del equipo. |
+### 5.4 Performance
 
----
+> _Por escribir. Revisado respecto a v0.4: agregar latencia de eventos cross-device (objetivo p95), tiempo desde tap en mobile hasta render en desktop. D14 (layouts escalables) como NFR de rendering._
 
-## 6. Dependencias Técnicas
+### 5.5 Seguridad
 
-| Componente | Tecnología |
-| :--- | :--- |
-| Frontend | Astro 6 + React 19 (Islands) |
-| Autenticación | Supabase Auth |
-| Base de datos | PostgreSQL 16 (Supabase) + RLS |
-| Series temporales | TimescaleDB (fase 2) |
-| API de IA | FastAPI + modelo de visión (Claude / GPT-4o) |
-| Almacenamiento de imágenes | Supabase Storage |
-| Despliegue | Vercel (frontend) + Supabase Cloud (datos) |
+> _Por escribir. Revisado: agregar autenticación de pairing (tokens, TTL, audit), revocación de sesiones, "un desktop activo a la vez"._
+
+### 5.6 Privacidad
+
+> _Por escribir. Base de v0.4. Sin cambios estructurales — la sesión es del usuario, no se comparte._
+
+### 5.7 Offline parcial + cola de eventos
+
+> _Por escribir. Revisado respecto a v0.4: ya no es solo "lectura sin red". Ahora incluye cola IndexedDB para eventos no sincronizados, reintento exponencial, política de Q4._
+
+### 5.8 Estándares de desarrollo
+
+> _Por escribir. Base de v0.4 §4.3: TDD estricto, SOLID selectivo (SRP + DIP), KISS. Sin cambios._
 
 ---
 
-## 7. Roadmap Comercial y Estrategia de Plataformas
+## 6. Modelo de Datos (Anexo Técnico)
+
+> _Por escribir. Anexo nuevo respecto a v0.4. Define las tablas nuevas: `workflow_session`, `workflow_events` (log append-only, particionable por mes a futuro), `remote_session`, `device_connections`. Explicita la decisión D2 (UUID7 en estas tablas) con la nota de Q1. Diagrama ERD opcional._
+
+---
+
+## 7. Roadmap Comercial y Plataformas
 
 ### 7.1 Fases de producto
 
 | Fase | Objetivo | Plataforma | Criterio de salida |
-| :--- | :--- | :--- | :--- |
-| **v1 — MVP** | Validar que el producto resuelve un problema real | PWA (web + móvil) | 50+ usuarios activos con retención semanal > 40 % |
-| **v2 — Crecimiento** | Iterar sobre feedback real y crecer base de usuarios | PWA + mejoras de UX móvil | > 60 % del tráfico desde móvil con fricción documentada |
-| **v3 — Comercial** | Monetizar y escalar | Apps nativas (si se justifica) | Ver criterios en sección 8.2 |
+|---|---|---|---|
+| **v0.5 — MVP** | Validar el partner cross-device del workflow físico con los dos usuarios validadores actuales (SD + CJ) | PWA (Astro + React + Supabase) en Android (NFC primary — D17) e iOS (sin NFC, fallback manual) | Las tres escenas wuaw (§1.2) se ejecutan end-to-end con ambos usuarios sin fricción mayor en >80% de los intentos |
+| **v0.6 — Tracción** | Iterar sobre feedback real, sumar early adopters, evaluar disparadores de §7.2 | PWA + Capacitor wrapper iOS (D18) si Q15 se cierra con timing v0.6 | > 5 usuarios activos sosteniendo workflows reales durante 4+ semanas |
+| **v1.0 — Comercial** | Comunidad de proyectos (§8 reevaluada), escala, features Could Have promovidas | PWA + apps nativas (Capacitor) si algún criterio de §7.2 está activo | KPIs aspiracionales de §1.5 alcanzados (WAU 50+, retención > 40%) |
 
-### 7.2 ¿Cuándo vale el esfuerzo de crear apps nativas?
+### 7.2 ¿Cuándo vale el esfuerzo de apps nativas?
 
-Las apps nativas (iOS y Android) implican mantener un codebase adicional, ciclos de review en App Store / Google Play y costos de distribución. El esfuerzo se justifica **únicamente** si se cumple al menos uno de estos criterios:
+Las apps nativas implican mantener un wrapper adicional, ciclos de review en App Store/Google Play y costos de distribución. El esfuerzo se justifica **únicamente** si se cumple al menos uno de estos criterios:
 
 | Criterio | Señal concreta que lo activa |
-| :--- | :--- |
-| **Canal de adquisición** | El descubrimiento orgánico en App Store / Google Play es una fuente relevante de nuevos usuarios y la PWA no aparece en esos resultados. |
-| **Capacidades de hardware** | Se requiere Bluetooth BLE para conectar directamente con dispositivos IoT, o procesamiento de imagen offline (inferencia local con Core ML / ML Kit) sin depender de la API. |
-| **Fricción documentada en móvil** | Las métricas o entrevistas de usuarios muestran que la experiencia PWA en móvil es un bloqueador real de adopción o retención. |
+|---|---|
+| **Capacidades de hardware** | iOS NFC se vuelve bloqueante real de adopción (cierra Q15 con timing v0.6). En ese momento se ejecuta D18 — wrapper Capacitor con Core NFC. |
+| **Canal de adquisición** | Descubrimiento orgánico en App Store / Google Play es fuente relevante de nuevos usuarios y la PWA no aparece en esos resultados. |
+| **Fricción documentada en mobile** | Métricas o entrevistas muestran que la experiencia PWA en mobile es bloqueador real de adopción o retención. |
 | **Requisito de cliente enterprise** | Un cliente B2B exige distribución via MDM corporativo o presencia en tienda como condición de contrato. |
 
-Mientras ninguno de estos criterios esté activo, la PWA cubre el 90 % del caso de uso (cámara, QR, instalación en home screen) con un único codebase y sin fricción de distribución.
+Mientras ninguno esté activo, la PWA cubre la mayoría del caso de uso (cámara, NFC en Android, instalación en home screen) con un único codebase y sin fricción de distribución.
 
 ### 7.3 Ruta técnica si se llega a apps nativas
 
-Si los criterios anteriores se activan, la ruta recomendada es **React Native con Expo**, no apps nativas puras (Swift / Kotlin). Esto permite:
+La ruta elegida es **Capacitor** (no React Native, no Swift/Kotlin puros). Razones:
 
-- Reutilizar los componentes React ya construidos en la PWA.
-- Mantener un único codebase para iOS, Android y web.
-- Acceder a APIs de hardware (BLE, cámara avanzada, notificaciones push) sin abandonar el ecosistema JavaScript/TypeScript.
-- Reducir el tiempo de go-to-market nativo en ~50 % respecto a dos codebases separados.
+- **Reutiliza el codebase Astro+React de la PWA directamente.** Capacitor envuelve la app existente, no se reimplementa — el código de la PWA es el mismo en web, iOS y Android.
+- **Acceso a APIs nativas** (Core NFC, Bluetooth, cámara avanzada, notificaciones push) sin abandonar TypeScript.
+- **Compatible con D18**: el wrapper Capacitor para iOS NFC es el primer caso concreto. Cuando otros criterios de §7.2 se activen, la infraestructura ya está montada.
+- **Tiempo de go-to-market nativo significativamente menor** que mantener dos codebases separados (Swift + Kotlin) o que migrar a otro framework.
+
+Se descarta React Native: requiere reescribir la UI en componentes nativos (no reutiliza Astro), aumenta el costo de mantenimiento de un codebase paralelo. Capacitor mantiene una sola fuente de verdad: la PWA.
 
 ---
 
-## 8. Glosario
+## 8. Diferidos (Won't Have v1)
+
+Funcionalidades diferidas a post-MVP. Sin AC en v0.5. Se reevalúan cuando haya tracción real de los módulos core o cuando aparezca un caso de uso que las justifique.
+
+- **Comunidad** (forks de proyectos, comentarios, feed público): se difiere completa. El producto en v0.5 es para un maker o equipo chico (SD + CJ + early adopters), no una red social de proyectos.
+- **Análisis de código standalone** fuera del contexto de un proyecto.
+- **Soporte completo de Raspberry Pi** como plataforma de destino (la arquitectura mantiene `platform_family` para no bloquear esta extensión futura).
+- **Pairing in-situ (QR efímero)** — pendiente Q7. Si Q7 difiere, esta línea queda; si Q7 va a v1, se elimina.
+- **Generación de código contextual** — pendiente Q8. Si Q8 difiere, esta línea queda; si Q8 va a v1, se elimina.
+- **Telemetría en tiempo real de dispositivos IoT** (reservado para fase 2).
+- **Control de versiones de esquemáticos o código de firmware.**
+- **Integración con tiendas o estimación de costos de componentes faltantes.**
+- **QR para ubicaciones (diferido a v2)**. Razón: la generación de imagen sola no es suficiente — requiere pipeline completo de impresión que acompañe al usuario al resultado físico (templates de hojas A4 con múltiples QRs por hoja, dimensiones recomendadas para etiquetas autoadhesivas estándar, layouts consistentes con el papel que usa el usuario). Sin ese pipeline, la feature genera fricción en lugar de utilidad — el aprendizaje que motivó D16. En v1 se reemplaza por NFC (D15). Se reevalúa en v2 cuando haya capacidad de diseño para entregar el pipeline completo end-to-end.
+- **NFC en iOS (diferido post-MVP — implementación definida en D18)**. Web NFC API no está soportada en iOS Safari y Apple no tiene roadmap público para implementarla. La decisión técnica está cerrada (D18 — §0.1): se hará via app wrapper Capacitor que envuelve la PWA y expone Core NFC API a través del bridge nativo, esquivando WebKit. Es la única forma de tener Web NFC-equivalente en iOS. Trade-off aceptado: rompe PWA-only y agrega ciclos de App Store. En v1 los usuarios iOS asignan ubicación manualmente. **Timing de implementación: Q15 pendiente** (depende de bandwidth + tracción de iOS).
+
+---
+
+## 9. Glosario
+
+Términos canónicos del v0.5. Los términos marcados con (v0.4) se mantienen sin cambio conceptual respecto al PRD anterior.
 
 | Término | Definición |
-| :--- | :--- |
-| **Componente** | Pieza electrónica individual catalogada en el inventario (ej. resistencia, microcontrolador). |
-| **Ubicación** | Contenedor físico donde se almacenan componentes (mueble, cajón, maleta, caja). |
-| **BOM** | *Bill of Materials* — lista de materiales necesarios para construir un proyecto. |
-| **RLS** | *Row Level Security* — política de PostgreSQL que restringe el acceso a filas por usuario. |
-| **QR** | Código de respuesta rápida imprimible que vincula una ubicación física con la aplicación. |
-| **Hypertable** | Tabla optimizada de TimescaleDB para almacenar series temporales de alta frecuencia. |
-| **platform_family** | Familia de plataforma de un componente: `esp32`, `arduino`, `rpi`, `generic`. Determina el ecosistema de herramientas y lenguajes de programación aplicables. |
-| **connectivity_caps** | Capacidades de conectividad detectadas en un componente (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet). Usadas para validar compatibilidad con los requisitos de un proyecto. |
-| **Tipo de proyecto** | Nivel de complejidad declarado al crear un proyecto: DIY (hobby/simple), Prototipo (funcional no optimizado) o Profesional (producción, C/C++/Rust). Determina defaults de código, entorno y visibilidad. |
-| **Incompatible** | Estado de un componente de la BOM que está en inventario pero no cumple un requisito del proyecto (ej. falta WiFi). Se distingue de "Faltante" porque la pieza existe físicamente. |
-| **Refinamiento guiado** | Segunda etapa del flujo de planificación (3.5.2) donde el usuario ajusta la propuesta inicial de la IA mediante controles estructurados: controlador preferido, dificultad y restricciones. |
+|---|---|
+| **Componente** (v0.4) | Pieza electrónica individual catalogada en el inventario (ej. resistencia, microcontrolador). |
+| **Ubicación** (v0.4) | Contenedor físico donde se almacenan componentes (mueble, cajón, maleta, caja). En v0.5 puede tener un tag NFC vinculado (§4.5, §4.7). |
+| **BOM** (v0.4, redefinido) | *Bill of Materials* — lista de materiales necesarios para construir un proyecto. En v0.5 el BOM es **input ejecutable** al modo `fetching` del workflow (§4.8.2). |
+| **RLS** (v0.4) | *Row Level Security* — política de PostgreSQL que restringe el acceso a filas por usuario. |
+| **platform_family** (v0.4) | Familia de plataforma de un componente: `esp32`, `arduino`, `rpi`, `generic`. Determina el ecosistema de herramientas aplicables. |
+| **connectivity_caps** (v0.4) | Capacidades de conectividad detectadas en un componente (WiFi, BLE, LoRa, Zigbee, Thread, Ethernet). Usadas para validar compatibilidad con los requisitos de un proyecto. |
+| **Tipo de proyecto** (v0.4) | Nivel de complejidad declarado al crear un proyecto: DIY, Prototipo o Profesional. Determina defaults de código, entorno y visibilidad (§4.8.1). |
+| **Incompatible** (v0.4) | Estado de un componente de la BOM que está en inventario pero no cumple un requisito del proyecto. Se distingue de "Faltante" (§4.8.2). |
+| **Refinamiento guiado** (v0.4) | Segunda etapa del flujo de planificación (§4.9.2) donde el usuario ajusta la propuesta inicial del agente IA mediante controles estructurados. |
+| **Partner del workflow** | Caracterización central del producto v0.5. El producto no es un cuaderno donde el usuario registra — es un partner que acompaña, conduce y observa el proyecto. |
+| **Sesión de dos cabezas** | Modelo conceptual de §4.1.1: una `workflow_session` se manifiesta simultáneamente en dos dispositivos complementarios (desktop como cerebro, mobile como sentidos y manos), no como dos clientes independientes. |
+| **workflow_session** | Entidad central de v0.5 (§4.1). Representa una unidad de trabajo activo del usuario sobre un proyecto. Tiene modo, estado, log de eventos asociado. |
+| **workflow_event** | Evento atómico del log append-only de una sesión. Generado client-side con UUID v7, persistido en Supabase, propagado via Realtime (§4.1.2). |
+| **Modo (del workflow)** | Estado del workflow dentro de una sesión activa: `planning`, `fetching`, `building`, `closing` (§4.1.2). Determina vista en mobile y eventos esperados. |
+| **remote_session** | Entidad de pairing persistente (§4.2.1). Permite que el teléfono del usuario se conecte automáticamente a la sesión del desktop sin escanear QR cada vez. TTL configurable. |
+| **Escena wuaw** | Las tres escenas canónicas que capturan la promesa del producto (§1.2): arranque, falta de pieza, cierre. Si la experiencia se siente como en estas escenas, el producto cumple su visión. |
+| **Optimistic UI** | Patrón de UX donde el cliente aplica el cambio localmente de forma instantánea (sin esperar al servidor) y sincroniza en background. Componente central de D1. |
+| **Event sourcing** | Patrón arquitectónico donde el estado del sistema se deriva de un log append-only de eventos. En v0.5, el estado de la sesión y la bitácora son proyecciones de `workflow_events` (D1, D5). |
+| **Cola IndexedDB** | Cola local en el cliente que mantiene los eventos pendientes de sincronizar con el server. Garantiza at-least-once delivery con reintento exponencial. Política de retención: Q4. |
+| **NFC tag** | Etiqueta física con chip NFC (típicamente NTAG213/215/216) que codifica un payload NDEF. En v0.5 se programa con un payload que identifica una ubicación (§4.7). |
+| **NDEF** | *NFC Data Exchange Format* — formato estándar del payload de un tag NFC. El payload concreto a usar en v0.5 está pendiente Q14. |
+| **Web NFC API** | API W3C que permite a una PWA leer/escribir tags NFC. Soportada en Chrome para Android; **no soportada en iOS Safari** (D17). |
+| **Core NFC** | API nativa de iOS para acceso a NFC. Accesible desde una app nativa o un wrapper Capacitor (D18), no desde una PWA. |
+| **Capacitor** | Framework de Ionic que envuelve una PWA en una app nativa iOS/Android exponiendo APIs nativas. Ruta técnica elegida para D18 y para futuras apps nativas (§7.3). |
+| **Agente IA contextual** | El agente IA del producto (§4.10), refactorizado en v0.5 para recibir contexto rico al ser invocado: proyecto activo, BOM con specs completas, inventario, sesión de workflow en curso (D6). Reemplaza el chat genérico del v0.4. |
