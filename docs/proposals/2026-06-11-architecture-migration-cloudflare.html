@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta: Migración de Stack Arquitectónico a Cloudflare (Serverless Edge)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0b0f19 70%);
+      --card-bg: rgba(17, 24, 39, 0.7);
+      --card-border: rgba(255, 255, 255, 0.06);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #f38020; /* Cloudflare Orange */
+      --primary-glow: rgba(243, 128, 32, 0.15);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --code-bg: #1e293b;
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: var(--bg-gradient);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Header styling */
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(243, 128, 32, 0.2), rgba(243, 128, 32, 0.05));
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 0.25rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #ffffff, #e2e8f0, var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 1rem;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .meta-item {
+      font-size: 0.9rem;
+    }
+
+    .meta-label {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+
+    .meta-value {
+      font-weight: 500;
+    }
+
+    /* Section Styles */
+    section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    section:hover {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(243, 128, 32, 0.05);
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 1.5rem;
+      background-color: var(--primary);
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-size: 1.3rem;
+      margin: 1.5rem 0 0.75rem 0;
+      color: #ffffff;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      font-size: 1.05rem;
+    }
+
+    strong {
+      color: #ffffff;
+    }
+
+    /* Architecture Diagrams (SVG wrapper) */
+    .diagram-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    @media (max-width: 768px) {
+      .diagram-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diagram-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .diagram-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .diagram-svg {
+      width: 100%;
+      height: auto;
+      max-height: 250px;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+      color: var(--text-muted);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      font-size: 1.05rem;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 1.25rem 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      border-left: 4px solid;
+    }
+
+    .alert-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .alert-content h4 {
+      margin-bottom: 0.25rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .alert-content p {
+      margin-bottom: 0;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .alert-important {
+      background: rgba(243, 128, 32, 0.1);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .alert-important .alert-icon { color: var(--primary); }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: var(--warning);
+      color: #fff;
+    }
+    .alert-warning .alert-icon { color: var(--warning); }
+
+    .alert-note {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: var(--success);
+      color: #fff;
+    }
+    .alert-note .alert-icon { color: var(--success); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 1rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffffff;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge-diff {
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-high { background: rgba(239, 68, 68, 0.2); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.4); }
+    .badge-medium { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-low { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    /* Timeline Cards */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+      margin: 2rem 0;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -2rem;
+      top: 0.25rem;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 3px solid var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    .timeline-content {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 1.5rem;
+      border-radius: 12px;
+    }
+
+    .timeline-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .timeline-phase {
+      color: var(--primary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">SSD Proposal</div>
+    <h1>Migración de Stack Arquitectónico a Cloudflare</h1>
+    <p style="font-size: 1.2rem; max-width: 700px; margin: 0 auto; color: var(--text-muted);">
+      Propuesta técnica para migrar la arquitectura desde Astro (Vercel) + Supabase (PostgreSQL/RLS) + FastAPI (Railway) hacia un ecosistema serverless 100% hospedado en la red global de Cloudflare.
+    </p>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Proyecto</div>
+        <div class="meta-value">iot-assistant</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Estado</div>
+        <div class="meta-value" style="color: var(--warning)">Borrador</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Fecha</div>
+        <div class="meta-value">2026-06-11</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Autor / Equipo</div>
+        <div class="meta-value">SD / [SD, CJ]</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. Contexto -->
+  <section id="contexto">
+    <h2>1. Contexto y Estado Actual</h2>
+    <p>
+      El sistema actual está distribuido entre tres proveedores diferentes (Vercel, Supabase y Railway), lo que incrementa la latencia y los costos de infraestructura.
+    </p>
+    
+    <div class="diagram-container">
+      <!-- Arquitectura Actual -->
+      <div class="diagram-card">
+        <div class="diagram-title">Arquitectura Actual (Multicloud)</div>
+        <svg class="diagram-svg" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg">
+          <!-- Client -->
+          <rect x="75" y="10" width="150" height="35" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+          <text x="150" y="32" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Cliente PWA (Astro/Vercel)</text>
+          
+          <!-- Database -->
+          <rect x="15" y="120" width="120" height="70" rx="6" fill="#022c22" stroke="#065f46" stroke-width="1.5"/>
+          <text x="75" y="142" fill="#34d399" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Supabase Cloud</text>
+          <text x="75" y="160" fill="#a7f3d0" font-family="sans-serif" font-size="9" text-anchor="middle">• PostgreSQL (RLS)</text>
+          <text x="75" y="175" fill="#a7f3d0" font-family="sans-serif" font-size="9" text-anchor="middle">• Auth & Storage</text>
+          
+          <!-- AI -->
+          <rect x="165" y="120" width="120" height="70" rx="6" fill="#1e1b4b" stroke="#3730a3" stroke-width="1.5"/>
+          <text x="225" y="142" fill="#818cf8" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">FastAPI (Railway)</text>
+          <text x="225" y="160" fill="#c7d2fe" font-family="sans-serif" font-size="9" text-anchor="middle">• Python Microservice</text>
+          <text x="225" y="175" fill="#c7d2fe" font-family="sans-serif" font-size="9" text-anchor="middle">• Claude/Pillow/QR</text>
+          
+          <!-- Connectors -->
+          <path d="M120 45 L75 120" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M180 45 L225 120" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)"/>
+        </svg>
+      </div>
+
+      <!-- Arquitectura Target -->
+      <div class="diagram-card" style="border-color: rgba(243, 128, 32, 0.2);">
+        <div class="diagram-title" style="color: var(--primary);">Arquitectura Target (Cloudflare Edge)</div>
+        <svg class="diagram-svg" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg">
+          <!-- Client -->
+          <rect x="75" y="10" width="150" height="35" rx="6" fill="#1e293b" stroke="#f38020" stroke-width="1.5"/>
+          <text x="150" y="32" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Cliente PWA (Astro)</text>
+          
+          <!-- Cloudflare Box -->
+          <rect x="15" y="80" width="270" height="125" rx="8" fill="rgba(243, 128, 32, 0.03)" stroke="#f38020" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <text x="150" y="98" fill="#f38020" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">CLOUDFLARE EDGE PLATFORM</text>
+          
+          <!-- Services -->
+          <rect x="25" y="120" width="70" height="70" rx="6" fill="#1c1917" stroke="#44403c" stroke-width="1.5"/>
+          <text x="60" y="145" fill="#fff" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Pages/D1</text>
+          <text x="60" y="165" fill="#a8a29e" font-family="sans-serif" font-size="8" text-anchor="middle">Web & DB</text>
+
+          <rect x="115" y="120" width="70" height="70" rx="6" fill="#1c1917" stroke="#44403c" stroke-width="1.5"/>
+          <text x="150" y="145" fill="#fff" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle">R2 / KV</text>
+          <text x="150" y="165" fill="#a8a29e" font-family="sans-serif" font-size="8" text-anchor="middle">Storage/Auth</text>
+
+          <rect x="205" y="120" width="70" height="70" rx="6" fill="#1c1917" stroke="#44403c" stroke-width="1.5"/>
+          <text x="240" y="145" fill="#fff" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle">Workers AI</text>
+          <text x="240" y="165" fill="#a8a29e" font-family="sans-serif" font-size="8" text-anchor="middle">IA local/Edge</text>
+
+          <path d="M150 45 L150 80" stroke="#f38020" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <p>
+      El objetivo es migrar hacia <strong>Cloudflare</strong> para ganar en velocidad en el edge, unificar el lenguaje de desarrollo a TypeScript puro y reducir la sobrecarga de mantenimiento.
+    </p>
+  </section>
+
+  <!-- 2. Tradeoffs -->
+  <section id="tradeoffs">
+    <h2>2. Análisis de Tradeoffs & Riesgos Críticos</h2>
+
+    <div class="alert alert-important">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-content">
+        <h4>Pérdida de Row-Level Security (RLS) en D1</h4>
+        <p>
+          Supabase PostgreSQL provee RLS a nivel de motor de base de datos. Cloudflare D1 usa SQLite, que no cuenta con esta capacidad. Al migrar a D1, <strong>toda la lógica de autorización debe ser implementada en la aplicación (Astro/Workers)</strong>, lo cual aumenta el riesgo de fugas de datos involuntarias si no somos sumamente disciplinados con las consultas SQL.
+        </p>
+      </div>
+    </div>
+
+    <div class="alert alert-warning">
+      <div class="alert-icon">⚙️</div>
+      <div class="alert-content">
+        <h4>Cambio de Motor: PostgreSQL a SQLite</h4>
+        <p>
+          Perdemos tipos de datos nativos como arrays (<code>TEXT[]</code>), JSONB indexado por GIN y triggers complejos. Tendremos que parsear los JSON en el código de aplicación y adaptar las consultas jerárquicas de ubicaciones.
+        </p>
+      </div>
+    </div>
+
+    <div class="alert alert-note">
+      <div class="alert-icon">💡</div>
+      <div class="alert-content">
+        <h4>Eliminación del Backend de Python</h4>
+        <p>
+          Actualmente, FastAPI en Railway procesa llamadas a Claude Vision y genera imágenes de etiquetas QR con Pillow. Migrar esto a TypeScript en Workers elimina Railway por completo y unifica nuestra base de código en un solo lenguaje.
+        </p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Componente</th>
+          <th>Servicio Actual</th>
+          <th>Servicio Target</th>
+          <th>Esfuerzo de Migración</th>
+          <th>Complejidad / Riesgo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Hosting Frontend</strong></td>
+          <td>Vercel</td>
+          <td>Cloudflare Pages</td>
+          <td><span class="badge-diff badge-low">Bajo</span></td>
+          <td>Bajo. Uso directo de <code>@astrojs/cloudflare</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Base de Datos</strong></td>
+          <td>Supabase Postgres</td>
+          <td>Cloudflare D1 (SQLite)</td>
+          <td><span class="badge-diff badge-high">Alto</span></td>
+          <td><strong>Muy Alto</strong> debido a la pérdida de RLS a nivel DB.</td>
+        </tr>
+        <tr>
+          <td><strong>Autenticación</strong></td>
+          <td>Supabase Auth</td>
+          <td>Lucia Auth / Clerk</td>
+          <td><span class="badge-diff badge-medium">Medio</span></td>
+          <td>Medio. Migración de sesiones.</td>
+        </tr>
+        <tr>
+          <td><strong>Almacenamiento</strong></td>
+          <td>Supabase Storage</td>
+          <td>Cloudflare R2</td>
+          <td><span class="badge-diff badge-medium">Medio</span></td>
+          <td>Bajo. API compatible con S3 SDK.</td>
+        </tr>
+        <tr>
+          <td><strong>Módulo de IA</strong></td>
+          <td>FastAPI (Python)</td>
+          <td>Astro API / Workers AI</td>
+          <td><span class="badge-diff badge-high">Alto</span></td>
+          <td>Medio. Reescribir prompts y lógica de QR en TS.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3. Plan de Adopción -->
+  <section id="plan">
+    <h2>3. Plan de Adopción por Fases</h2>
+    <p>
+      Para realizar la transición sin disrupción, utilizaremos un enfoque por fases completamente independientes y commiteables:
+    </p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-title">
+            <span>Hosting Frontend en el Edge</span>
+            <span class="timeline-phase">Fase 1</span>
+          </div>
+          <p>
+            Adaptación del frontend Astro usando el adaptador oficial de Cloudflare y despliegue inicial en Cloudflare Pages. El backend, la autenticación y la base de datos se mantienen en Supabase de forma transparente.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-title">
+            <span>Remoción del Microservicio de Python</span>
+            <span class="timeline-phase">Fase 2</span>
+          </div>
+          <p>
+            Migración de endpoints de FastAPI a rutas API de Astro. La generación de etiquetas QR se realiza mediante canvas de JS en el Worker. Reemplazo de llamadas directas a OpenAI/Anthropic desde el Edge.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-title">
+            <span>Migración de Almacenamiento a R2</span>
+            <span class="timeline-phase">Fase 3</span>
+          </div>
+          <p>
+            Creación de un bucket R2 y configuración de un cliente compatible con el SDK S3. Script para migrar los archivos binarios existentes desde Supabase Storage.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-title">
+            <span>Migración de Base de Datos y Autenticación</span>
+            <span class="timeline-phase">Fase 4</span>
+          </div>
+          <p>
+            Traducción del schema Postgres a SQLite para D1. Migración de usuarios a base de datos D1 con Lucia Auth. <strong>Paso Crítico:</strong> Implementación de políticas de filtrado manual de seguridad a nivel de métodos CRUD en <code>src/lib/</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Preguntas Abiertas -->
+  <section id="preguntas">
+    <h2>4. Preguntas Abiertas & Decisiones del Equipo</h2>
+    <ul>
+      <li>
+        <strong>¿Es viable evitar D1 para mantener Postgres RLS?</strong><br>
+        <span style="color: var(--text-muted)">Podríamos usar Cloudflare Pages para frontend e IA, y Cloudflare Hyperdrive para conectar a Supabase Postgres de forma segura. ¿Vale la pena el esfuerzo de migrar a SQLite a costa de perder RLS?</span>
+      </li>
+      <li style="margin-top: 1rem;">
+        <strong>¿Cómo validaremos la seguridad sin RLS?</strong><br>
+        <span style="color: var(--text-muted)">Si procedemos con D1, será mandatorio implementar tests de integración rigurosos para cada método de negocio que aseguren la separación de datos por usuario.</span>
+      </li>
+      <li style="margin-top: 1rem;">
+        <strong>¿Workers AI vs APIs de Terceros?</strong><br>
+        <span style="color: var(--text-muted)">¿Reemplazamos Claude Vision por modelos de código abierto locales en Workers AI, o mantenemos llamadas HTTP externas para el reconocimiento de componentes electrónicos complejos?</span>
+      </li>
+    </ul>
+  </section>
+</div>
+
+</body>
+</html>

@@ -133,3 +133,7 @@ Si el prompt es ambiguo en alguno de estos puntos, preguntar UNA VEZ con las dud
 - Lógica de negocio y acceso a datos en `src/lib/`
 - React islands en `src/components/islands/`
 - UI Astro en `src/components/ui/`
+- **Artefactos SDD (Dual Format):** Se deben crear en formatos separados para cada audiencia y mantenerse sincronizados:
+  - **Para el Agente (`.md`):** Markdown ultracompacto, optimizado para ahorro de tokens, preciso y libre de ambigüedades.
+  - **Para el Humano (`.html`):** HTML enriquecido con CSS inline, tablas legibles, diagramas SVG y una interfaz estética que facilite la visualización humana.
+
