@@ -12,6 +12,8 @@ related:
 
 # SDD Proposal: Cloudflare Migration (Serverless Edge)
 
+> [👉 Ver versión enriquecida en HTML para Humanos](./2026-06-11-architecture-migration-cloudflare.html)
+
 ## 1. Current Architecture Stack
 - **Frontend:** Astro 6 (SSG/ISR) + React 19 Islands on Vercel.
 - **Backend BFF & DB:** Supabase Cloud (PostgreSQL 16 with RLS + Supabase Auth + Supabase Storage).
