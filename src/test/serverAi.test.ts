@@ -15,6 +15,13 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({ auth: { getUser: mockGetUser } })),
 }))
 
+const { mockCreateAnthropic } = vi.hoisted(() => ({
+  mockCreateAnthropic: vi.fn(() => (id: string) => ({ modelId: id })),
+}))
+vi.mock('@ai-sdk/anthropic', () => ({
+  createAnthropic: mockCreateAnthropic,
+}))
+
 describe('parseAiJson', () => {
   it('parses plain JSON', () => {
     expect(parseAiJson('{"a": 1}')).toEqual({ a: 1 })
@@ -165,6 +172,7 @@ describe('toRecognizeResponse', () => {
 describe('getMoonshotModel', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
+    mockCreateAnthropic.mockClear()
   })
 
   it('returns null when MOONSHOT_API_KEY is not set', () => {
@@ -175,6 +183,30 @@ describe('getMoonshotModel', () => {
   it('returns a model when MOONSHOT_API_KEY is set', () => {
     vi.stubEnv('MOONSHOT_API_KEY', 'sk-test')
     expect(getMoonshotModel()).not.toBeNull()
+  })
+
+  it('targets the Kimi Coding endpoint with the Anthropic protocol', () => {
+    vi.stubEnv('MOONSHOT_API_KEY', 'sk-kimi-test')
+    getMoonshotModel()
+    expect(mockCreateAnthropic).toHaveBeenCalledWith(
+      expect.objectContaining({ baseURL: 'https://api.kimi.com/coding/v1', apiKey: 'sk-kimi-test' }),
+    )
+  })
+
+  it('reads the key from import.meta.env when process.env lacks it (Astro dev)', () => {
+    // Under Vitest import.meta.env is backed by process.env, so the meta-env
+    // path is exercised by injecting the env objects explicitly.
+    expect(getMoonshotModel({ MOONSHOT_API_KEY: 'sk-kimi-meta' }, {})).not.toBeNull()
+    expect(mockCreateAnthropic).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-kimi-meta' }),
+    )
+  })
+
+  it('falls back to process.env when import.meta.env lacks the key (Vercel runtime)', () => {
+    expect(getMoonshotModel({}, { MOONSHOT_API_KEY: 'sk-kimi-proc' })).not.toBeNull()
+    expect(mockCreateAnthropic).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-kimi-proc' }),
+    )
   })
 
   it('uses MOONSHOT_MODEL when set', () => {

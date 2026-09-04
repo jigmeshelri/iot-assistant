@@ -1,25 +1,34 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { createClient, type User } from '@supabase/supabase-js'
 import type { CodeAnalyzeResponse, RecognizeResponse } from '../api'
 
-// Server-only helpers for the Moonshot-backed AI endpoints (spike: issue #40).
-// Secrets (MOONSHOT_API_KEY) come from process.env; public Supabase config
-// follows the existing convention (import.meta.env.PUBLIC_*).
+// Server-only helpers for the Kimi-backed AI endpoints (spike: issue #40).
+// Secrets come from import.meta.env (Astro loads .env there; process.env does
+// NOT include .env vars in dev), with process.env as fallback for runtimes
+// that inject env directly (e.g. Vercel).
 
-const MOONSHOT_BASE_URL = 'https://api.moonshot.ai/v1'
+// `sk-kimi-` keys (platform.kimi.ai) are rejected by api.moonshot.ai/v1 with
+// 401; they only work on the Kimi Coding endpoint, which speaks the Anthropic
+// Messages protocol.
+const KIMI_BASE_URL = 'https://api.kimi.com/coding/v1'
 // kimi-k2.5: Moonshot's native multimodal model (text + vision, 256k context).
-const DEFAULT_MOONSHOT_MODEL = 'kimi-k2.5'
+const DEFAULT_KIMI_MODEL = 'kimi-k2.5'
 
-/** Returns the Moonshot chat model, or null if the provider is not configured. */
-export function getMoonshotModel() {
-  const apiKey = process.env.MOONSHOT_API_KEY
+/** Returns the Kimi chat model, or null if the provider is not configured. */
+export function getMoonshotModel(
+  // Injectable for testing: under Vitest, import.meta.env in source modules is
+  // backed by process.env, so the two resolution paths can only be exercised
+  // distinctly by passing the env objects explicitly.
+  metaEnv: Record<string, string | undefined> = import.meta.env,
+  procEnv: Record<string, string | undefined> = process.env,
+) {
+  const apiKey = metaEnv.MOONSHOT_API_KEY ?? procEnv.MOONSHOT_API_KEY
   if (!apiKey) return null
-  const moonshot = createOpenAICompatible({
-    name: 'moonshot',
-    baseURL: MOONSHOT_BASE_URL,
+  const kimi = createAnthropic({
+    baseURL: KIMI_BASE_URL,
     apiKey,
   })
-  return moonshot(process.env.MOONSHOT_MODEL ?? DEFAULT_MOONSHOT_MODEL)
+  return kimi(metaEnv.MOONSHOT_MODEL ?? procEnv.MOONSHOT_MODEL ?? DEFAULT_KIMI_MODEL)
 }
 
 /**

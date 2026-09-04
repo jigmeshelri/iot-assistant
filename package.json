@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.43",
+    "@ai-sdk/anthropic": "^4.0.49",
     "@astrojs/react": "^4.0.0",
     "@astrojs/vercel": "^10.0.0",
     "@nanostores/react": "^0.7.3",
