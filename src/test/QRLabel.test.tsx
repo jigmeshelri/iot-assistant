@@ -3,7 +3,7 @@ import { vi, describe, it, expect } from 'vitest'
 import QRLabel from '../components/islands/QRLabel'
 
 vi.mock('../lib/api', () => ({
-  qrImageUrl: (code: string) => `https://api.test/qr/${code}`,
+  qrImageUrl: (code: string) => `/api/qr/${code}`,
 }))
 
 describe('QRLabel', () => {
@@ -32,7 +32,7 @@ describe('QRLabel', () => {
   it('renders QR image with correct src', () => {
     render(<QRLabel qrCode="LOC-ABC-123" locationName="Laboratorio" />)
     const img = screen.getByRole('img')
-    expect(img).toHaveAttribute('src', 'https://api.test/qr/LOC-ABC-123')
+    expect(img).toHaveAttribute('src', '/api/qr/LOC-ABC-123')
   })
 
   it('renders a hidden iframe for printing', () => {
@@ -66,7 +66,7 @@ describe('QRLabel', () => {
     fireEvent.click(screen.getByText(/Imprimir/))
 
     expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining('QR — Oficina'))
-    expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining('https://api.test/qr/LOC-XYZ-999'))
+    expect(mockWrite).toHaveBeenCalledWith(expect.stringContaining('/api/qr/LOC-XYZ-999'))
     expect(mockClose).toHaveBeenCalled()
     expect(mockFocus).toHaveBeenCalled()
     expect(mockPrint).toHaveBeenCalled()
