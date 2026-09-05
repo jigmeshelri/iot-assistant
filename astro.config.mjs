@@ -9,6 +9,9 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: true },
+    // Full code generation with 8192 output tokens is slow; the adapter emits a
+    // single serverless function, so this hobby-plan maximum applies app-wide.
+    maxDuration: 60,
   }),
   vite: {
     plugins: [

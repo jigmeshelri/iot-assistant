@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ANALYZE_PROMPTS,
   buildAnalyzePrompt,
+  buildCodeGeneratePrompt,
   getMoonshotModel,
   parseAiJson,
   parseAnalyzeBody,
+  parseCodeGenerateBody,
   toAnalyzeResponse,
+  toCodeGenerateResponse,
+  toCodeResource,
   toRecognizeResponse,
   verifyBearerToken,
 } from '../lib/server/ai'
@@ -264,5 +268,123 @@ describe('verifyBearerToken', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
     const result = await verifyBearerToken(reqWith({ Authorization: 'Bearer tok' }))
     expect('user' in result && (result.user as { id: string }).id).toBe('u1')
+  })
+})
+
+describe('parseCodeGenerateBody', () => {
+  const valid = {
+    project_type: 'diy',
+    environment: 'arduino',
+    bom: [{ component_name: 'ESP32', quantity_required: 1 }],
+    project_title: 'Alarma',
+  }
+
+  it('accepts a valid body and defaults mode to skeleton', () => {
+    expect(parseCodeGenerateBody(valid)).toMatchObject({ mode: 'skeleton' })
+  })
+
+  it('keeps an explicit mode', () => {
+    expect(parseCodeGenerateBody({ ...valid, mode: 'complete' })).toMatchObject({
+      mode: 'complete',
+    })
+  })
+
+  it('rejects invalid bodies', () => {
+    expect(parseCodeGenerateBody(null)).toBeNull()
+    expect(parseCodeGenerateBody({ ...valid, project_title: 42 })).toBeNull()
+    expect(parseCodeGenerateBody({ ...valid, bom: 'nope' })).toBeNull()
+    expect(parseCodeGenerateBody({ ...valid, bom: [{ bad: true }] })).toBeNull()
+    expect(parseCodeGenerateBody({ ...valid, mode: 42 })).toBeNull()
+  })
+})
+
+describe('buildCodeGeneratePrompt', () => {
+  const base = {
+    project_type: 'diy',
+    environment: 'arduino',
+    bom: [
+      {
+        component_name: 'ESP32',
+        quantity_required: 1,
+        state: 'available' as const,
+        available_quantity: 2,
+        alternatives: [],
+        notes: null,
+      },
+    ],
+    project_title: 'Alarma',
+    mode: 'skeleton',
+  }
+
+  it('builds the skeleton prompt with the BOM summary', () => {
+    const prompt = buildCodeGeneratePrompt(base)
+    expect(prompt).toContain('Generate a well-structured skeleton with TODOs for:')
+    expect(prompt).toContain('Project: Alarma')
+    expect(prompt).toContain('Type: diy')
+    expect(prompt).toContain('Environment: arduino')
+    expect(prompt).toContain('Components:\n- ESP32 (qty: 1)')
+    expect(prompt).toContain('"resources":')
+  })
+
+  it('uses the complete mode description', () => {
+    expect(buildCodeGeneratePrompt({ ...base, mode: 'complete' })).toContain(
+      'Generate a complete working implementation for:',
+    )
+  })
+
+  it('falls back to prototype for unknown project_type', () => {
+    expect(buildCodeGeneratePrompt({ ...base, project_type: 'enterprise' })).toContain(
+      'Type: prototype',
+    )
+  })
+})
+
+describe('toCodeResource', () => {
+  it('maps a full resource', () => {
+    expect(
+      toCodeResource({
+        filename: 'main.ino',
+        language: 'cpp',
+        content: 'void setup() {}',
+        explanation: 'setup only',
+        dependencies: ['WiFi'],
+      }),
+    ).toEqual({
+      filename: 'main.ino',
+      language: 'cpp',
+      content: 'void setup() {}',
+      explanation: 'setup only',
+      dependencies: ['WiFi'],
+    })
+  })
+
+  it('applies the Pydantic defaults', () => {
+    expect(toCodeResource({ filename: 'a.ino', content: 'x' })).toEqual({
+      filename: 'a.ino',
+      language: 'cpp',
+      content: 'x',
+      explanation: '',
+      dependencies: [],
+    })
+  })
+
+  it('throws on missing required fields', () => {
+    expect(() => toCodeResource({ content: 'x' })).toThrow()
+    expect(() => toCodeResource({ filename: 'a' })).toThrow()
+    expect(() => toCodeResource(null)).toThrow()
+  })
+})
+
+describe('toCodeGenerateResponse', () => {
+  it('maps the resources array', () => {
+    const res = toCodeGenerateResponse({
+      resources: [{ filename: 'a.ino', content: 'x' }],
+    })
+    expect(res.resources).toHaveLength(1)
+    expect(res.resources[0].language).toBe('cpp')
+  })
+
+  it('throws when resources is missing', () => {
+    expect(() => toCodeGenerateResponse({})).toThrow()
   })
 })

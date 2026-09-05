@@ -1,5 +1,8 @@
 function normalizeApiBase(url: string): string {
-  if (!url) return 'http://localhost:8000'
+  // Default: same-origin (the AI/QR endpoints are Astro API routes in this app).
+  // PUBLIC_API_URL remains as an optional override, e.g. to keep pointing at the
+  // legacy Railway FastAPI service during the transition.
+  if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url.replace(/\/$/, '')
   return `https://${url.replace(/\/$/, '')}`
 }
@@ -62,13 +65,20 @@ export interface CodeResource {
   dependencies: string[]
 }
 
+export interface PlanResponse {
+  title: string
+  description: string
+  bom: BOMItem[]
+  notes: string | null
+}
+
 export async function recognizeComponent(
   file: File,
   token: string,
 ): Promise<RecognizeResponse> {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${API_BASE}/ai/recognize`, {
+  const res = await fetch(`${API_BASE}/api/ai/recognize`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: form,
@@ -81,7 +91,7 @@ export async function discoverProjects(
   inventory: unknown[],
   token: string,
 ): Promise<{ suggestions: ProjectSuggestion[] }> {
-  return apiFetch('/ai/projects/discover', {
+  return apiFetch('/api/ai/projects/discover', {
     method: 'POST',
     body: JSON.stringify({ inventory }),
   }, token)
@@ -92,8 +102,8 @@ export async function planProject(
   inventory: unknown[],
   refinement: unknown,
   token: string,
-) {
-  return apiFetch('/ai/projects/plan', {
+): Promise<PlanResponse> {
+  return apiFetch('/api/ai/projects/plan', {
     method: 'POST',
     body: JSON.stringify({ description, inventory, refinement }),
   }, token)
@@ -103,14 +113,14 @@ export async function generateCode(
   payload: unknown,
   token: string,
 ): Promise<{ resources: CodeResource[] }> {
-  return apiFetch('/ai/code/generate', {
+  return apiFetch('/api/ai/code/generate', {
     method: 'POST',
     body: JSON.stringify(payload),
   }, token)
 }
 
 export function qrImageUrl(qrCode: string): string {
-  return `${API_BASE}/qr/${encodeURIComponent(qrCode)}`
+  return `${API_BASE}/api/qr/${encodeURIComponent(qrCode)}`
 }
 
 export interface CodeAnalyzeResponse {
@@ -128,7 +138,7 @@ export async function analyzeCode(
   },
   token: string,
 ): Promise<CodeAnalyzeResponse> {
-  return apiFetch('/ai/code/analyze', {
+  return apiFetch('/api/ai/code/analyze', {
     method: 'POST',
     body: JSON.stringify(payload),
   }, token)
