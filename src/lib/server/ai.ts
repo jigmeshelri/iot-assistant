@@ -1,25 +1,35 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { createClient, type User } from '@supabase/supabase-js'
-import type { CodeAnalyzeResponse, RecognizeResponse } from '../api'
+import type { BOMItem, CodeAnalyzeResponse, CodeResource, RecognizeResponse } from '../api'
+import { parseBOMItems } from './aiProjects'
 
-// Server-only helpers for the Moonshot-backed AI endpoints (spike: issue #40).
-// Secrets (MOONSHOT_API_KEY) come from process.env; public Supabase config
-// follows the existing convention (import.meta.env.PUBLIC_*).
+// Server-only helpers for the Kimi-backed AI endpoints (spike: issue #40).
+// Secrets come from import.meta.env (Astro loads .env there; process.env does
+// NOT include .env vars in dev), with process.env as fallback for runtimes
+// that inject env directly (e.g. Vercel).
 
-const MOONSHOT_BASE_URL = 'https://api.moonshot.ai/v1'
+// `sk-kimi-` keys (platform.kimi.ai) are rejected by api.moonshot.ai/v1 with
+// 401; they only work on the Kimi Coding endpoint, which speaks the Anthropic
+// Messages protocol.
+const KIMI_BASE_URL = 'https://api.kimi.com/coding/v1'
 // kimi-k2.5: Moonshot's native multimodal model (text + vision, 256k context).
-const DEFAULT_MOONSHOT_MODEL = 'kimi-k2.5'
+const DEFAULT_KIMI_MODEL = 'kimi-k2.5'
 
-/** Returns the Moonshot chat model, or null if the provider is not configured. */
-export function getMoonshotModel() {
-  const apiKey = process.env.MOONSHOT_API_KEY
+/** Returns the Kimi chat model, or null if the provider is not configured. */
+export function getMoonshotModel(
+  // Injectable for testing: under Vitest, import.meta.env in source modules is
+  // backed by process.env, so the two resolution paths can only be exercised
+  // distinctly by passing the env objects explicitly.
+  metaEnv: Record<string, string | undefined> = import.meta.env,
+  procEnv: Record<string, string | undefined> = process.env,
+) {
+  const apiKey = metaEnv.MOONSHOT_API_KEY ?? procEnv.MOONSHOT_API_KEY
   if (!apiKey) return null
-  const moonshot = createOpenAICompatible({
-    name: 'moonshot',
-    baseURL: MOONSHOT_BASE_URL,
+  const kimi = createAnthropic({
+    baseURL: KIMI_BASE_URL,
     apiKey,
   })
-  return moonshot(process.env.MOONSHOT_MODEL ?? DEFAULT_MOONSHOT_MODEL)
+  return kimi(metaEnv.MOONSHOT_MODEL ?? procEnv.MOONSHOT_MODEL ?? DEFAULT_KIMI_MODEL)
 }
 
 /**
@@ -196,4 +206,84 @@ export function toRecognizeResponse(data: Record<string, unknown>): RecognizeRes
     datasheet_url: (data['datasheet_url'] as string | null) ?? null,
     notes: (data['notes'] as string | null) ?? null,
   }
+}
+
+// ---------------------------------------------------------------------------
+// /api/ai/code/generate — ported 1:1 from api/main.py
+// ---------------------------------------------------------------------------
+
+export interface CodeGenerateRequest {
+  project_type: string
+  environment: string
+  bom: BOMItem[]
+  project_title: string
+  mode: string // skeleton | complete
+}
+
+/** Narrows an untyped JSON body to CodeGenerateRequest, or returns null. */
+export function parseCodeGenerateBody(body: unknown): CodeGenerateRequest | null {
+  if (typeof body !== 'object' || body === null) return null
+  const b = body as Record<string, unknown>
+  if (typeof b['project_type'] !== 'string' || typeof b['environment'] !== 'string') return null
+  if (typeof b['project_title'] !== 'string') return null
+  const bom = parseBOMItems(b['bom'])
+  if (!bom) return null
+  if (b['mode'] !== undefined && typeof b['mode'] !== 'string') return null
+  return { ...(body as CodeGenerateRequest), bom, mode: (b['mode'] as string) ?? 'skeleton' }
+}
+
+/** Builds the code generation prompt (port of generate_code in api/main.py). */
+export function buildCodeGeneratePrompt(req: CodeGenerateRequest): string {
+  const projectType = ['diy', 'prototype', 'professional'].includes(req.project_type)
+    ? req.project_type
+    : 'prototype'
+  const bomText = req.bom
+    .map(item => `- ${item.component_name} (qty: ${item.quantity_required})`)
+    .join('\n')
+  const modeDesc =
+    req.mode === 'complete'
+      ? 'a complete working implementation'
+      : 'a well-structured skeleton with TODOs'
+
+  return (
+    `You are an embedded systems engineer. Generate ${modeDesc} for:\n` +
+    `Project: ${req.project_title}\n` +
+    `Type: ${projectType}\n` +
+    `Environment: ${req.environment}\n` +
+    `Components:\n${bomText}\n\n` +
+    'Respond ONLY with valid JSON (no markdown):\n' +
+    '{"resources":[' +
+    '{"filename":"main.ino","language":"cpp","content":"...full code...","explanation":"...","dependencies":["lib1"]}' +
+    ']}'
+  )
+}
+
+/** Maps an untyped value to the CodeResource contract (same defaults as the Pydantic model). */
+export function toCodeResource(data: unknown): CodeResource {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Resource is not an object')
+  }
+  const d = data as Record<string, unknown>
+  if (typeof d['filename'] !== 'string') throw new Error('Missing required field: filename')
+  if (typeof d['content'] !== 'string') throw new Error('Missing required field: content')
+  return {
+    filename: d['filename'],
+    language: (d['language'] as string) ?? 'cpp',
+    content: d['content'],
+    explanation: (d['explanation'] as string) ?? '',
+    dependencies: (d['dependencies'] as string[]) ?? [],
+  }
+}
+
+/**
+ * Maps the parsed AI payload to the code generation contract.
+ * Throws on missing required fields, mirroring the Pydantic 422 behavior.
+ */
+export function toCodeGenerateResponse(data: Record<string, unknown>): {
+  resources: CodeResource[]
+} {
+  if (!Array.isArray(data['resources'])) {
+    throw new Error('Missing required field: resources')
+  }
+  return { resources: (data['resources'] as unknown[]).map(toCodeResource) }
 }

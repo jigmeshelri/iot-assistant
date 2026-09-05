@@ -7,6 +7,10 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/api/ai/code/analyze')).toBe(true)
   })
 
+  it('allows /api/qr/* (unauthenticated by design, like the Python endpoint)', () => {
+    expect(isPublicPath('/api/qr/LOC-ABC')).toBe(true)
+  })
+
   it('allows the existing public pages', () => {
     expect(isPublicPath('/login')).toBe(true)
     expect(isPublicPath('/community')).toBe(true)
