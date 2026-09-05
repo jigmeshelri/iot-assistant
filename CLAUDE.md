@@ -4,7 +4,7 @@
 
 **Web app** (este repo, deploy a Vercel): Astro 6 + React 19 (Islands) + Tailwind 4 + Supabase (PostgreSQL + RLS) + Vitest + Playwright.
 
-**Servicio auxiliar `api/`** (deploy a Railway): servicio Python que expone el agente conversacional consumido desde la web app para responder preguntas sobre el inventario y los proyectos del usuario.
+**Endpoints de IA** (`src/pages/api/`): Astro API routes serverless en Vercel, con IA vía Kimi (Moonshot) usando el endpoint Kimi Coding (protocolo Anthropic). Reemplazan al viejo servicio Python en Railway (eliminado del repo en la migración del issue #40).
 
 ## Documentación Clave
 
@@ -31,7 +31,6 @@ e2e/
 supabase/
   schema.sql           → Schema de DB (source of truth)
   migrations/          → Migraciones SQL
-api/                   → Servicio Python (Railway) — agente conversacional
 mockups/               → Mockups del proyecto, publicados via GitHub Pages
 docs/                  → Proposals activos y archive de planes/specs completados
 ```
